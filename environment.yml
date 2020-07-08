@@ -1,0 +1,19 @@
+# This file may be used to create an environment using:
+# $ conda env create -f environment.yml
+# platform: win-64
+
+name: smile
+channels:
+  - defaults
+dependencies:
+  - python=3.7.7
+  - matplotlib=3.2.1
+  - numpy=1.18.1
+  - scipy=1.4.1
+  - jupyterlab=2.1.4
+  - jupyterlab-git=0.20.0
+  - jupyter_conda=3.3.1
+  - statsmodels=0.11.1
+prefix: C:\tools\Anaconda3\envs\smile
+
+
