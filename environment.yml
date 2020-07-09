@@ -10,5 +10,4 @@ dependencies:
   - jupyter_conda
   - statsmodels
   - python=3.7.7
-prefix: C:\tools\Anaconda3\envs\smile
 
