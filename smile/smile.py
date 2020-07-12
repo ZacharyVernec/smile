@@ -421,7 +421,7 @@ class PopulationList(UserList):
         for (i, pop) in enumerate(self):
                 pop.plot(axes[i], **kwargs)
 
-
+# TODO RegressionResultList class, to plot multple boxes in same axis
 class RegressionResult:
     '''Wrapper for linear RegressionResults class of statsmodels'''
     def __init__(self, statsmodelRegResult, population):
@@ -435,24 +435,24 @@ class RegressionResult:
         '''uses a Student t distribution'''
         return self.statsmodelRegResult.conf_int(alpha=alpha)
     
-    def plot(self, ax, alpha): #TODO make more generate than just visual vs symptom
+    def plot_line(self, ax, alpha=0.05): #TODO make more generate than just visual vs symptom
         x = np.linspace(FMIN, np.max(self.population.scores['visual']), 20)
-        
+
         y = self.params['visual']*x + self.params['Intercept']
-        
+
         conf_int = self.confidence_interval(alpha=alpha)
         ylow = conf_int[0]['visual']*x + conf_int[0]['Intercept']
         yhigh = conf_int[1]['visual']*x + conf_int[1]['Intercept']
-        
+
         ax.plot(x,y, color='b')
         ax.fill_between(x, ylow, yhigh, color='b', alpha=.1)
         
+        # Formatting
         title = "Regression of {} \n with confidence interval of {}".format(self.population.title, alpha)
         ax.set_title(title, wrap=True)
         xlabel='visual score'
         ylabel='symptom score'
         ax.set(xlabel=xlabel, ylabel=ylabel)
-        
         ax.autoscale()
 
         
