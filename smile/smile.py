@@ -297,7 +297,7 @@ class Population:
 def assertPopulation(obj):
     """Check if object is a Population"""
     if not isinstance(obj, Population):
-        raise AssertionError("object {} is {} instead of {}".format(obj, type(obj), type(Population())))
+        raise AssertionError("object {} is {} instead of {}".format(obj, type(obj), repr(Population))
     return True #if no error
 def assertListlikeOfPopulations(listlike):
     """Check if all objects are Populations"""
@@ -454,8 +454,56 @@ class RegressionResult:
         ylabel='symptom score'
         ax.set(xlabel=xlabel, ylabel=ylabel)
         ax.autoscale()
-
         
+def assertRegressionResult():
+    """Check if object is a RegressionResult"""
+    if not isinstance(obj, RegressionResult):
+        raise AssertionError("object {} is {} instead of {}".format(obj, type(obj), repr(RegressionResult))
+    return True #if no error
+def assertListlikeOfRegressionResults(listlike):
+    """Check if all objects are RegressionResults"""
+    for (i, obj) in enumerate(listlike):
+        try: 
+            assertRegressionResult(obj)
+        except AssertionError as e:
+            newmessage = "At index {}, {}".format(i, e.args[0])
+            #append update error message
+            if len(e.args) >= 1:
+                e.args = (newmessage,) + e.args[1:]
+            raise #re-raise error with updated message
+    return True #if no error
+
+class RegressionResultList(UserList):
+    def __init__(self, listlike=[]):
+        assertListlikeOfRegressionResults(listlike)
+        super().__init__(listlike)
+    #overriden methods
+    def append(self, other):
+        assertRegressionResult(other)
+        super().append(other)
+    def extend(self, listlike):
+        assertListlikeOfRegressionResult(listlike)
+        super().extend(listlike)
+    def insert(self, i, obj):
+        assertRegressionResult(obj)
+        super().insert(i, obj)
+        
+    # Properties which iterate over the respective attributes for all RegressionResults in the list
+    
+    @property
+    def statsmodelRegResults():
+        return [regresult.statsmodelRegResult for regresult in self]
+    @property
+    def populations():
+        return [regresult.population for regresult in self]
+    @property
+    def params():
+        return [regresult.params for regresult in self]
+    @property
+    def rsquareds():
+        return [regresult.rsquared for regresult in self]
+
+
 
 # # Study
 
