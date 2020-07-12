@@ -1,6 +1,9 @@
-# Helper functions
+"""Helper functions"""
 
+# Third party imports
 import numpy as np
+
+
 
 def truncatednormal(xmin, xmax, pmsigma=3, shape=(2,4)):
     '''the smaller the pmsigma, the closer the distribution is to uniform'''

@@ -16,27 +16,28 @@
 #TODO rename and separate classes, helper functions, etc.
 
 
+
+# Standard library imports
 from collections import UserList
-
-import statsmodels.api as sm
-from patsy import dmatrices
-
-import pandas as pd
-
-from math import ceil
 from copy import copy
+from math import ceil
 from warnings import warn
 
+# Third party imports
+import numpy as np
+from numpy import random
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
 from matplotlib import colors as mcolors
+from matplotlib.collections import LineCollection
+import pandas as pd
+from patsy import dmatrices
+import statsmodels.api as sm
 
-from numpy import random
-import numpy as np
+# Local application imports
+from .helper import rgblist_to_rgbapop, normalize
+from .global_params import *
 
-from smile.helper import rgblist_to_rgbapop, normalize
-from smile.globals import *
 
 
 # # Population
@@ -266,7 +267,8 @@ class Population:
             raise ValueError()
             
         #titles and labels
-        ax.set(title=self.title, xlabel=xlabel, ylabel=ylabel)
+        ax.set_title(self.title, wrap=True)
+        ax.set(xlabel=xlabel, ylabel=ylabel)
         
         #plotting
         if viztype=='lines' or viztype=='both':
@@ -445,10 +447,11 @@ class RegressionResult:
         ax.plot(x,y, color='b')
         ax.fill_between(x, ylow, yhigh, color='b', alpha=.1)
         
-        title = "Regression of {} with confidence interval of {}".format(self.population.title, alpha)
+        title = "Regression of {} \n with confidence interval of {}".format(self.population.title, alpha)
+        ax.set_title(title, wrap=True)
         xlabel='visual score'
         ylabel='symptom score'
-        ax.set(title=title, xlabel=xlabel, ylabel=ylabel)
+        ax.set(xlabel=xlabel, ylabel=ylabel)
         
         ax.autoscale()
 
@@ -542,7 +545,8 @@ class Methodology:
     
     def plot(self, ax, max_day=NDAYS):
         #titles and labels
-        ax.set(title=self.title, xlabel='fixed days', ylabel='smile ratios')
+        ax.set_title(self.title, wrap=True)
+        ax.set(xlabel='fixed days', ylabel='smile ratios')
         
         #plotting
         for fixed_day in self.fixed_days:

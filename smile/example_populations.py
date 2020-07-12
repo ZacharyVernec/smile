@@ -1,7 +1,11 @@
-from smile.smile import Population, PopulationList
-from smile.helper import truncatednormal
-from smile.globals import *
+
+# Third party imports
 import numpy as np
+
+# Local application imports
+from .smile import Population, PopulationList
+from .helper import truncatednormal
+from .global_params import *
 
 # Various functions to exemplify how to create populations
 
