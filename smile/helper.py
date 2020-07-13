@@ -33,3 +33,25 @@ def rgblist_to_rgbapop(rgblist, npersons, ndays, opacity=1.0):
 
 def normalize(array):
     return (array - np.min(array))/(np.max(array)-np.min(array))
+
+def collocate_text(text_blocks, separator="\t", separatorlen=2):
+    text_blocks_lines = [str(text_block).splitlines() for text_block in text_blocks]
+    text_lines_arr = np.array(text_blocks_lines).T
+    lines = []
+    for line in text_lines_arr:
+        lines.append((separator*separatorlen).join(line))
+    return "\n".join(lines)
+
+def print_collocated(text_blocks, separator="\t", separatorlen=2):
+    print(collocate_text(text_blocks, separator=separator, separatorlen=separatorlen))
+    
+#TODO collocate_text is very similar to tile_text, where vseparator="\n" and vseparatorlen=1
+
+def tile_text(text_blocks_2d, hseparator="\t", hseparatorlen=2, vseparator="\n", vseparatorlen=2):
+    lines_of_blocks = [collocate_text(line_of_blocks, separator=hseparator, separatorlen=hseparatorlen) 
+                       for line_of_blocks in text_blocks_2d]
+    return (vseparator*vseparatorlen).join(lines_of_blocks)
+          
+def print_tiled(text_blocks_2d, **kwargs):
+    print(tile_text(text_blocks_2d, **kwargs))
+    
