@@ -166,8 +166,9 @@ class Population:
                 
     # Statistical methods
     
-    def regress(self, y='symptom', x='visual', outputtype='full'):
-        # TODO more complex model than linear
+    #TODO more complex cases than linear
+    #TODO remove repetition between functions
+    def regress_population(self, y='symptom', x='visual'):
         # Argument parsing # TODO make into helper function for clutter reduction
         y_possibilities = {'symptom'} #TODO add more possibilities
         x_possibilities = {'visual'} #TODO add more possibilities
@@ -181,6 +182,18 @@ class Population:
         result = model.fit() #fit model
         
         return RegressionResult(result, self)
+    def regress_persons(self, y='symptom', x='visual'):
+        #each person becomes it's own population
+        poplist = PopulationList([])
+        for i in range(self.npersons):
+            pop = Population()
+            pop.scores = {scorename:self.scores[scorename][i, np.newaxis] for scorename in self.scores}
+            pop.days = self.days[i, np.newaxis]
+            poplist.append(pop)
+        #regress each person
+        regresults = poplist.regress_populations(y=y, x=x)
+        
+        return regresults
     
     # Other methods
         
@@ -291,14 +304,14 @@ class Population:
             ax.scatter(x, y, facecolors='none', edgecolors=colors)
         ax.autoscale()
 
-
 #The following are useful for defining the PopulationList class
 
 def assertPopulation(obj):
     """Check if object is a Population"""
     if not isinstance(obj, Population):
-        raise AssertionError("object {} is {} instead of {}".format(obj, type(obj), repr(Population))
-    return True #if no error
+        raise AssertionError("object {} is {} instead of {}".format(obj, type(obj), repr(Population)))
+    else:
+        return True #if no error
 def assertListlikeOfPopulations(listlike):
     """Check if all objects are Populations"""
     for (i, obj) in enumerate(listlike):
@@ -311,7 +324,6 @@ def assertListlikeOfPopulations(listlike):
                 e.args = (newmessage,) + e.args[1:]
             raise #re-raise error with updated message
     return True #if no error
-
 
 class PopulationList(UserList):
     def __init__(self, listlike=[]):
@@ -384,8 +396,10 @@ class PopulationList(UserList):
             
     # Statistical methods
             
-    def regress(self, **kwargs):
-        return [pop.regress(**kwargs) for pop in self]
+    def regress_populations(self, **kwargs):
+        return RegressionResultList([pop.regress_population(**kwargs) for pop in self])
+    def regress_persons(self, **kwargs):
+        return [pop.regress_persons(**kwargs) for pop in self]
             
     # Other methods
     
@@ -421,6 +435,7 @@ class PopulationList(UserList):
         for (i, pop) in enumerate(self):
                 pop.plot(axes[i], **kwargs)
 
+
 # TODO RegressionResultList class, to plot multple boxes in same axis
 class RegressionResult:
     '''Wrapper for linear RegressionResults class of statsmodels'''
@@ -455,11 +470,12 @@ class RegressionResult:
         ax.set(xlabel=xlabel, ylabel=ylabel)
         ax.autoscale()
         
-def assertRegressionResult():
+def assertRegressionResult(obj):
     """Check if object is a RegressionResult"""
     if not isinstance(obj, RegressionResult):
-        raise AssertionError("object {} is {} instead of {}".format(obj, type(obj), repr(RegressionResult))
-    return True #if no error
+        raise AssertionError("object {} is {} instead of {}".format(obj, type(obj), repr(RegressionResult)))
+    else:
+        return True #if no error
 def assertListlikeOfRegressionResults(listlike):
     """Check if all objects are RegressionResults"""
     for (i, obj) in enumerate(listlike):
