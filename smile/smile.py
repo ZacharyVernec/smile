@@ -490,15 +490,20 @@ class RegressionResultList(UserList):
     # Properties which iterate over the respective attributes for all RegressionResults in the list
     
     @property
-    def statsmodelRegResults(): return [regresult.statsmodelRegResult for regresult in self]
+    def statsmodelRegResults(self): return [regresult.statsmodelRegResult for regresult in self]
     @property
-    def populations(): return [regresult.population for regresult in self]
+    def populations(self): return [regresult.population for regresult in self]
     @property
-    def params(): return [regresult.params for regresult in self]
+    def params(self): return [regresult.params for regresult in self]
     @property
-    def rsquareds(): return [regresult.rsquared for regresult in self]
+    def params_dataframe(self): return pd.concat(self.params, axis=1).transpose()
+    @property
+    def rsquareds(self): return [regresult.rsquared for regresult in self]
     
-    #TODO plotting
+    # Plotting
+    
+    def plot_box(self, ax):
+        self.params_dataframe.boxplot(ax=ax, grid=False)
 
 
 
