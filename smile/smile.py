@@ -59,17 +59,13 @@ class Population:
                        'symptom':None}
         
     @property
-    def npersons(self):
-        return self.days.shape[0]
+    def npersons(self): return self.days.shape[0]
     @property
-    def ndays(self):
-        return self.days.shape[1]
+    def ndays(self): return self.days.shape[1]
     @property
-    def data_shape(self):
-        return self.days.shape
+    def data_shape(self): return self.days.shape
     @property
-    def nfiltered(self):
-        return self.initial_npersons - self.npersons
+    def nfiltered(self): return self.initial_npersons - self.npersons
     @property
     def ratio_filtered(self):
         try:
@@ -77,8 +73,7 @@ class Population:
         except ZeroDivisionError:
             return 0
     @property
-    def nsampled(self):
-        return self.initial_ndays - self.ndays
+    def nsampled(self): return self.initial_ndays - self.ndays
     @property
     def ratio_sampled(self):
         try:
@@ -343,41 +338,29 @@ class PopulationList(UserList):
     # Properties which iterate over the respective attributes for all Populations in the list
     
     @property
-    def titles(self):
-        return [pop.title for pop in self]
+    def titles(self): return [pop.title for pop in self]
     @property
-    def npersons(self):
-        return [pop.npersons for pop in self]
+    def npersons(self): return [pop.npersons for pop in self]
     @property
-    def ndays(self):
-        return [pop.ndays for pop in self]
+    def ndays(self): return [pop.ndays for pop in self]
     @property
-    def data_shapes(self):
-        return [pop.data_shape for pop in self]
+    def data_shapes(self): return [pop.data_shape for pop in self]
     @property
-    def nfiltered(self):
-        return [pop.nfiltered for pop in self]
+    def nfiltered(self): return [pop.nfiltered for pop in self]
     @property
-    def ratio_filtered(self):
-        return [pop.ratio_filtered for pop in self]
+    def ratio_filtered(self): return [pop.ratio_filtered for pop in self]
     @property
-    def nsampled(self):
-        return [pop.nsampled for pop in self]
+    def nsampled(self): return [pop.nsampled for pop in self]
     @property
-    def ratio_sampled(self):
-        return [pop.ratio_sampled for pop in self]
+    def ratio_sampled(self): return [pop.ratio_sampled for pop in self]
     @property
-    def parameter_generators(self):
-        return [pop.parameter_generators for pop in self]
+    def parameter_generators(self): return [pop.parameter_generators for pop in self]
     @property
-    def parameters(self):
-        return [pop.parameters for pop in self]
+    def parameters(self): return [pop.parameters for pop in self]
     @property
-    def function_generators(self):
-        return [pop.function_generators for pop in self]
+    def function_generators(self): return [pop.function_generators for pop in self]
     @property
-    def days(self):
-        return [pop.days for pop in self]
+    def days(self): return [pop.days for pop in self]
     @property
     def score_dicts(self):
         '''list of the "scores" dict of all populations'''
@@ -507,17 +490,15 @@ class RegressionResultList(UserList):
     # Properties which iterate over the respective attributes for all RegressionResults in the list
     
     @property
-    def statsmodelRegResults():
-        return [regresult.statsmodelRegResult for regresult in self]
+    def statsmodelRegResults(): return [regresult.statsmodelRegResult for regresult in self]
     @property
-    def populations():
-        return [regresult.population for regresult in self]
+    def populations(): return [regresult.population for regresult in self]
     @property
-    def params():
-        return [regresult.params for regresult in self]
+    def params(): return [regresult.params for regresult in self]
     @property
-    def rsquareds():
-        return [regresult.rsquared for regresult in self]
+    def rsquareds(): return [regresult.rsquared for regresult in self]
+    
+    #TODO plotting
 
 
 
