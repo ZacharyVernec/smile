@@ -12,6 +12,8 @@
 #TODO replace all numpy data with pandas dataframe
 #TODO create fig and axes by default if no axes given for plotting methods
 #TODO document this code: https://realpython.com/documenting-python-code/
+#TODO use getattr instead of many @property for custom list objects
+#TODO Population slicing https://stackoverflow.com/questions/2936863/implementing-slicing-in-getitem
 
 #TODO rename and separate classes, helper functions, etc.
 
@@ -163,7 +165,11 @@ class Population:
     
     #TODO more complex cases than linear
     #TODO remove repetition between functions
-    def regress_population(self, y='symptom', x='visual'):
+    def regress(self, method='population', y='symptom', x='visual'):
+        if method == 'population': return self.regress_population(x=x, y=y)
+        elif method == 'persons': return self.regress_persons(x=x, y=y)
+        else: raise ValueError("Unknown regression method: {}".format(method))
+    def regress_population(self, x='visual', y='symptom'):
         # Argument parsing # TODO make into helper function for clutter reduction
         y_possibilities = {'symptom'} #TODO add more possibilities
         x_possibilities = {'visual'} #TODO add more possibilities
@@ -177,7 +183,7 @@ class Population:
         result = model.fit() #fit model
         
         return RegressionResult(result, self)
-    def regress_persons(self, y='symptom', x='visual'):
+    def regress_persons(self, x='visual', y='symptom'):
         #each person becomes it's own population
         poplist = self.to_populationlist()
         #regress each person
