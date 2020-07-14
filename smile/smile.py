@@ -179,12 +179,7 @@ class Population:
         return RegressionResult(result, self)
     def regress_persons(self, y='symptom', x='visual'):
         #each person becomes it's own population
-        poplist = PopulationList([])
-        for i in range(self.npersons):
-            pop = Population()
-            pop.scores = {scorename:self.scores[scorename][i, np.newaxis] for scorename in self.scores}
-            pop.days = self.days[i, np.newaxis]
-            poplist.append(pop)
+        poplist = self.to_populationlist()
         #regress each person
         regresults = poplist.regress_populations(y=y, x=x)
         
@@ -211,6 +206,11 @@ class Population:
         if addtitle1 is not None:
             newpop1.title += ' '+addtitle1
         return newpop1, newpop2
+    def get_person_as_population(self, idx):
+        pop = Population()
+        pop.scores = {scorename:self.scores[scorename][idx, np.newaxis] for scorename in self.scores}
+        pop.days = self.days[idx, np.newaxis]
+        return pop
     def to_dataframe(self):
         data_dict = {
             'person': np.broadcast_to(np.arange(self.npersons), (self.ndays, self.npersons)).T, # same shape matrix as days or scores, with values that indicate person index
@@ -221,6 +221,11 @@ class Population:
         df = pd.DataFrame(dataflat_dict)
         df.index.name = 'observation'
         return df
+    def to_populationlist(self):
+        poplist = PopulationList([])
+        for i in range(self.npersons):
+            poplist.append(self.get_person_as_population(i))
+        return poplist
     
     #removing outliers
     def filter(self, recovered_symptom_score=SMIN, firstday=FIRSTVISIT, lastday=NDAYS, copy=False):
