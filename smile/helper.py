@@ -34,6 +34,7 @@ def rgblist_to_rgbapop(rgblist, npersons, ndays, opacity=1.0):
 def normalize(array):
     return (array - np.min(array))/(np.max(array)-np.min(array))
 
+
 def collocate_text(text_blocks, separator="\t", separatorlen=2):
     text_blocks_lines = [str(text_block).splitlines() for text_block in text_blocks]
     text_lines_arr = np.array(text_blocks_lines).T
