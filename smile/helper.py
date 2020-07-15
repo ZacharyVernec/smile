@@ -7,7 +7,7 @@ from math import ceil
 import numpy as np
 
 
-def twodarray(np.ndarray):
+class twodarray(np.ndarray):
     '''numpy ndarray that always stays two-dimensional when sliced
        and that raises errors when any other method is used that would make it not 2d'''
     def __new__(cls, input_array):
@@ -26,7 +26,7 @@ def twodarray(np.ndarray):
             assert(self.ndim == 2)
         
     def __getitem__(self, subscript):
-        #will keep ndims of the array2d
+        '''will keep ndim == 2'''
         if isinstance(subscript, int): #if only an int
             subscript = (subscript, np.newaxis) 
         elif isinstance(subscript, slice):
@@ -39,6 +39,25 @@ def twodarray(np.ndarray):
         elif isinstance(subscript[0], slice) and isinstance(subscript[1], int):
             subscript = (*subscript, np.newaxis)
         return super().__getitem__(subscript) #now slice like an ndarray
+    
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        '''uses ufunc as a regular ndarray
+           converts back to twodarray iff ndim=2'''
+        print(method)
+        def _replace_self(a):
+            if a is self:
+                return a.view(np.ndarray)
+            else:
+                return a
+        
+        inputs = tuple(_replace_self(inputarr) for inputarr in inputs)
+        if 'out' in kwargs:
+            kwargs['out'] = tuple(_replace_self(outputarr) for outputarr in outputarrs)
+        res = getattr(ufunc, method)(*inputs, **kwargs)
+        if isinstance(res, np.ndarray) and res.ndim == 2:
+            return twodarray(res)
+        else: 
+            return res
 
 
 def truncatednormal(xmin, xmax, pmsigma=3, shape=(2,4)):
