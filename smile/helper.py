@@ -7,6 +7,39 @@ from math import ceil
 import numpy as np
 
 
+def twodarray(np.ndarray):
+    '''numpy ndarray that always stays two-dimensional when sliced
+       and that raises errors when any other method is used that would make it not 2d'''
+    def __new__(cls, input_array):
+        # Input array is an already formed ndarray instance
+        # We first cast to be our class type
+        obj = np.asarray(input_array).view(cls)
+        # add the new attribute to the created instance
+        assert(obj.ndim == 2)
+        # Finally, we must return the newly created object:
+        return obj
+    def __array_finalize__(self, obj):
+        #called whenever a twodarray would be returned
+        if obj is None: #if in the middle of __new__()
+            return #can't check ndim, will be checked at the end of __new__()
+        else:
+            assert(self.ndim == 2)
+        
+    def __getitem__(self, subscript):
+        #will keep ndims of the array2d
+        if isinstance(subscript, int): #if only an int
+            subscript = (subscript, np.newaxis) 
+        elif isinstance(subscript, slice):
+            pass #no changes necessary
+        #else subscript is a tuple
+        elif isinstance(subscript[0], int) and isinstance(subscript[1], int):
+            subscript = (*subscript, np.newaxis, np.newaxis)
+        elif isinstance(subscript[0], int) and isinstance(subscript[1], slice):
+            subscript = (np.newaxis, *subscript)
+        elif isinstance(subscript[0], slice) and isinstance(subscript[1], int):
+            subscript = (*subscript, np.newaxis)
+        return super().__getitem__(subscript) #now slice like an ndarray
+
 
 def truncatednormal(xmin, xmax, pmsigma=3, shape=(2,4)):
     '''the smaller the pmsigma, the closer the distribution is to uniform'''
@@ -58,4 +91,3 @@ def tile_text(text_blocks_2d, hseparator="\t", hseparatorlen=2, vseparator="\n",
           
 def print_tiled(text_blocks_2d, **kwargs):
     print(tile_text(text_blocks_2d, **kwargs))
-    
