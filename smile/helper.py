@@ -1,5 +1,8 @@
 """Helper functions"""
 
+# Standard library imports
+from math import ceil
+
 # Third party imports
 import numpy as np
 

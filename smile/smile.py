@@ -14,6 +14,7 @@
 #TODO document this code: https://realpython.com/documenting-python-code/
 #TODO use getattr instead of many @property for custom list objects
 #TODO Population slicing https://stackoverflow.com/questions/2936863/implementing-slicing-in-getitem
+#TODO include colormap in global_params
 
 #TODO rename and separate classes, helper functions, etc.
 
@@ -22,7 +23,6 @@
 # Standard library imports
 from collections import UserList
 from copy import copy
-from math import ceil
 from warnings import warn
 
 # Third party imports
@@ -457,7 +457,7 @@ class RegressionResult:
         ax.fill_between(x, ylow, yhigh, color='b', alpha=.1)
         
         # Formatting
-        title = "Regression of {} \n with confidence interval of {}".format(self.population.title, alpha)
+        title = "Regression of {} \n with {:2.0f}% confidence intervals".format(self.population.title, (1-alpha)*100)
         ax.set_title(title, wrap=True)
         xlabel='visual score'
         ylabel='symptom score'
@@ -513,6 +513,7 @@ class RegressionResultList(UserList):
     
     # Plotting
     
+    # TODO add title
     def plot_box(self, ax):
         self.params_dataframe.boxplot(ax=ax, grid=False)
 
