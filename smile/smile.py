@@ -18,8 +18,6 @@
 
 #TODO rename and separate classes, helper functions, etc.
 
-
-
 # Standard library imports
 from collections import UserList
 from copy import copy
@@ -36,9 +34,14 @@ import pandas as pd
 from patsy import dmatrices
 import statsmodels.api as sm
 
+# Reload library
+from importlib import reload
+
 # Local application imports
-from .helper import rgblist_to_rgbapop, normalize
-from .global_params import *
+import smile.helper; reload(smile.helper)
+from smile.helper import rgblist_to_rgbapop, normalize
+import smile.global_params; reload(smile.global_params)
+from smile.global_params import *
 
 
 

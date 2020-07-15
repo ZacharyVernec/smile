@@ -2,10 +2,16 @@
 # Third party imports
 import numpy as np
 
+# Reload library
+from importlib import reload
+
 # Local application imports
-from .smile import Population, PopulationList
-from .helper import truncatednormal
-from .global_params import *
+import smile.smile; reload(smile.smile)
+from smile.smile import Population, PopulationList
+import smile.helper; reload(smile.helper)
+from smile.helper import truncatednormal
+import smile.global_params; reload(smile.global_params)
+from smile.global_params import *
 
 # Various functions to exemplify how to create populations
 
@@ -156,5 +162,5 @@ def get_useful_poplists(size=100):
         pop_add.set_score_generator('symptom', gen_error_add)
         pop_add.set_parameter_generator('C', gen_C_add, 'day')
         pops_adderror.append(pop_add)
-        
+    
     return pops_noerror, pops_mulerror, pops_adderror
