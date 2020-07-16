@@ -38,12 +38,15 @@ class twodarray(np.ndarray):
             subscript = (np.newaxis, *subscript)
         elif isinstance(subscript[0], slice) and isinstance(subscript[1], int):
             subscript = (*subscript, np.newaxis)
+        elif isisnstance(sbuscript[0], slice) and isinstance(subscript[1], slice):
+            pass #no changes necessary
+        else:
+            raise ValueError("Unknown subscript: {} with types {}".format(subscript, [type(el) for el in subscript]))
         return super().__getitem__(subscript) #now slice like an ndarray
     
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         '''uses ufunc as a regular ndarray
            converts back to twodarray iff ndim=2'''
-        print(method)
         def _replace_self(a):
             if a is self:
                 return a.view(np.ndarray)
