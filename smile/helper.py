@@ -61,6 +61,11 @@ class twodarray(np.ndarray):
             raise ValueError("Unknown subscript: {} with types {}".format(subscript, [type(el) for el in subscript]))
         return super().__getitem__(subscript) #now slice like an ndarray
     
+    #TODO add classmethods from_horizontal(listlike, nrows) and from_vertical(listlike, ncols), 
+    #    which would tile/repeat a 1d array to make a towdarray of the required height or depth, respectively
+    
+def to_vertical(arraylike):
+    return np.array(arraylike).reshape(-1, 1)
 
 def truncatednormal(xmin, xmax, pmsigma=3, shape=(2,4)):
     '''the smaller the pmsigma, the closer the distribution is to uniform'''
@@ -99,16 +104,12 @@ def collocate_text(text_blocks, separator="\t", separatorlen=2):
     for line in text_lines_arr:
         lines.append((separator*separatorlen).join(line))
     return "\n".join(lines)
-
 def print_collocated(text_blocks, separator="\t", separatorlen=2):
     print(collocate_text(text_blocks, separator=separator, separatorlen=separatorlen))
-    
 #TODO collocate_text is very similar to tile_text, where vseparator="\n" and vseparatorlen=1
-
 def tile_text(text_blocks_2d, hseparator="\t", hseparatorlen=2, vseparator="\n", vseparatorlen=2):
     lines_of_blocks = [collocate_text(line_of_blocks, separator=hseparator, separatorlen=hseparatorlen) 
                        for line_of_blocks in text_blocks_2d]
-    return (vseparator*vseparatorlen).join(lines_of_blocks)
-          
+    return (vseparator*vseparatorlen).join(lines_of_blocks)  
 def print_tiled(text_blocks_2d, **kwargs):
     print(tile_text(text_blocks_2d, **kwargs))

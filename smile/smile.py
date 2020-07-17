@@ -585,12 +585,12 @@ class Methodology:
             smilescores = population.scores[self.smilescorename]
 
             index = int(np.min(self.fixed_days)) #day which milestone_ratios are based on #cast as int rather than np.int for easy type checks
-            smilescores_at_index = smilescores[:, index].reshape(-1, 1) #reshape to be vertical
+            smilescores_at_index = helper.to_vertical(smilescores[:, index])
             smile_vals = smilescores_at_index*self.milestone_ratios #The score values to reach. Each row is a person, each column is a milestone
 
             milestone_days = np.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
             for milestone_col in range(smile_vals.shape[1]): #TODO change from shape to ndays
-                milestone_vals = smile_vals[:,milestone_col].reshape(-1, 1) #reshape to be vertical
+                milestone_vals = helper.to_vertical(smile_vals[:,milestone_col])
                 milestone_days[:,milestone_col] = np.argmax(smilescores <= milestone_vals, axis=1).astype(int) #the day at which the milestone is reached for each person
             #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'
 
