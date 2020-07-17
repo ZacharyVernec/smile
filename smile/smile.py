@@ -303,17 +303,17 @@ class Population:
         #plotting
         if viztype=='lines' or viztype=='both':
             points = np.stack([x, y], axis=2)
-            colors = mpl.cm.get_cmap('Dark2').colors # https://matplotlib.org/2.0.1/users/colormaps.html
+            colors = mpl.cm.get_cmap(lines_cmap_name).colors # https://matplotlib.org/2.0.1/users/colormaps.html
             ax.add_collection(LineCollection(points, colors=colors))
             
         if viztype=='points' or viztype=='both':
             if vizcolor == 'person':
-                colors = np.array(mpl.cm.get_cmap('Dark2').colors) # not the right shape. https://matplotlib.org/2.0.1/users/colormaps.html
+                colors = np.array(mpl.cm.get_cmap(lines_cmap_name).colors) # not the right shape
                 colors = helper.rgblist_to_rgbapop(colors, npersons, ndays)
                 colors = colors.reshape(npersons*ndays, 4) #scatter converts the 2d arrays x and y to flat arrays, and colors should respect that flatness
             elif vizcolor == 'day':
                 colors = self.days[:npersons, :ndays]
-                cmap = mpl.cm.get_cmap('viridis') # https://matplotlib.org/2.0.1/users/colormaps.html
+                cmap = mpl.cm.get_cmap(points_cmap_name) # https://matplotlib.org/2.0.1/users/colormaps.html
                 colors = cmap(helper.normalize(colors)) # converts scalars to rgba
                 colors = colors.reshape(npersons*ndays, 4) #scatter converts the 2d arrays x and y to flat arrays, and colors should respect that flatness
             else:

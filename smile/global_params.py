@@ -5,3 +5,8 @@ SMIN = 0 #minimum possible symptom score
 NDAYS = 160 #number of days in the study
 FIRSTVISIT = 8
 LASTVISIT = NDAYS-1
+
+# Simulatin graphing parameters
+
+lines_cmap_name = 'Dark2' #https://matplotlib.org/2.0.1/users/colormaps.html#qualitative
+points_cmap_name = 'viridis' #https://matplotlib.org/2.0.1/users/colormaps.html#sequential
