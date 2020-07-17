@@ -6,7 +6,7 @@ from math import ceil
 # Third party imports
 import numpy as np
 
-
+#currently unused, too much trouble to rewrite smile.py (e.g. having population days and scores be twodarrays)
 class twodarray(np.ndarray):
     '''numpy ndarray that always stays two-dimensional when sliced
        and that raises errors when any other method is used that would make it not 2d'''
@@ -24,6 +24,23 @@ class twodarray(np.ndarray):
             return #can't check ndim, will be checked at the end of __new__()
         else:
             assert(self.ndim == 2)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        '''uses ufunc as a regular ndarray
+           converts back to twodarray iff ndim=2'''
+        def _replace_self(a):
+            if a is self:
+                return a.view(np.ndarray)
+            else:
+                return a
+        
+        inputs = tuple(_replace_self(inputarr) for inputarr in inputs)
+        if 'out' in kwargs:
+            kwargs['out'] = tuple(_replace_self(outputarr) for outputarr in outputarrs)
+        res = getattr(ufunc, method)(*inputs, **kwargs)
+        if isinstance(res, np.ndarray) and res.ndim == 2:
+            return twodarray(res)
+        else: 
+            return res
         
     def __getitem__(self, subscript):
         '''will keep ndim == 2'''
@@ -44,24 +61,6 @@ class twodarray(np.ndarray):
             raise ValueError("Unknown subscript: {} with types {}".format(subscript, [type(el) for el in subscript]))
         return super().__getitem__(subscript) #now slice like an ndarray
     
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        '''uses ufunc as a regular ndarray
-           converts back to twodarray iff ndim=2'''
-        def _replace_self(a):
-            if a is self:
-                return a.view(np.ndarray)
-            else:
-                return a
-        
-        inputs = tuple(_replace_self(inputarr) for inputarr in inputs)
-        if 'out' in kwargs:
-            kwargs['out'] = tuple(_replace_self(outputarr) for outputarr in outputarrs)
-        res = getattr(ufunc, method)(*inputs, **kwargs)
-        if isinstance(res, np.ndarray) and res.ndim == 2:
-            return twodarray(res)
-        else: 
-            return res
-
 
 def truncatednormal(xmin, xmax, pmsigma=3, shape=(2,4)):
     '''the smaller the pmsigma, the closer the distribution is to uniform'''
