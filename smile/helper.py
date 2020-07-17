@@ -38,7 +38,7 @@ class twodarray(np.ndarray):
             subscript = (np.newaxis, *subscript)
         elif isinstance(subscript[0], slice) and isinstance(subscript[1], int):
             subscript = (*subscript, np.newaxis)
-        elif isisnstance(sbuscript[0], slice) and isinstance(subscript[1], slice):
+        elif isinstance(subscript[0], slice) and isinstance(subscript[1], slice):
             pass #no changes necessary
         else:
             raise ValueError("Unknown subscript: {} with types {}".format(subscript, [type(el) for el in subscript]))

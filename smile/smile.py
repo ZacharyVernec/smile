@@ -11,12 +11,14 @@
 #TODO improve plotting syntax and design with seaborn
 #TODO replace all numpy data with pandas dataframe
 #TODO create fig and axes by default if no axes given for plotting methods
-#TODO document this code: https://realpython.com/documenting-python-code/
+#TODO documentation: https://realpython.com/documenting-python-code/
 #TODO use getattr instead of many @property for custom list objects
 #TODO Population slicing https://stackoverflow.com/questions/2936863/implementing-slicing-in-getitem
 #TODO include colormap in global_params
+#TODO populationdata class to ease indexing of days and scores
+#TODO if there are too many twodarrayinstance.view(np.ndarray), stop using twodarray class 
+#     and refactor its __get_item__() code into population's __get_item__()
 
-#TODO rename and separate classes, helper functions, etc.
 
 # Standard library imports
 from collections import UserList
@@ -39,7 +41,7 @@ from importlib import reload
 
 # Local application imports
 import smile.helper; reload(smile.helper)
-from smile.helper import rgblist_to_rgbapop, normalize
+from smile import helper
 import smile.global_params; reload(smile.global_params)
 from smile.global_params import *
 
@@ -59,6 +61,7 @@ class Population:
         self.function_generators = {}
         
         self.days = np.tile(np.arange(self.initial_ndays), (self.initial_npersons,1))
+        self.days = helper.twodarray(self.days)
         self.scores = {'visual':None, 
                        'symptom_noerror':None, 
                        'symptom':None}
@@ -163,6 +166,8 @@ class Population:
                 self.scores[scorename] = np.broadcast_to(self.scores[scorename], self.data_shape) #change shape by broadcasting
             elif self.scores[scorename].size == 0: #if score array is empty
                 self.scores[scorename] = self.scores[scorename].reshape(self.data_shape) #change shape by adding empty axes
+            #cast to helper.twodarray for dimensionally-consistent indexing
+            self.scores[scorename] = helper.twodarray(self.scores[scorename])
                 
     # Statistical methods
     
@@ -215,22 +220,32 @@ class Population:
         if addtitle1 is not None:
             newpop1.title += ' '+addtitle1
         return newpop1, newpop2
+    def __getitem__(self, subscript): #for slicing like a numpy 2d array of (persons, days)
+        '''
+        Returns a new population by slicing the days and scores as specified
+        (in a numpy-like fashion)
+        '''
+        newpop = self.copy(addtitle="slice "+str(subscript))
+        newpop.scores = {scorename:newpop.scores[scorename][subscript] for scorename in newpop.scores}
+        newpop.days = newpop.days[subscript]
+        return newpop
     def get_person_as_population(self, idx):
-        pop = Population()
-        pop.scores = {scorename:self.scores[scorename][idx, np.newaxis] for scorename in self.scores}
-        pop.days = self.days[idx, np.newaxis]
-        return pop
+        #pop = Population()
+        #pop.scores = {scorename:self.scores[scorename][idx, np.newaxis] for scorename in self.scores}
+        #pop.days = self.days[idx, np.newaxis]
+        #return pop
+        return self[idx]
     def to_dataframe(self):
         data_dict = {
             'person': np.broadcast_to(np.arange(self.npersons), (self.ndays, self.npersons)).T, # same shape matrix as days or scores, with values that indicate person index
             'day': self.days,
             **self.scores
         }
-        dataflat_dict = {dataname: data.flatten() for (dataname,data) in data_dict.items()}
+        dataflat_dict = {dataname: data.view(np.ndarray).flatten() for (dataname,data) in data_dict.items()}
         df = pd.DataFrame(dataflat_dict)
         df.index.name = 'observation'
         return df
-    def to_populationlist(self):
+    def to_populationlist(self): #TODO simplify
         poplist = PopulationList([])
         for i in range(self.npersons):
             poplist.append(self.get_person_as_population(i))
@@ -294,23 +309,23 @@ class Population:
         
         #plotting
         if viztype=='lines' or viztype=='both':
-            points = np.stack([x, y], axis=2)
+            points = np.stack([x.view(np.ndarray), y.view(np.ndarray)], axis=2) #view as ndarray to allow stacking in 3d
             colors = mpl.cm.get_cmap('Dark2').colors # https://matplotlib.org/2.0.1/users/colormaps.html
             ax.add_collection(LineCollection(points, colors=colors))
             
         if viztype=='points' or viztype=='both':
             if vizcolor == 'person':
                 colors = np.array(mpl.cm.get_cmap('Dark2').colors) # not the right shape. https://matplotlib.org/2.0.1/users/colormaps.html
-                colors = rgblist_to_rgbapop(colors, npersons, ndays)
+                colors = helper.rgblist_to_rgbapop(colors, npersons, ndays)
                 colors = colors.reshape(npersons*ndays, 4) #scatter converts the 2d arrays x and y to flat arrays, and colors should respect that flatness
             elif vizcolor == 'day':
                 colors = self.days[:npersons, :ndays]
                 cmap = mpl.cm.get_cmap('viridis') # https://matplotlib.org/2.0.1/users/colormaps.html
-                colors = cmap(normalize(colors)) # converts scalars to rgba
+                colors = cmap(helper.normalize(colors)) # converts scalars to rgba
                 colors = colors.reshape(npersons*ndays, 4) #scatter converts the 2d arrays x and y to flat arrays, and colors should respect that flatness
             else:
                 raise ValueError("vizcolor of '{}' unknown".format(vizcolor))
-            ax.scatter(x, y, facecolors='none', edgecolors=colors)
+            ax.scatter(x.view(np.ndarray), y.view(np.ndarray), facecolors='none', edgecolors=colors)
         ax.autoscale()
 
 #The following are useful for defining the PopulationList class
@@ -573,18 +588,21 @@ class Methodology:
 
             smilescores = population.scores[self.smilescorename]
 
-            index = np.min(self.fixed_days) #day which milestone_ratios are based on
-            smilescores_at_index = smilescores[:, index].reshape(-1, 1) #reshape to be vertical
+            index = int(np.min(self.fixed_days)) #day which milestone_ratios are based on #cast as int rather than np.int for easy type checks
+            print(index)
+            print(smilescores.shape)
+            smilescores_at_index = smilescores[:, index]
             smile_vals = smilescores_at_index*self.milestone_ratios #The score values to reach. Each row is a person, each column is a milestone
 
             milestone_days = np.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
-            for milestone_col in range(smile_vals.shape[1]):
-                milestone_vals = smile_vals[:,milestone_col].reshape(-1, 1) #reshape to be vertical
+            for milestone_col in range(smile_vals.shape[1]): #TODO change from shape to ndays
+                milestone_vals = smile_vals[:,milestone_col]
                 milestone_days[:,milestone_col] = np.argmax(smilescores <= milestone_vals, axis=1).astype(int) #the day at which the milestone is reached for each person
             #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'
 
+            from IPython import embed; embed()
             #Sample at those days
-            milestone_smilescores = np.take_along_axis(smilescores, milestone_days, axis=1)
+            milestone_smilescores = np.take_along_axis(smilescores.view(np.ndarray), milestone_days.view(np.ndarray), axis=1)
             milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], milestone_days, axis=1) for scorename in population.scores}
             #replace the 'fake' days and scores with NaN
             notFake = (milestone_smilescores <= smile_vals)
