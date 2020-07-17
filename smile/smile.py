@@ -14,8 +14,6 @@
 #TODO documentation: https://realpython.com/documenting-python-code/
 #TODO use getattr instead of many @property for custom list objects
 #TODO possibility of slicing Population with scorename as first element in subscript tuple
-#TODO include colormap in global_params
-#TODO Person class which inherits from population
 
 
 # Standard library imports

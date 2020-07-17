@@ -43,20 +43,41 @@ class twodarray(np.ndarray):
             return res
         
     def __getitem__(self, subscript):
-        '''will keep ndim == 2'''
+        '''will keep ndim == 2
+        doesn't support boolean fancy indexing
+        doesn't support indexing by (rowcoords, colcoords)
+        '''
         if isinstance(subscript, int): #if only an int
             subscript = (subscript, np.newaxis) 
         elif isinstance(subscript, slice):
             pass #no changes necessary
-        #else subscript is a tuple
-        elif isinstance(subscript[0], int) and isinstance(subscript[1], int):
-            subscript = (*subscript, np.newaxis, np.newaxis)
-        elif isinstance(subscript[0], int) and isinstance(subscript[1], slice):
-            subscript = (np.newaxis, *subscript)
-        elif isinstance(subscript[0], slice) and isinstance(subscript[1], int):
-            subscript = (*subscript, np.newaxis)
-        elif isinstance(subscript[0], slice) and isinstance(subscript[1], slice):
-            pass #no changes necessary
+        elif isinstance(subscript, np.ndarray):
+            pass #no changes nevessary
+        elif isinstance(subscript, tuple):
+            def areinstances(tup, list_of_classes):
+                if len(tup) != len(list_of_classes):
+                    raise ValueError("tuple and tup_of_classes are of different classes")
+                for i in range(len(tup)): 
+                    if not isinstance(tup[i], list_of_classes[i]): return False
+                return True
+            if areinstances(subscript, [int, int]):
+                subscript = (np.newaxis, np.newaxis, *subscript)
+            elif areinstances(subscript, [int, slice]):
+                subscript = (np.newaxis, *subscript)
+            elif areinstances(subscript, [int, np.ndarray]):
+                subscript = (np.newaxis, *subscript)
+            elif areinstances(subscript, [slice, int]):
+                subscript = (*subscript, np.newaxis)
+            elif areinstances(subscript, [slice, slice]):
+                pass #no changes necessary
+            elif areinstances(subscript, [slice, np.ndarray]):
+                pass #no changes necessary
+            elif areinstances(subscript, [np.ndarray, int]):
+                subscript = (*subscript, np.newaxis)
+            elif areinstances(subscript, [np.ndarray, slice]):
+                pass #no changes necessary
+            else:
+                raise ValueError("Unknown subscript: {} with types {}".format(subscript, [type(el) for el in subscript]))
         else:
             raise ValueError("Unknown subscript: {} with types {}".format(subscript, [type(el) for el in subscript]))
         return super().__getitem__(subscript) #now slice like an ndarray
