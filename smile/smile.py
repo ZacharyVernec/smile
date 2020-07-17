@@ -13,9 +13,8 @@
 #TODO create fig and axes by default if no axes given for plotting methods
 #TODO documentation: https://realpython.com/documenting-python-code/
 #TODO use getattr instead of many @property for custom list objects
-#TODO Population slicing https://stackoverflow.com/questions/2936863/implementing-slicing-in-getitem
+#TODO possibility of slicing Population with scorename as first element in subscript tuple
 #TODO include colormap in global_params
-#TODO populationdata class to ease indexing of days and scores
 #TODO Person class which inherits from population
 
 
@@ -220,17 +219,15 @@ class Population:
         '''
         Returns a new population by slicing the days and scores as specified
         (in a numpy-like fashion)
+        keeping arrays two-dimensional
         '''
-        newpop = self.copy(addtitle="slice "+str(subscript))
-        newpop.scores = {scorename:newpop.scores[scorename][subscript] for scorename in newpop.scores}
-        newpop.days = newpop.days[subscript]
+        newpop = self.copy()
+        newpop.scores = {scorename:np.array(helper.twodarray(newpop.scores[scorename])[subscript]) #slice as twodarray but keep as ndarray
+                         for scorename in newpop.scores}
+        newpop.days = np.array(helper.twodarray(newpop.days)[subscript]) #slice as twodarray but keep as ndarray
         return newpop
     def get_person_as_population(self, idx):
-        pop = Population()
-        pop.scores = {scorename:self.scores[scorename][idx, np.newaxis] for scorename in self.scores}
-        pop.days = self.days[idx, np.newaxis]
-        return pop
-        #return self[idx]
+        return self[idx]
     def to_dataframe(self):
         data_dict = {
             'person': np.broadcast_to(np.arange(self.npersons), (self.ndays, self.npersons)).T, # same shape matrix as days or scores, with values that indicate person index
