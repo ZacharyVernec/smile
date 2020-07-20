@@ -3,7 +3,6 @@
 #TODO return self in population methods for chaining
 #TODO remove unnecessary kwargs defaults (eg Population() should return an empty population, not one with size 10000)
 #TODO black lines when plotting 'both' with 'day'
-#TODO keep track of number filtered or % filtered
 #Parameter_generator class for easy printing?
 #TODO make sure population can't be re-generated after being sampled
 #TODO raise error if generate() is called with generate_parameters=False but no parameters had been generated before either
@@ -14,6 +13,7 @@
 #TODO documentation: https://realpython.com/documenting-python-code/
 #TODO use getattr instead of many @property for custom list objects
 #TODO possibility of slicing Population with scorename as first element in subscript tuple
+#TODO keep track of expected value of parameters for use when plotting regression results
 
 
 # Standard library imports
@@ -472,8 +472,8 @@ class RegressionResult:
         self.statsmodelRegResult = statsmodelRegResult
         self.population = population
         
-        #TODO do not catch extra params in mixed effects model, e.g. 'Group x visual Cov'
-        self.params = statsmodelRegResult.params
+        #slicing to not catch extra params in mixed effects model, e.g. 'Group x visual Cov'
+        self.params = statsmodelRegResult.params.iloc[0:2]
         #self.rsquared = statsmodelRegResult.rsquared #Does not exist for linear mixed effects in statsmodels
     
     def confidence_interval(self, alpha=0.05):
@@ -520,6 +520,7 @@ def assertListlikeOfRegressionResults(listlike):
     return True #if no error
 
 class RegressionResultList(UserList):
+    #TODO add title
     def __init__(self, listlike=[]):
         assertListlikeOfRegressionResults(listlike)
         super().__init__(listlike)
@@ -549,10 +550,13 @@ class RegressionResultList(UserList):
     
     # Plotting
     
+    # TODO plot each param box in a different plot, since scales may be wildly different
     # TODO add title
     def plot_box(self, ax):
         self.params_dataframe.boxplot(ax=ax, grid=False)
-        
+        #titles and labels
+        #ax.set_title(self.title, wrap=True)
+        ax.set(xlabel='Regression parameters', ylabel='Values')
 
 
 # # Study
