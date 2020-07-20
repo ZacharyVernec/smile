@@ -31,6 +31,7 @@ from matplotlib.collections import LineCollection
 import pandas as pd
 from patsy import dmatrices
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 
 # Reload library
 from importlib import reload
@@ -167,8 +168,10 @@ class Population:
     #TODO more complex cases than linear
     #TODO remove repetition between functions
     def regress(self, method='population', y='symptom', x='visual'):
+        #TODO use getattr(self, 'regress_'+method)
         if method == 'population': return self.regress_population(x=x, y=y)
         elif method == 'persons': return self.regress_persons(x=x, y=y)
+        elif method =='mixed': return self.regress_mixed(self, x=x, y=y)
         else: raise ValueError("Unknown regression method: {}".format(method))
     def regress_population(self, x='visual', y='symptom'):
         # Argument parsing # TODO make into helper function for clutter reduction
@@ -186,11 +189,32 @@ class Population:
         return RegressionResult(result, self)
     def regress_persons(self, x='visual', y='symptom'):
         #each person becomes it's own population
+        warn('Deprecated')
         poplist = self.to_populationlist()
         #regress each person
         regresults = poplist.regress_populations(y=y, x=x)
-        
         return regresults
+    def regress_mixed(self, x='visual', y='symptom'):
+        # Argument parsing # TODO make into helper function for clutter reduction
+        y_possibilities = {'symptom'} #TODO add more possibilities
+        x_possibilities = {'visual'} #TODO add more possibilities
+        if y not in y_possibilities:
+            raise ValueError('Dependent variable {} not recognized. Use one of {} instead.'.format(y, y_possibilities))
+        if x not in x_possibilities:
+            raise ValueError('Independent variable {} not recognized. Use one of {} instead.'.format(x, yx_possibilities))
+            
+        df = self.to_dataframe()
+        #check for NaN, will decide later if should be dropped when specifying model
+        null_count = df.isnull().sum().sum()
+        if null_count > 0: 
+            warn('Population {} has {} NaN values'.format(self.title, null_count))
+            
+        #regress
+        model = smf.mixedlm(y+" ~ "+x, df, groups=df['person'], re_formula='~'+x) 
+        #TODO check notes of https://www.statsmodels.org/stable/generated/statsmodels.formula.api.mixedlm
+        result = model.fit() #fit model
+        
+        return RegressionResult(result, self)
     
     # Other methods
         
@@ -234,7 +258,7 @@ class Population:
         }
         dataflat_dict = {dataname: data.flatten() for (dataname,data) in data_dict.items()}
         df = pd.DataFrame(dataflat_dict)
-        df.index.name = 'observation'
+        df.index.name = 'observation' #TODO rename
         return df
     def to_populationlist(self): #TODO simplify
         poplist = PopulationList([])
@@ -340,6 +364,7 @@ def assertListlikeOfPopulations(listlike):
             raise #re-raise error with updated message
     return True #if no error
 
+#TODO add title
 class PopulationList(UserList):
     def __init__(self, listlike=[]):
         assertListlikeOfPopulations(listlike)
@@ -403,6 +428,8 @@ class PopulationList(UserList):
         return RegressionResultList([pop.regress_population(**kwargs) for pop in self])
     def regress_persons(self, **kwargs):
         return [pop.regress_persons(**kwargs) for pop in self]
+    def regress_mixed(self, **kwargs):
+        return RegressionResultList([pop.regress_mixed(*kwargs) for pop in self])
             
     # Other methods
     
@@ -439,15 +466,15 @@ class PopulationList(UserList):
                 pop.plot(axes[i], **kwargs)
 
 
-# TODO RegressionResultList class, to plot multple boxes in same axis
 class RegressionResult:
     '''Wrapper for linear RegressionResults class of statsmodels'''
     def __init__(self, statsmodelRegResult, population):
         self.statsmodelRegResult = statsmodelRegResult
         self.population = population
         
+        #TODO do not catch extra params in mixed effects model, e.g. 'Group x visual Cov'
         self.params = statsmodelRegResult.params
-        self.rsquared = statsmodelRegResult.rsquared
+        #self.rsquared = statsmodelRegResult.rsquared #Does not exist for linear mixed effects in statsmodels
     
     def confidence_interval(self, alpha=0.05):
         '''uses a Student t distribution'''
@@ -525,7 +552,7 @@ class RegressionResultList(UserList):
     # TODO add title
     def plot_box(self, ax):
         self.params_dataframe.boxplot(ax=ax, grid=False)
-
+        
 
 
 # # Study
