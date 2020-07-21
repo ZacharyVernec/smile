@@ -3,7 +3,7 @@
 #TODO return self in population methods for chaining
 #TODO remove unnecessary kwargs defaults (eg Population() should return an empty population, not one with size 10000)
 #TODO black lines when plotting 'both' with 'day'
-#Parameter_generator class for easy printing?
+#TODO Parameter_generator class for easy printing?
 #TODO make sure population can't be re-generated after being sampled
 #TODO raise error if generate() is called with generate_parameters=False but no parameters had been generated before either
 #TODO don't return filtered Population nor filtered PopulationList if copy=False
@@ -11,7 +11,6 @@
 #TODO replace all numpy data with pandas dataframe
 #TODO create fig and axes by default if no axes given for plotting methods
 #TODO documentation: https://realpython.com/documenting-python-code/
-#TODO use getattr instead of many @property for custom list objects
 #TODO possibility of slicing Population with scorename as first element in subscript tuple
 #TODO keep track of expected value of parameters for use when plotting regression results
 
@@ -248,8 +247,6 @@ class Population:
                          for scorename in newpop.scores}
         newpop.days = np.array(helper.twodarray(newpop.days)[subscript]) #slice as twodarray but keep as ndarray
         return newpop
-    def get_person_as_population(self, idx):
-        return self[idx]
     def to_dataframe(self):
         data_dict = {
             'person': np.broadcast_to(np.arange(self.npersons), (self.ndays, self.npersons)).T, # same shape matrix as days or scores, with values that indicate person index
@@ -258,13 +255,10 @@ class Population:
         }
         dataflat_dict = {dataname: data.flatten() for (dataname,data) in data_dict.items()}
         df = pd.DataFrame(dataflat_dict)
-        df.index.name = 'observation' #TODO rename
+        df.index.name = 'observation'
         return df
-    def to_populationlist(self): #TODO simplify
-        poplist = PopulationList([])
-        for i in range(self.npersons):
-            poplist.append(self.get_person_as_population(i))
-        return poplist
+    def to_populationlist(self):
+        return PopulationList([self[i] for i in range(self.npersons)])
     
     #removing outliers
     def filter(self, recovered_symptom_score=SMIN, firstday=FIRSTVISIT, lastday=NDAYS, copy=False):
