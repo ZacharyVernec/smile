@@ -627,11 +627,11 @@ class Methodology:
     
     def sample(self, pop_or_poplist, filter_args=None):
         #if population is a PopulationList, apply the single-population version to all
-        if isinstance(pop_or_poplist, PopulationList): 
-            poplist = pop_or_poplist #renaming
-            return PopulationList([self.sample(pop, filter_args=filter_args) for pop in poplist])
+        if isinstance(pop_or_poplist, PopulationList):
+            poplist = pop_or_poplist #renaming variable
+            return PopulationList([self.sample(pop, filter_args=filter_args) for pop in poplist], title='sampled by '+self.title)
         else:
-            population = pop_or_poplist #renaming
+            population = pop_or_poplist #renaming variable
             
             #possible filtering
             if filter_args is not None: population = population.filter(**filter_args, copy=True)
@@ -655,7 +655,7 @@ class Methodology:
             milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], milestone_days, axis=1) for scorename in population.scores}
             #replace the 'fake' days and scores with NaN
             notFake = (milestone_smilescores <= smile_vals)
-            milestone_days = np.where(notFake, milestone_days, np.nan)
+            milestone_days = np.where(notFake, milestone_days, np.nan) #TODO warn if NaN
             milestone_scores = {scorename:np.where(notFake, milestone_scores[scorename], np.nan) for scorename in milestone_scores}
 
             # FIXED
@@ -665,7 +665,7 @@ class Methodology:
 
             # COMBINE fixed and milestones
 
-            samplepop = population.copy(addtitle='samples')
+            samplepop = population.copy(addtitle='\nsampled by '+self.title)
             samplepop.days = np.concatenate([fixed_days, milestone_days], axis=1)
             samplepop.scores = {scorename:np.concatenate([fixed_scores[scorename], milestone_scores[scorename]], axis=1) for scorename in samplepop.scores}
 
