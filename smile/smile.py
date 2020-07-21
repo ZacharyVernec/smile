@@ -549,6 +549,7 @@ def assertListlikeOfRegressionResults(listlike):
                 raise #re-raise error with updated message
         return True #if no error
 
+# TODO keep track of number of parameters
 class RegressionResultList(UserList):
     #TODO add title
     def __init__(self, listlike=[]):
@@ -580,14 +581,23 @@ class RegressionResultList(UserList):
     
     # Plotting
     
-    # TODO plot each param box in a different plot, since scales may be wildly different
     # TODO add title
-    def plot_box(self, ax):
-        self.params_dataframe.boxplot(ax=ax, grid=False)
-        #titles and labels
-        #ax.set_title(self.title, wrap=True)
-        ax.set(xlabel='Regression parameters', ylabel='Values')
-
+    def plot_box(self, axes, ground_truths=None):
+        '''ground truth is either None, or a list of floats (inc. np.Nan for unknown) of same length as number of params'''
+        #vars
+        params_df = self.params_dataframe
+        paramnames = params_df.columns
+        #check input
+        if len(axes) != len(paramnames):
+            raise ValueError("Not enough axes to plot each parameter.")
+        if ground_truths is not None:
+            if len(ground_truths) != len(paramnames):
+                raise ValueError("Not enough ground truths for each parameter.")
+        #plotting
+        for i in range(len(paramnames)):
+            params_df[paramnames[i]].plot.box(ax=axes[i], grid=False)
+            if ground_truths is not None: axes[i].axhline(ground_truths[i], xmin=0.0, xmax=1.0, linewidth=1, color='red')
+            
 
 # # Study
 
@@ -680,9 +690,9 @@ class Methodology:
         ax.set_title(self.title, wrap=True)
         ax.set(xlabel='fixed days', ylabel='smile ratios')
         
-        #plotting
+        #plotting #TODO use ax.axhline and ax.axvline
         for fixed_day in self.fixed_days:
             ax.plot([fixed_day, fixed_day], [0.0, 1.0], color='black')
         for milestone_ratio in self.milestone_ratios:
-            ax.plot([0, max_day], [milestone_ratio, milestone_ratio], color='black') #TODO use xlim
+            ax.plot([0, max_day], [milestone_ratio, milestone_ratio], color='black')
         ax.autoscale()
