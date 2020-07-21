@@ -467,16 +467,31 @@ class PopulationList(UserList):
         
         return poplist #may be self or a copy
     
-    def plot(self, axes, **kwargs):
-        '''plots all populations sequentially, using same kwargs as in Population.plot() method'''
+    def plot(self, axeslist, direction='row', **kwargs):
+        '''
+        Plots all populations sequentially, using same kwargs as in Population.plot() method
+        direction can be "row" or "col" depending on if the axeslist represents a row or column of a figure
+            and determines where the PopulationList title will go
+        '''
         #check axes input
-        axes = axes.flatten()
-        if len(axes) != len(self): 
+        if len(axeslist) != len(self): 
             raise ValueError("{} axes are not enough to plot {} Populations".format(len(axes), len(self)))
         #plot
         for (i, pop) in enumerate(self):
-                pop.plot(axes[i], **kwargs)
-
+                pop.plot(axeslist[i], **kwargs)
+        #PopulationList title
+        ax = axeslist[0] #first axis
+        if direction=='col':
+            pad=30
+            color='blue'
+            ax.annotate(self.title, xy=(0.5, 1), xytext=(0, pad), xycoords='axes fraction', 
+                            textcoords='offset points', size='large', ha='center', va='baseline', color=color)
+        elif direction=='row':
+            pad=15
+            ax.annotate(self.title, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad-pad, 0), xycoords=ax.yaxis.label, 
+                            textcoords='offset points', size='large', ha='right', va='center', color='blue')
+        else: 
+            raise ValueError("Unknown direction {}".format(direction))
 
 class RegressionResult:
     '''Wrapper for linear RegressionResults class of statsmodels'''
