@@ -256,9 +256,10 @@ class Population:
         dataflat_dict = {dataname: data.flatten() for (dataname,data) in data_dict.items()}
         df = pd.DataFrame(dataflat_dict)
         df.index.name = 'observation'
+        df.name = self.title
         return df
     def to_populationlist(self):
-        return PopulationList([self[i] for i in range(self.npersons)])
+        return PopulationList([self[i] for i in range(self.npersons)], title=self.title+' (as PopulationList)')
     
     #removing outliers
     def filter(self, recovered_symptom_score=SMIN, firstday=FIRSTVISIT, lastday=NDAYS, copy=False):
@@ -347,22 +348,25 @@ def assertPopulation(obj):
         return True #if no error
 def assertListlikeOfPopulations(listlike):
     """Check if all objects are Populations"""
-    for (i, obj) in enumerate(listlike):
-        try: 
-            assertPopulation(obj)
-        except AssertionError as e:
-            newmessage = "At index {}, {}".format(i, e.args[0])
-            #append update error message
-            if len(e.args) >= 1:
-                e.args = (newmessage,) + e.args[1:]
-            raise #re-raise error with updated message
-    return True #if no error
+    if isinstance(listlike, PopulationList):
+        return True #short circuit since must contain only Populations
+    else:
+        for (i, obj) in enumerate(listlike):
+            try: 
+                assertPopulation(obj)
+            except AssertionError as e:
+                newmessage = "At index {}, {}".format(i, e.args[0])
+                #append update error message
+                if len(e.args) >= 1:
+                    e.args = (newmessage,) + e.args[1:]
+                raise #re-raise error with updated message
+        return True #if no error
 
-#TODO add title
 class PopulationList(UserList):
-    def __init__(self, listlike=[]):
+    def __init__(self, listlike=[], title=''):
         assertListlikeOfPopulations(listlike)
         super().__init__(listlike)
+        self.title = title
     #overriden methods
     def append(self, other):
         assertPopulation(other)
@@ -428,13 +432,27 @@ class PopulationList(UserList):
     # Other methods
     
     def copy(self, newtitle=None, addtitle=None):
-        return PopulationList([pop.copy(newtitle=newtitle, addtitle=addtitle) for pop in self])
+        #copy
+        newlist = PopulationList([pop.copy(newtitle=newtitle, addtitle=addtitle) for pop in self], title=self.title)
+        #possibly change title
+        if newtitle is not None:
+            newlist.title = newtitle
+        if addtitle is not None:
+            newlist.title += ' '+addtitle
+        #return
+        return newlist
     def double(self, newtitle1=None, addtitle1=None, newtitle2=None, addtitle2=None):
         newpoplist2 = self.copy(newtitle=newtitle2, addtitle=addtitle2)
         newpoplist1 = self
         if newtitle1 is not None:
+            #change list title
+            newpoplist1.title = newtitle1
+            #change population titles
             for newpop1 in newpoplist1: newpop1.title = newtitle1
         if addtitle1 is not None:
+            #change list title
+            newpoplist1.title += ' '+addtitle1
+            #change population titles
             for newpop1 in newpoplist1: newpop1.title += ' '+addtitle1
         return newpoplist1, newpoplist2
     def to_dataframes(self):

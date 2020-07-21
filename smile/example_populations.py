@@ -148,9 +148,9 @@ def get_useful_poplists(size=100):
     gen_error_add = lambda s,C: np.maximum(s+C, SMIN)
     gen_C_add = lambda shape: truncatednormal(-1, 1, 1, shape)
 
-    pops_noerror = PopulationList([linear_pop, exponential_quick_pop, exponential_slow_pop])
-    pops_mulerror = PopulationList()
-    pops_adderror = PopulationList()
+    pops_noerror = PopulationList([linear_pop, exponential_quick_pop, exponential_slow_pop], title='no error')
+    pops_mulerror = PopulationList(title='multiplicative error')
+    pops_adderror = PopulationList(title='additive error')
 
     for i in range(len(pops_noerror)):
         pop_mul, pop_add = pops_noerror[i].double(addtitle1='multiplicative error', addtitle2='additive error')
