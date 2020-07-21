@@ -535,16 +535,19 @@ def assertRegressionResult(obj):
         return True #if no error
 def assertListlikeOfRegressionResults(listlike):
     """Check if all objects are RegressionResults"""
-    for (i, obj) in enumerate(listlike):
-        try: 
-            assertRegressionResult(obj)
-        except AssertionError as e:
-            newmessage = "At index {}, {}".format(i, e.args[0])
-            #append update error message
-            if len(e.args) >= 1:
-                e.args = (newmessage,) + e.args[1:]
-            raise #re-raise error with updated message
-    return True #if no error
+    if isinstance(listlike, PopulationList):
+        return True #short circuit since must contain only Populations
+    else:
+        for (i, obj) in enumerate(listlike):
+            try: 
+                assertRegressionResult(obj)
+            except AssertionError as e:
+                newmessage = "At index {}, {}".format(i, e.args[0])
+                #append update error message
+                if len(e.args) >= 1:
+                    e.args = (newmessage,) + e.args[1:]
+                raise #re-raise error with updated message
+        return True #if no error
 
 class RegressionResultList(UserList):
     #TODO add title
@@ -572,8 +575,8 @@ class RegressionResultList(UserList):
     def params(self): return [regresult.params for regresult in self]
     @property
     def params_dataframe(self): return pd.concat(self.params, axis=1).transpose()
-    @property
-    def rsquareds(self): return [regresult.rsquared for regresult in self]
+    #@property
+    #def rsquareds(self): return [regresult.rsquared for regresult in self] #Does not exist for linear mixed effects in statsmodels
     
     # Plotting
     
