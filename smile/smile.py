@@ -168,11 +168,19 @@ class Population:
     #TODO remove repetition between functions
     def regress(self, method='population', y='symptom', x='visual'):
         #TODO use getattr(self, 'regress_'+method)
-        if method == 'population': return self.regress_population(x=x, y=y)
-        elif method == 'persons': return self.regress_persons(x=x, y=y)
-        elif method =='mixed': return self.regress_mixed(self, x=x, y=y)
+        if method == 'persons': return self.regress_persons(x=x, y=y)
+        elif method == 'population': return self.regress_population(x=x, y=y)
+        elif method =='mixed': return self.regress_mixed(x=x, y=y)
         else: raise ValueError("Unknown regression method: {}".format(method))
-    def regress_population(self, x='visual', y='symptom'):
+    def regress_persons(self, x='visual', y='symptom'):
+        '''Simple linear regression on each person in self, independently'''
+        warn('Deprecated')
+        poplist = self.to_populationlist()
+        #regress each person
+        regresults = poplist.regress_populations(y=y, x=x)
+        return regresults
+    def regress_linear(self, x='visual', y='symptom'):
+        '''Simple linear regression on self'''
         # Argument parsing # TODO make into helper function for clutter reduction
         y_possibilities = {'symptom'} #TODO add more possibilities
         x_possibilities = {'visual'} #TODO add more possibilities
@@ -186,14 +194,8 @@ class Population:
         result = model.fit() #fit model
         
         return RegressionResult(result, self)
-    def regress_persons(self, x='visual', y='symptom'):
-        #each person becomes it's own population
-        warn('Deprecated')
-        poplist = self.to_populationlist()
-        #regress each person
-        regresults = poplist.regress_populations(y=y, x=x)
-        return regresults
     def regress_mixed(self, x='visual', y='symptom'):
+        '''Mixed effects linear regression on self, with random intercept and slope'''
         # Argument parsing # TODO make into helper function for clutter reduction
         y_possibilities = {'symptom'} #TODO add more possibilities
         x_possibilities = {'visual'} #TODO add more possibilities
@@ -422,12 +424,19 @@ class PopulationList(UserList):
             
     # Statistical methods
             
-    def regress_populations(self, **kwargs):
-        return RegressionResultList([pop.regress_population(**kwargs) for pop in self])
+    def regress(self, method='population', **kwargs):
+        #TODO use getattr(self, 'regress_'+method)
+        if method == 'persons': return self.regress_persons(**kwargs)
+        elif method == 'population': return self.regress_population(**kwargs)
+        elif method =='mixed': return self.regress_mixed(**kwargs)
+        else: raise ValueError("Unknown regression method: {}".format(method))
     def regress_persons(self, **kwargs):
+        #deprecated
         return [pop.regress_persons(**kwargs) for pop in self]
+    def regress_linear(self, **kwargs):
+        return RegressionResultList([pop.regress_linear(**kwargs) for pop in self], title=self.title+'\nregressed linear')
     def regress_mixed(self, **kwargs):
-        return RegressionResultList([pop.regress_mixed(*kwargs) for pop in self])
+        return RegressionResultList([pop.regress_mixed(*kwargs) for pop in self], title=self.title+'\nregressed mixed')
             
     # Other methods
     
@@ -502,6 +511,10 @@ class RegressionResult:
         #slicing to not catch extra params in mixed effects model, e.g. 'Group x visual Cov'
         self.params = statsmodelRegResult.params.iloc[0:2]
         #self.rsquared = statsmodelRegResult.rsquared #Does not exist for linear mixed effects in statsmodels
+        
+        @property
+        def title(self):
+            return self.population.title +'\n regression result'
     
     def confidence_interval(self, alpha=0.05):
         '''uses a Student t distribution'''
@@ -552,9 +565,10 @@ def assertListlikeOfRegressionResults(listlike):
 # TODO keep track of number of parameters
 class RegressionResultList(UserList):
     #TODO add title
-    def __init__(self, listlike=[]):
+    def __init__(self, listlike=[], title=''):
         assertListlikeOfRegressionResults(listlike)
         super().__init__(listlike)
+        self.title = title
     #overriden methods
     def append(self, other):
         assertRegressionResult(other)
