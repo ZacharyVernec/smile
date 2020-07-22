@@ -436,7 +436,7 @@ class PopulationList(UserList):
     def regress_linear(self, **kwargs):
         return RegressionResultList([pop.regress_linear(**kwargs) for pop in self], title=self.title+'\nregressed linear')
     def regress_mixed(self, **kwargs):
-        return RegressionResultList([pop.regress_mixed(*kwargs) for pop in self], title=self.title+'\nregressed mixed')
+        return RegressionResultList([pop.regress_mixed(*kwargs) for pop in self], title=self.title+'\nMixed effects regression')
             
     # Other methods
     
@@ -479,7 +479,7 @@ class PopulationList(UserList):
     def plot(self, axeslist, direction='row', **kwargs):
         '''
         Plots all populations sequentially, using same kwargs as in Population.plot() method
-        direction can be "row" or "col" depending on if the axeslist represents a row or column of a figure
+        Direction can be "row" or "col" depending on if the axeslist represents a row or column of a figure
             and determines where the PopulationList title will go
         '''
         #check axes input
@@ -596,21 +596,38 @@ class RegressionResultList(UserList):
     # Plotting
     
     # TODO add title
-    def plot_box(self, axes, ground_truths=None):
-        '''ground truth is either None, or a list of floats (inc. np.Nan for unknown) of same length as number of params'''
+    def plot_box(self, axeslist, ground_truths=None, direction='row'):
+        '''
+        Ground truth is either None, or a list of floats (inc. np.Nan for unknown) of same length as number of params
+        Direction can be "row" or "col" depending on if the axeslist represents a row or column of a figure
+            and determines where the PopulationList title will go
+        '''
         #vars
         params_df = self.params_dataframe
         paramnames = params_df.columns
         #check input
-        if len(axes) != len(paramnames):
+        if len(axeslist) != len(paramnames):
             raise ValueError("Not enough axes to plot each parameter.")
         if ground_truths is not None:
             if len(ground_truths) != len(paramnames):
                 raise ValueError("Not enough ground truths for each parameter.")
         #plotting
         for i in range(len(paramnames)):
-            params_df[paramnames[i]].plot.box(ax=axes[i], grid=False)
-            if ground_truths is not None: axes[i].axhline(ground_truths[i], xmin=0.0, xmax=1.0, linewidth=1, color='red')
+            params_df[paramnames[i]].plot.box(ax=axeslist[i], grid=False)
+            if ground_truths is not None: axeslist[i].axhline(ground_truths[i], xmin=0.0, xmax=1.0, linewidth=1, color='red')
+        #RegressionList title
+        ax = axeslist[0] #first axis
+        if direction=='col':
+            pad=30
+            color='blue'
+            ax.annotate(self.title, xy=(0.5, 1), xytext=(0, pad), xycoords='axes fraction', 
+                            textcoords='offset points', size='large', ha='center', va='baseline', color=color)
+        elif direction=='row':
+            pad=15
+            ax.annotate(self.title, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad-pad, 0), xycoords=ax.yaxis.label, 
+                            textcoords='offset points', size='large', ha='right', va='center', color='blue')
+        else: 
+            raise ValueError("Unknown direction {}".format(direction))
             
 
 # # Study
