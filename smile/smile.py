@@ -618,8 +618,16 @@ class RegressionResultList(UserList):
                 raise ValueError("Not enough ground truths for each parameter.")
         #plotting
         for i in range(len(paramnames)):
-            params_df[paramnames[i]].plot.box(ax=axeslist[i], grid=False)
-            if ground_truths is not None: axeslist[i].axhline(ground_truths[i], xmin=0.0, xmax=1.0, linewidth=1, color='red')
+            #Box plot
+            boxprops = dict(linewidth=2, color='blue')
+            medianprops = dict(linewidth=2, color='blue')
+            meanlineprops = dict(linestyle=':', linewidth=2, color='green')
+            params_df[paramnames[i]].plot.box(ax=axeslist[i], grid=False, 
+                                              boxprops=boxprops, medianprops=medianprops, 
+                                              meanprops=meanlineprops, meanline=True, showmeans=True)
+            #Ground truth line
+            if ground_truths is not None: 
+                axeslist[i].axhline(ground_truths[i], xmin=0.0, xmax=1.0, linewidth=1, color='red')
         #RegressionList title
         ax = axeslist[0] #first axis
         if direction=='col':
