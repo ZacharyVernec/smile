@@ -464,6 +464,11 @@ class PopulationList(UserList):
             #change population titles
             for newpop1 in newpoplist1: newpop1.title += ' '+addtitle1
         return newpoplist1, newpoplist2
+    @classmethod
+    def full(cls, length, population, title=None):
+        '''Creates a PopulationList of many copies of the given population'''
+        if title==None: title='list of '+population.title
+        return cls([population.copy() for i in range(length)], title)
     def to_dataframes(self):
         return [pop.to_dataframe() for pop in self]
     
