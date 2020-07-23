@@ -598,6 +598,23 @@ class RegressionResultList(UserList):
     #@property
     #def rsquareds(self): return [regresult.rsquared for regresult in self] #Does not exist for linear mixed effects in statsmodels
     
+    # Statistical methods
+    def get_biases(self, ground_truths, absolute=False):
+        '''
+        Ground truth is either:
+            - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
+            - a dict-like of floats (inc. np.NaN) with keys as the param names,
+        '''
+        param_means = self.params_dataframe.mean()
+        param_truths = pd.Series(ground_truths)
+        #set index if necessary
+        if isinstance(ground_truths, (list, tuple, np.ndarray)):
+            param_truths.index = param_means.index #same order as params
+        #calculate biases
+        biases = param_means - param_truths
+        if absolute: biases = np.abs(biases)
+        return biases
+    
     # Plotting
     
     # TODO add title
