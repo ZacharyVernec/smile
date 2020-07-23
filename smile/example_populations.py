@@ -119,6 +119,7 @@ def get_exppop(size=10000):
 def get_useful_poplists(size=100):
     '''returns a PopulationList with no errors, a PopulationList with additive errors, and a PopulationList with multiplicative errors'''
     
+    # Define and set visual score function
     pop_with_visual_score = Population(size)
     gen_visualscores = lambda t,r,f0: np.maximum(-r*t+f0, FMIN)
     pop_with_visual_score.set_score_generator('visual', gen_visualscores)
@@ -127,6 +128,7 @@ def get_useful_poplists(size=100):
     pop_with_visual_score.set_parameter_generator('r', gen_r, 'person')
     pop_with_visual_score.set_parameter_generator('f0', gen_f0, 'person')
 
+    #Define and set symptom score functions
     linear_pop = pop_with_visual_score.copy(newtitle='linear')
     gen_symptomscores = lambda f,a: a*(f-FMIN)
     linear_pop.set_score_generator('symptom_noerror', gen_symptomscores)
@@ -143,24 +145,27 @@ def get_useful_poplists(size=100):
     exponential_quick_pop.set_parameter_generator('B', lambda shape: B, 'population')
     exponential_slow_pop.set_parameter_generator('B', lambda shape: 1/B, 'population')
 
+    # Define error functions
     gen_error_mul = lambda s,C: s*C
     gen_C_mul = lambda shape: truncatednormal(0.7, 1.3, 1, shape)
     gen_error_add = lambda s,C: np.maximum(s+C, SMIN)
     gen_C_add = lambda shape: truncatednormal(-1, 1, 1, shape)
 
-    pops_noerror = PopulationList([linear_pop, exponential_quick_pop, exponential_slow_pop], title='no error')
-    pops_mulerror = PopulationList(title='multiplicative error')
-    pops_adderror = PopulationList(title='additive error')
-
-    for i in range(len(pops_noerror)):
-        pop_mul, pop_add = pops_noerror[i].double(addtitle1='multiplicative error', addtitle2='additive error')
+    pops_beforeerror = PopulationList([linear_pop, exponential_quick_pop, exponential_slow_pop])
+    pops_noerror = pops_beforeerror.copy(addtitle='no error')
+    pops_mulerror = pops_beforeerror.copy(addtitle='multiplicative error')
+    pops_adderror = pops_beforeerror.copy(addtitle='additive error')
+    
+    #Set error functions
+    for (pop_no, pop_mul, pop_add) in zip(pops_noerror, pops_mulerror, pops_adderror):
+        
+        pop_no.set_score_generator('symptom', lambda s: s)
 
         pop_mul.set_score_generator('symptom', gen_error_mul)
         pop_mul.set_parameter_generator('C', gen_C_mul, 'day')
-        pops_mulerror.append(pop_mul)
 
         pop_add.set_score_generator('symptom', gen_error_add)
         pop_add.set_parameter_generator('C', gen_C_add, 'day')
-        pops_adderror.append(pop_add)
     
+    #Return
     return pops_noerror, pops_mulerror, pops_adderror
