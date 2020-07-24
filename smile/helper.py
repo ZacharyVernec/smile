@@ -90,6 +90,7 @@ def to_vertical(arraylike):
 
 def truncatednormal(xmin, xmax, pmsigma=3, shape=(2,4)):
     '''the smaller the pmsigma, the closer the distribution is to uniform'''
+    '''pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated'''
     my_mean = (xmax+xmin)/2
     my_std = (xmax-xmin)/(2*pmsigma)
     
