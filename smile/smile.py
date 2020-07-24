@@ -599,6 +599,7 @@ class RegressionResultList(UserList):
     #def rsquareds(self): return [regresult.rsquared for regresult in self] #Does not exist for linear mixed effects in statsmodels
     
     # Statistical methods
+    
     def get_biases(self, ground_truths, magnitude=False, relative=False):
         '''
         Returns bias of the estimates
@@ -616,12 +617,12 @@ class RegressionResultList(UserList):
         #calculate biases
         biases = param_means - param_truths
         if relative: 
-            biases = biases / param_truths
+            biases = biases / param_truths * 100 #percent
+            biases.index = [paramname+" (%)" for paramname in biases.index] #add percentage symbol to parameter text
         if magnitude: 
             biases = np.abs(biases)
         return biases
         
-    
     # Plotting
     
     # TODO add title
