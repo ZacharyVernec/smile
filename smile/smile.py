@@ -292,7 +292,9 @@ class Population:
             
         if (viztype=='lines' or viztype=='both') and vizcolor=='day':
             warn('vizcolor of "day" can only be applied to points, not lines')
-        if vizcolor != 'person' and vizcolor != 'day':
+        if vizcolor not in {'person', 'day'}:
+            raise ValueError()
+        if viztype not in {'lines', 'points', 'both'}:
             raise ValueError()
             
         #abscissas
