@@ -1,0 +1,43 @@
+## Experiment 1: Baselines
+
+Simulation::  
+    - visual score is linear with random intercept and slope per person  
+    - symptom: linear with fixed intercept and slope (>1)  
+    - error: none or multiplicative (+-50%) or additive (+-5)  
+    - npops=100  
+    - npersons=100  
+Filter:: 
+    None  
+Sample:: 
+    None  
+Regression:: 
+    Simple linear or Mixed effects with random intercept and slope  
+
+Purpose:: 
+    Evaluate the bias in an idealized, full-information setting  
+Hypothesis:: 
+    There will be no bias in noerror or multiplicative error. There will be a small bias towards a slower (smaller) slope in additive error.  
+Reasoning:: 
+    The relationship is linear, no persons are discarded from the population, each person will have at least two points to describe their straight line. Multiplicative error will cancel out. However, for additive errors, the enduring error when the visual score is recovered will lead to more observations at (v, s)=(0, +s) without equivalents at (v, s)=(+v, 0) to balance them out since the symptoms have a lower bound (see thick vertical line on the left of the graph of visual vs symptom).
+
+
+NOTE: Kinks in line of visual score or of symptom no error score due to discretization of time do not contribute to bias because they happen identically to both. The effect produced by these kinks are that points forming the line of symptom noerror vs visual are slightly sparser at low values.
+
+
+## Experiment 2: Basic filterning
+
+Simulation: 
+    same as previous experiment  
+Filter: 
+    recover before day 8, or recover before day 8 and after 90
+Sample: 
+    None  
+Regression: 
+    Mixed effects with random intercept and slope  
+
+Purpose: 
+    Evaluate bias in a full-information setting but keeping only studiable people  
+Hypothesis: 
+    Bias will be unchanged from baseline (previous experiment).
+Reasoning: 
+    Filtering removes entire people, but each person has the the same slope for symptoms before error and errors are generated in the same way for each person
