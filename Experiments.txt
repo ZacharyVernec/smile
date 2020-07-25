@@ -11,7 +11,7 @@ Filter::
 Sample:: 
     None  
 Regression:: 
-    Simple linear or Mixed effects with random intercept and slope  
+    Simple person-wise linear or Mixed effects with random intercept and slope  
 
 Purpose:: 
     Evaluate the bias in an idealized, full-information setting  
@@ -24,20 +24,39 @@ Reasoning::
 NOTE: Kinks in line of visual score or of symptom no error score due to discretization of time do not contribute to bias because they happen identically to both. The effect produced by these kinks are that points forming the line of symptom noerror vs visual are slightly sparser at low values.
 
 
-## Experiment 2: Basic filterning
+## Experiment 2: Basic filtering
 
-Simulation: 
+Simulation:: 
     same as previous experiment  
-Filter: 
+Filter:: 
     recover before day 8, or recover before day 8 and after 90
-Sample: 
+Sample:: 
     None  
-Regression: 
-    Mixed effects with random intercept and slope  
+Regression:: 
+    same as previous experiment  
 
-Purpose: 
+Purpose:: 
     Evaluate bias in a full-information setting but keeping only studiable people  
-Hypothesis: 
+Hypothesis:: 
     Bias will be unchanged from baseline (previous experiment).
-Reasoning: 
-    Filtering removes entire people, but each person has the the same slope for symptoms before error and errors are generated in the same way for each person
+Reasoning:: 
+    Filtering removes entire people, but each person has the the same slope for symptoms before error and errors are generated in the same way for each person.
+
+
+## Experiment 3: Traditional sampling
+
+Simulation:: 
+    same as previous experiment  
+Filter:: 
+    same as before
+Sample:: 
+    Days 8, 30 ,90  
+Regression:: 
+    same as previous experiment  
+
+Purpose:: 
+    Evaluate bias in a full-information setting but keeping only studiable people  
+Hypothesis:: 
+    Bias will be unchanged from previous experiment, although the distributions will be more spread out.  
+Reasoning:: 
+    Traditional sampling would not create any bias, as filtering ensures there will be enough distinct points per person (>2) to uniquely determine a line, while the nature of the errors won't be changed.
