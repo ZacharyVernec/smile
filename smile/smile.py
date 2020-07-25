@@ -131,7 +131,7 @@ class Population:
             #reserved parameters
             if paramname == 't' or paramname == 'day':
                 paramvals.append(self.days)
-            elif paramname == 'f' or paramname == 'visual':
+            elif paramname == 'v' or paramname == 'visual':
                 paramvals.append(self.scores['visual'])
             elif paramname == 's' or paramname == 'symptom_noerror':
                 paramvals.append(self.scores['symptom_noerror'])
@@ -147,9 +147,9 @@ class Population:
         for scorename in self.scores: #cannot be done by dict comprehension since later dict values depend on previous ones
             self.scores[scorename] = self.generate_from_score_generator(scorename).astype(float)
         
-        minvisualscore = np.min(self.scores['visual'], initial=FMIN) #initial arg to avoid error of min on empty array
-        if minvisualscore < FMIN: 
-            warn("visual score in {} has min={}, which is below FMIN={}".format(self.title, minscore, FMIN))
+        minvisualscore = np.min(self.scores['visual'], initial=VMIN) #initial arg to avoid error of min on empty array
+        if minvisualscore < VMIN: 
+            warn("visual score in {} has min={}, which is below VMIN={}".format(self.title, minscore, VMIN))
         minsymptomscore = np.min(self.scores['symptom'], initial=SMIN) #initial arg to avoid error of min on empty array
         if minsymptomscore < SMIN: 
             warn("symptom score in {} has  min={}, which is below SMIN={}".format(self.title, minscore, SMIN))
@@ -528,7 +528,7 @@ class RegressionResult:
         return self.statsmodelRegResult.conf_int(alpha=alpha)
     
     def plot_line(self, ax, alpha=0.05): #TODO make more generate than just visual vs symptom
-        x = np.linspace(FMIN, np.max(self.population.scores['visual']), 20)
+        x = np.linspace(VMIN, np.max(self.population.scores['visual']), 20)
 
         y = self.params['visual']*x + self.params['Intercept']
 
