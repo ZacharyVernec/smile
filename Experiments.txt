@@ -18,7 +18,7 @@ Purpose::
 Hypothesis:: 
     There will be no bias in noerror or multiplicative error. There will be a small bias towards a slower (smaller) slope in additive error. Both regressions will give the same results. Both models will give identical results.  
 Reasoning:: 
-    The relationship is linear, no persons are discarded from the population, each person will have at least two points to describe their straight line. Multiplicative error will cancel out. However, for additive errors, the enduring error when the visual score is recovered will lead to more observations at (v, s)=(0, +s) without equivalents at (v, s)=(+v, 0) to balance them out since the symptoms have a lower bound (see thick vertical line on the left of the graph of visual vs symptom).
+    The relationship is linear, no persons are discarded from the population, each person will have at least two points to describe their straight line. Multiplicative error will cancel out. However, for additive errors, the enduring error when the visual score is recovered will lead to more observations at (v, s)=(VMIN, +s) without equivalents at (v, s)=(+v, SMIN) to balance them out since the symptoms have a lower bound (see thick vertical line on the left of the graph of visual vs symptom).
   
   
 NOTE: Kinks in line of visual score or of symptom no error score due to discretization of time do not contribute to bias because they happen identically to both. The effect produced by these kinks are that points forming the line of symptom noerror vs visual are slightly sparser at low values.
@@ -29,14 +29,14 @@ NOTE: Kinks in line of visual score or of symptom no error score due to discreti
 Simulation:: 
     same as previous experiment  
 Filter:: 
-    recover before day 8, or recover before day 8 and after 90
+    recover before day 8 and after 90  
 Sample:: 
     None  
 Regression:: 
     same as previous experiment  
 
 Purpose:: 
-    Evaluate bias in a full-information setting but keeping only studiable people  
+    Evaluate bias in a full-information setting but keeping only studiable people.  
 Hypothesis:: 
     Bias will be unchanged from baseline (previous experiment).
 Reasoning:: 
@@ -48,15 +48,15 @@ Reasoning::
 Simulation:: 
     same as previous experiment  
 Filter:: 
-    same as before
+    same as previous experiment (before day 8 and after day 90)
 Sample:: 
-    Days 8, 30 ,90  
+    Days 8, 30, 90  
 Regression:: 
     same as previous experiment  
 
-Purpose:: 
-    Evaluate bias in a full-information setting but keeping only studiable people  
-Hypothesis:: 
-    Bias will be unchanged from previous experiment, although the distributions will be more spread out.  
-Reasoning:: 
-    Traditional sampling would not create any bias, as filtering ensures there will be enough distinct points per person (>2) to uniquely determine a line, while the nature of the errors won't be changed.
+Purpose::  
+    Evaluate bias in a traditional, fixed-interval study.  
+Hypothesis::  
+    Bias in no error and multiplicative error will be unchanged from previous experiment, although the distributions will be slightly more spread out. Bias in additive error will be increased.  
+Reasoning::  
+    Traditional sampling would not create any bias in no error and multiplicative error, as filtering ensures there will be enough distinct points per person (>2) to uniquely determine a line, while the nature of the errors won't be changed. Distributions will be slightly more spread out, as a sparse amount of points per person will make it difficult to average out the errors per person, but these will still be averaged out on the population level and the populationList level. For additive errors, the thick vertical bar at v=VMIN will be oversampled (on people who recover before 90 days) compared to the more accurate points at higher visual scores, which was the original source of bias. (This could possibly be mitigated by filtering differently. )  
