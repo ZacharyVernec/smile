@@ -33,7 +33,7 @@ Filter::
 Sample:: 
     None  
 Regression:: 
-    same as previous experiment  
+    mixed effects with random intercept and slope  
 
 Purpose:: 
     Evaluate bias in a full-information setting but keeping only studiable people.  
@@ -52,11 +52,11 @@ Filter::
 Sample:: 
     Days 8, 30, 90  
 Regression:: 
-    same as previous experiment  
+    mixed effects with random intercept and slope  
 
 Purpose::  
     Evaluate bias in a traditional, fixed-interval study.  
 Hypothesis::  
     Bias in no error and multiplicative error will be unchanged from previous experiment, although the distributions will be slightly more spread out. Bias in additive error will be increased.  
 Reasoning::  
-    Traditional sampling would not create any bias in no error and multiplicative error, as filtering ensures there will be enough distinct points per person (>2) to uniquely determine a line, while the nature of the errors won't be changed. Distributions will be slightly more spread out, as a sparse amount of points per person will make it difficult to average out the errors per person, but these will still be averaged out on the population level and the populationList level. For additive errors, the thick vertical bar at v=VMIN will be oversampled (on people who recover before 90 days) compared to the more accurate points at higher visual scores, which was the original source of bias. (This could possibly be mitigated by filtering differently. )  
+    Traditional sampling would not create any bias in no error and multiplicative error, as filtering ensures there will be enough distinct points per person (>2) to uniquely determine a line, while the nature of the errors won't be changed. Distributions will be slightly more spread out, as a sparse amount of points per person will make it difficult to average out the errors per person, but these will still be averaged out on the population level and the populationList level. For additive errors, the thick vertical bar at v=VMIN will be oversampled (on people who recover before 90 days) compared to the more accurate points at higher visual scores, which was the original source of bias. (This could possibly be mitigated by filtering differently.)  
