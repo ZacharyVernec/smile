@@ -522,10 +522,14 @@ class RegressionResult:
         @property
         def title(self):
             return self.population.title +'\n regression result'
+        
+    # Statistical methods
     
     def confidence_interval(self, alpha=0.05):
         '''uses a Student t distribution'''
         return self.statsmodelRegResult.conf_int(alpha=alpha)
+    
+    # Plotting methods
     
     def plot_line(self, ax, alpha=0.05): #TODO make more generate than just visual vs symptom
         x = np.linspace(VMIN, np.max(self.population.scores['visual']), 20)
@@ -546,6 +550,11 @@ class RegressionResult:
         ylabel='symptom score'
         ax.set(xlabel=xlabel, ylabel=ylabel)
         ax.autoscale()
+        
+    # Other methods
+    
+    def unwrap(self):
+        return self.statsmodelRegResult
         
 def assertRegressionResult(obj):
     """Check if object is a RegressionResult"""
@@ -571,7 +580,6 @@ def assertListlikeOfRegressionResults(listlike):
 
 # TODO keep track of number of parameters
 class RegressionResultList(UserList):
-    #TODO add title
     def __init__(self, listlike=[], title=''):
         assertListlikeOfRegressionResults(listlike)
         super().__init__(listlike)
@@ -625,7 +633,7 @@ class RegressionResultList(UserList):
             biases = np.abs(biases)
         return biases
         
-    # Plotting
+    # Plotting methods
     
     # TODO add title
     def plot_box(self, axeslist, ground_truths=None, direction='row'):
@@ -668,6 +676,10 @@ class RegressionResultList(UserList):
                             textcoords='offset points', size='large', ha='right', va='center', color='blue')
         else: 
             raise ValueError("Unknown direction {}".format(direction))
+            
+    # Other methods
+    
+    def unwrap(self): return [result.unwrap() for result in self]
             
 
 # # Study
