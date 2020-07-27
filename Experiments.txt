@@ -83,3 +83,5 @@ Reasoning::
     
 NOTE: A higher slope combined with long appoitment times could cause more samples at VMIN, which may lead to lower slope estimates for additive error (due to the same reason as in Experiment 1).
 
+
+## Experiments 5-8: random effects
