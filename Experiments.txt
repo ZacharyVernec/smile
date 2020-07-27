@@ -11,7 +11,7 @@ Filter::
 Sample:: 
     None  
 Regression:: 
-    Simple person-wise linear or mixed effects with no random effects or mixed effects with random intercept and slope  
+    Simple person-wise linear or mixed effects with random intercept and slope  
 
 Purpose:: 
     Evaluate the bias in an idealized, full-information setting. Evaluate the difference between different regression models in the absence of random effects in the population.  
