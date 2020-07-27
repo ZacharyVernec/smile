@@ -85,3 +85,6 @@ NOTE: A higher slope combined with long appoitment times could cause more sample
 
 
 ## Experiments 5-8: random effects
+
+Simulations::
+    Same as previous experiments, but vary the slope and VMIN (which determines the intercept) using left-truncated normal distributions.
