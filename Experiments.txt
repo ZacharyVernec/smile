@@ -1,9 +1,9 @@
 ## Experiment 1: Baselines
 
 Simulation::  
-    - visual score is linear with random intercept and slope per person  
-    - symptom: linear with fixed intercept and slope (>1)  
-    - error: none or multiplicative (+-50%) or additive (+-5)  
+    - Visual score is linear with random intercept and slope per person  
+    - Symptom: linear with fixed intercept and slope (>1)  
+    - Error: none or multiplicative (+-50%) or additive (+-5)  
     - npops=100  
     - npersons=100  
 Filter:: 
@@ -27,13 +27,13 @@ NOTE: Kinks in line of visual score or of symptom no error score due to discreti
 ## Experiment 2: Basic filtering
 
 Simulation:: 
-    same as previous experiment  
+    Same as previous experiment  
 Filter:: 
-    recover before day 8 and after 90  
+    Recover before day 8 and after 90  
 Sample:: 
     None  
 Regression:: 
-    mixed effects with random intercept and slope  
+    Mixed effects with random intercept and slope  
 
 Purpose:: 
     Evaluate bias in a full-information setting but keeping only studiable people.  
@@ -46,13 +46,13 @@ Reasoning::
 ## Experiment 3: Traditional sampling
 
 Simulation:: 
-    same as previous experiment  
+    Same as previous experiment  
 Filter:: 
-    same as previous experiment (before day 8 and after day 90)  
+    Same as previous experiment (before day 8 and after day 90)  
 Sample:: 
     Days 8, 30, 90  
 Regression:: 
-    same as previous experiment  
+    Same as previous experiment  
 
 Purpose::  
     Evaluate bias in a traditional, fixed-interval study.  
@@ -65,14 +65,14 @@ Reasoning::
 ## Experiment 4: SMILE sampling  
 
 Simulation::  
-    same as previous experiment
+    Same as previous experiment
 Filter::  
-    same as previous experiment (before day 8 and after day 90)  
+    Same as previous experiment (before day 8 and after day 90)  
 Sample::  
-    index at day 8, then take symptom score 0 days after reaching 70% and 30% of index  
+    Index at day 8, then take symptom score 0 days after reaching 70% and 30% of index  
     alternatively, same with +5 days after reaching or a random number in [1, 14] days after reaching  
 Regression::  
-    same as previous experiment  
+    Same as previous experiment  
 
 Purpose::  
     Evaluate bias due to sampling with SMILE technique across different appointment timing schemes
