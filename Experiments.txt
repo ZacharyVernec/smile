@@ -16,9 +16,9 @@ Regression::
 Purpose:: 
     Evaluate the bias in an idealized, full-information setting. Evaluate the difference between different regression models in the absence of random effects in the population.  
 Hypothesis:: 
-    There will be no bias in noerror or multiplicative error. There will be a small bias towards a slower (smaller) slope in additive error. Both regressions will give the same results. Both models will give identical results.  
+    There will be no bias in noerror or multiplicative error. There will be a small bias towards a slower (lower) slope in additive error. Both regressions will give the same results. Both models will give identical results.  
 Reasoning:: 
-    The relationship is linear, no persons are discarded from the population, each person will have at least two points to describe their straight line. Multiplicative error will cancel out. However, for additive errors, the enduring error when the visual score is recovered will lead to more observations at (v, s)=(VMIN, +s) without equivalents at (v, s)=(+v, SMIN) to balance them out since the symptoms have a lower bound (see thick vertical line on the left of the graph of visual vs symptom).
+    The relationship is linear, no persons are discarded from the population, each person will have at least two points to describe their straight line. Multiplicative error will cancel out. However, for additive errors, the enduring error when the visual score is recovered will lead to more observations at (VMIN, +s) without equivalents at (VMIN, -s) to balance them out since the symptoms have a lower bound (see thick vertical line on the left of the graph of visual vs symptom).
   
   
 NOTE: Kinks in line of visual score or of symptom no error score due to discretization of time do not contribute to bias because they happen identically to both. The effect produced by these kinks are that points forming the line of symptom noerror vs visual are slightly sparser at low values.
@@ -40,7 +40,7 @@ Purpose::
 Hypothesis:: 
     Bias will be unchanged from baseline (previous experiment).
 Reasoning:: 
-    Filtering removes entire people, but each person has the the same slope for symptoms before error and errors are generated in the same way for each person.
+    Filtering removes entire people, but each person has the the same slope for symptoms before error and errors are generated in the same way for each person.  
 
 
 ## Experiment 3: Traditional sampling
@@ -48,11 +48,11 @@ Reasoning::
 Simulation:: 
     same as previous experiment  
 Filter:: 
-    same as previous experiment (before day 8 and after day 90)
+    same as previous experiment (before day 8 and after day 90)  
 Sample:: 
     Days 8, 30, 90  
 Regression:: 
-    mixed effects with random intercept and slope  
+    same as previous experiment  
 
 Purpose::  
     Evaluate bias in a traditional, fixed-interval study.  
@@ -60,3 +60,26 @@ Hypothesis::
     Bias in no error and multiplicative error will be unchanged from previous experiment, although the distributions will be slightly more spread out. Bias in additive error will be increased.  
 Reasoning::  
     Traditional sampling would not create any bias in no error and multiplicative error, as filtering ensures there will be enough distinct points per person (>2) to uniquely determine a line, while the nature of the errors won't be changed. Distributions will be slightly more spread out, as a sparse amount of points per person will make it difficult to average out the errors per person, but these will still be averaged out on the population level and the populationList level. For additive errors, the thick vertical bar at v=VMIN will be oversampled (on people who recover before 90 days) compared to the more accurate points at higher visual scores, which was the original source of bias. (This could possibly be mitigated by filtering differently.)  
+
+
+## Experiment 4: SMILE sampling  
+
+Simulation::  
+    same as previous experiment
+Filter::  
+    same as previous experiment (before day 8 and after day 90)  
+Sample::  
+    index at day 8, then take symptom score 0 days after reaching 70% and 30% of index  
+    alternatively, same with +5 days after reaching or a random number in [1, 14] days after reaching  
+Regression::  
+    same as previous experiment  
+
+Purpose::  
+    Evaluate bias due to sampling with SMILE technique across different appointment timing schemes
+Hypothesis::  
+    When taking "appointments" at +0 days, the intercept would be noticeably biased towards lower values for both error types. For multiplicative error, the slope would also be biased towards lower values, whereas for additive errors it wouldn't get that bias. For +5 days or +random days, that bias would not be present. 
+Reasoning::  
+    Measuring as soon as the person feels better (i.e. +0 days) makes it more likely to measure when the error is pushing the person down, and so the intercept would decrease and the slope would either increase or decrease, depending on if the visual score at the affected point is low or high respectively. In the case of multiplicative, most errors happen early on (high visual score), so the slope would likely decrease. For additive error, it could go either way. If the bias is measured after waiting some days, the bias disappears since the errors are generated independently each day.  
+    
+NOTE: A higher slope combined with long appoitment times could cause more samples at VMIN, which may lead to lower slope estimates for additive error (due to the same reason as in Experiment 1).
+
