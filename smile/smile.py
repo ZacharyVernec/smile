@@ -178,7 +178,7 @@ class Population:
         poplist = self.to_populationlist()
         #regress each person
         regresults = poplist.regress_populations(y=y, x=x)
-        return regresults
+        return regresults #TODO return as Result not Resultslist
     def regress_linear(self, x='visual', y='symptom'):
         '''Simple linear regression on self'''
         # Argument parsing # TODO make into helper function for clutter reduction
