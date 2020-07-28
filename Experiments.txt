@@ -1,4 +1,12 @@
-## Experiment 1: Baselines
+# Experiment descriptions
+
+
+
+## Experiment 1-4: Fixed effects
+
+
+
+### Experiment 1: Baselines
 
 Simulation::  
     - Visual score is linear with random intercept and slope per person  
@@ -16,7 +24,7 @@ Regression::
 Purpose:: 
     Evaluate the bias in an idealized, full-information setting. Evaluate the difference between different regression models in the absence of random effects in the population.  
 Hypothesis:: 
-    There will be no bias in noerror or multiplicative error. There will be a small bias towards a slower (lower) slope in additive error. Both regressions will give the same results. Both models will give identical results.  
+    There will be no bias in noerror or multiplicative error. There will be a small bias towards a slower (lower) slope in additive error. This will be the same for both regressions.  
 Reasoning:: 
     The relationship is linear, no persons are discarded from the population, each person will have at least two points to describe their straight line. Multiplicative error will cancel out. However, for additive errors, the enduring error when the visual score is recovered will lead to more observations at (VMIN, +s) without equivalents at (VMIN, -s) to balance them out since the symptoms have a lower bound (see thick vertical line on the left of the graph of visual vs symptom).
   
@@ -24,7 +32,7 @@ Reasoning::
 NOTE: Kinks in line of visual score or of symptom no error score due to discretization of time do not contribute to bias because they happen identically to both. The effect produced by these kinks are that points forming the line of symptom noerror vs visual are slightly sparser at low values.
   
   
-## Experiment 2: Basic filtering
+### Experiment 2: Basic filtering
 
 Simulation:: 
     Same as previous experiment  
@@ -43,7 +51,7 @@ Reasoning::
     Filtering removes entire people, but each person has the the same slope for symptoms before error and errors are generated in the same way for each person.  
 
 
-## Experiment 3: Traditional sampling
+### Experiment 3: Traditional sampling
 
 Simulation:: 
     Same as previous experiment  
@@ -62,7 +70,7 @@ Reasoning::
     Traditional sampling would not create any bias in no error and multiplicative error, as filtering ensures there will be enough distinct points per person (>2) to uniquely determine a line, while the nature of the errors won't be changed. Distributions will be slightly more spread out, as a sparse amount of points per person will make it difficult to average out the errors per person, but these will still be averaged out on the population level and the populationList level. For additive errors, the thick vertical bar at v=VMIN will be oversampled (on people who recover before 90 days) compared to the more accurate points at higher visual scores, which was the original source of bias. (This could possibly be mitigated by filtering differently.)  
 
 
-## Experiment 4: SMILE sampling  
+### Experiment 4: SMILE sampling  
 
 Simulation::  
     Same as previous experiment
@@ -84,7 +92,35 @@ Reasoning::
 NOTE: A higher slope combined with long appoitment times could cause more samples at VMIN, which may lead to lower slope estimates for additive error (due to the same reason as in Experiment 1).
 
 
+
 ## Experiments 5-8: random effects
 
 Simulations::
-    Same as previous experiments, but vary the slope and VMIN (which determines the intercept) using left-truncated normal distributions.
+    Same as previous experiments, but each person has a random symptom-vs-visual slope and VMIN from a using (left-truncated) normal distributions. The product of the slope and VMIN determines the intercept, but that intercept's pdf is non-Gaussian (see here: https://math.stackexchange.com/a/397716) 
+
+Purposes::
+    Evaluate sources of bias due to random effects and its interactions other aspects.
+
+
+### Experiment 5:  
+
+Simulation::  
+    Same as experiment 1, but varying slope and VMIN per person 
+Filter:: 
+    Same as experiment 1 (None)  
+Sample:: 
+    Same as experiment 1 (None)  
+Regression:: 
+    Same as experiment 1 (Simple person-wise linear or mixed effects with random intercept and slope)  
+
+Purpose:: 
+    Evaluate the bias in an idealized, full-information setting. Evaluate the difference between different regression models in the absence of random effects in the population.  
+Hypothesis:: 
+    Results will be identical to experiment 1, but more spread out.  
+Reasoning:: 
+    The slopes and intercepts will have mean equivalent to the fixed values from experiment 1. Bias due to additive errors at VMIN will be decreased in persons with low slopes, but equivalently increased in persons witl high slopes.
+
+
+
+NOTE: Maybe allow error of additive to drop to zero when v=VMIN?
+NOTE: Maybe dditive error should be correlated to slope?
