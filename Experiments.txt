@@ -78,7 +78,7 @@ Filter::
     Same as previous experiment (before day 8 and after day 90)  
 Sample::  
     Index at day 8, then take symptom score 0 days after reaching 70% and 30% of index  
-    alternatively, same with +5 days after reaching or a random number in [1, 14] days after reaching  
+    Alternatively, same with +5 days after reaching or a random number in [1, 14] days after reaching  
 Regression::  
     Same as previous experiment  
 
@@ -124,3 +124,4 @@ Reasoning::
 
 NOTE: Maybe allow error of additive to drop to zero when v=VMIN?
 NOTE: Maybe dditive error should be correlated to slope?
+NOTE: if methodology wants to sample after the study is "over" (e.g. at pop.ndays+4) due to the time delay of scheduling an appointment, what should happen? should it be a NaN (current, easy), or should the sampling proceed (by generating new scores for that specific day, complicated)
