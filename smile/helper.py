@@ -185,4 +185,7 @@ class twodarray(np.ndarray):
     #    which would tile/repeat a 1d array to make a towdarray of the required height or depth, respectively
     
 def to_vertical(arraylike):
-    return np.array(arraylike).reshape(-1, 1)
+    try:
+        return arraylike.reshape(-1, 1)
+    except AttributeError:
+        return np.array(arraylike).reshape(-1, 1)
