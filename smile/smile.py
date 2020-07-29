@@ -689,7 +689,7 @@ class RegressionResultList(UserList):
 #TODO parallelize
     
 class Methodology:
-    def __init__(self, title='', sample_args=[8, 15, 29], smilescorename='symptom'):
+    def __init__(self, title='', sample_args=[8, 15, 29], smiledelay=0, smilescorename='symptom'):
         '''
         Sample args that are integers are interpreted as a fixed day
         Sample args between 0 and 1 (exclusive) are interpreted as a percentage with which to use SMILE, based on the first fixed day
@@ -697,9 +697,13 @@ class Methodology:
         smilescore determines which score the milestone_ratios will be based on (can be symptom, visual, or symptom_noerror)
         '''
         
+        #TODO possibility of random smiledelay, random index
+        
         self.title=title
         self.smilescorename=smilescorename
+        self.smiledelay=smiledelay
         
+        #split sample_args into fixed and smile
         sample_args = np.array(sample_args)
         self.fixed_days = sample_args[sample_args == sample_args.astype(int)].astype(int)
         self.milestone_ratios = sample_args[(0 < sample_args) & (sample_args < 1)]
@@ -733,23 +737,33 @@ class Methodology:
 
             smilescores = population.scores[self.smilescorename]
 
+            # Compute the scores which will trigger milestones
             index = int(np.min(self.fixed_days)) #day which milestone_ratios are based on #cast as int rather than np.int for easy type checks
             smilescores_at_index = helper.to_vertical(smilescores[:, index])
-            smile_vals = smilescores_at_index*self.milestone_ratios #The score values to reach. Each row is a person, each column is a milestone
+            smile_vals = smilescores_at_index*self.milestone_ratios 
+            #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
 
+            #TODO use a masked array (possible complication using take_along_axis)
+            # Compute the days where the milestones are triggered, and where we sample
             milestone_days = np.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
-            for milestone_col in range(smile_vals.shape[1]): #TODO change from shape to ndays
+            #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. The following array will help mitigate this
+            milestone_days_real = np.empty_like(milestone_days) #will hold the days where the milestone_ratios is reached (exc. those stored as 0 meaning 'never reached')
+            for milestone_col in range(smile_vals.shape[1]): 
                 milestone_vals = helper.to_vertical(smile_vals[:,milestone_col])
-                milestone_days[:,milestone_col] = np.argmax(smilescores <= milestone_vals, axis=1).astype(int) #the day at which the milestone is reached for each person
-            #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'
+                milestone_days_temp = np.argmax(smilescores <= milestone_vals, axis=1) #the day at which the milestone is reached for each person
+                milestone_days[:,milestone_col] = milestone_days_column #the day at which the milestone is reached for each person
+                milestone_days_fake[:,milestone_col] = np.take_along_axis(smilescores <= milestone_vals, milestone_days_temp)
+            sampling_days = np.where(milestone_days_real, milestone_days+self.smiledelay, milestone_days)  #fake days stay as 0
+            sampling_days = np.where(sampling_days > LASTVISIT, 0, milestone_days) #days past the study duration get sent to 0
+            milestone_days_real = np.where(sampling_days > LASTVISIT, False, milestone_days_real) #days past the study duration are now fake days
 
-            #Sample at those days
-            milestone_smilescores = np.take_along_axis(smilescores, milestone_days, axis=1)
-            milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], milestone_days, axis=1) for scorename in population.scores}
+            #Sample at real sampling days
+            milestone_smilescores = np.take_along_axis(smilescores, milestone_days, axis=1) #both real and fake
+            milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], milestone_days, axis=1) for scorename in population.scores} #both real and fake
             #replace the 'fake' days and scores with NaN
-            notFake = (milestone_smilescores <= smile_vals)
-            milestone_days = np.where(notFake, milestone_days, np.nan) #TODO warn if NaN
-            milestone_scores = {scorename:np.where(notFake, milestone_scores[scorename], np.nan) for scorename in milestone_scores}
+            milestone_days = np.where(milestone_days_real, milestone_days, np.nan)
+            milestone_scores = {scorename: np.where(milestone_days_real, milestone_scores[scorename], np.nan) for scorename in milestone_scores}
+            #TODO warn if nan
 
             # FIXED
 
@@ -759,8 +773,8 @@ class Methodology:
             # COMBINE fixed and milestones
 
             samplepop = population.copy(addtitle='\nsampled by '+self.title)
-            samplepop.days = np.concatenate([fixed_days, milestone_days], axis=1)
-            samplepop.scores = {scorename:np.concatenate([fixed_scores[scorename], milestone_scores[scorename]], axis=1) for scorename in samplepop.scores}
+            samplepop.days = np.hstack([fixed_days, milestone_days])
+            samplepop.scores = {scorename:np.hstack([fixed_scores[scorename], milestone_scores[scorename]]) for scorename in samplepop.scores}
 
             return samplepop
                  
