@@ -747,23 +747,25 @@ class Methodology:
             # Compute the days where the milestones are triggered, and where we sample
             milestone_days = np.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
             #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. The following array will help mitigate this
-            milestone_days_real = np.empty_like(milestone_days) #will hold the days where the milestone_ratios is reached (exc. those stored as 0 meaning 'never reached')
+            milestone_days_real = np.empty_like(milestone_days, dtype=bool) #will hold the days where the milestone_ratios is reached (exc. those stored as 0 meaning 'never reached')
             for milestone_col in range(smile_vals.shape[1]): 
                 milestone_vals = helper.to_vertical(smile_vals[:,milestone_col])
                 milestone_days_temp = np.argmax(smilescores <= milestone_vals, axis=1) #the day at which the milestone is reached for each person
-                milestone_days[:,milestone_col] = milestone_days_column #the day at which the milestone is reached for each person
-                milestone_days_fake[:,milestone_col] = np.take_along_axis(smilescores <= milestone_vals, milestone_days_temp)
+                milestone_days[:,milestone_col] = milestone_days_temp #the day at which the milestone is reached for each person
+                milestone_days_real[:,milestone_col] = np.take_along_axis(smilescores <= milestone_vals, helper.to_vertical(milestone_days_temp), axis=1).flatten()
+            if not np.all(milestone_days_real): warn("There is a milestone that was not reached.")
             sampling_days = np.where(milestone_days_real, milestone_days+self.smiledelay, milestone_days)  #fake days stay as 0
-            sampling_days = np.where(sampling_days > LASTVISIT, 0, milestone_days) #days past the study duration get sent to 0
-            milestone_days_real = np.where(sampling_days > LASTVISIT, False, milestone_days_real) #days past the study duration are now fake days
+            exceed_study_duration = sampling_days > LASTVISIT #Will become fake days since can't be sampled
+            if np.any(exceed_study_duration): warn("The smiledelay is pushing a sampling day past the study duration.")
+            milestone_days_real = np.where(exceed_study_duration, False, milestone_days_real)
+            sampling_days = np.where(exceed_study_duration, 0, sampling_days) #get sent to 0 like other fake days
 
             #Sample at real sampling days
-            milestone_smilescores = np.take_along_axis(smilescores, milestone_days, axis=1) #both real and fake
-            milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], milestone_days, axis=1) for scorename in population.scores} #both real and fake
+            milestone_smilescores = np.take_along_axis(smilescores, sampling_days, axis=1) #both real and fake
+            milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) for scorename in population.scores} #both real and fake
             #replace the 'fake' days and scores with NaN
-            milestone_days = np.where(milestone_days_real, milestone_days, np.nan)
-            milestone_scores = {scorename: np.where(milestone_days_real, milestone_scores[scorename], np.nan) for scorename in milestone_scores}
-            #TODO warn if nan
+            milestone_days = np.where(milestone_days_real, sampling_days, NDAYS) #Fake days will give index errors
+            milestone_scores = {scorename: np.where(milestone_days_real, milestone_scores[scorename], np.nan) for scorename in milestone_scores} #Fake days will be NaN
 
             # FIXED
 
