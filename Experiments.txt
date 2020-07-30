@@ -1,6 +1,29 @@
 # Experiment descriptions
 
 
+# Experiment 0: Recreating the poster
+
+Simulation::  
+    - Visual: linear wrt days with slope of -2 and random intercept between 14 and 18  
+    - Symptom: linear wrt visual score with random intercept (mean 6, stdev 2) and slope (1, 2, or 3)  
+    - Error: none or multiplicative (+- 30% or +-50%)  
+    - npops=1000  
+    - npersons=1000  
+Filter:: 
+    None  
+Sample:: 
+    Fixed (7 14 28 or 7 14 90) or smile (index is random 7-60, smile are 70% and 40% of visual or symptom, delay is random between 1 and 7)  
+Regression:: 
+    Mixed effects with random intercept  
+
+Purpose:: 
+    Recreate the data from the previous experiments summarized in the poster, to weed out coding errors or simulation/methodology discrepencies  
+Hypothesis:: 
+    Bias will be the same as the poster.  
+Reasoning:: 
+    Based on the same ideas  
+
+
 
 ## Experiment 1-4: Fixed effects
 
@@ -9,8 +32,8 @@
 ### Experiment 1: Baselines
 
 Simulation::  
-    - Visual score is linear with random intercept and slope per person  
-    - Symptom: linear with fixed intercept and slope (>1)  
+    - Visual score is linear wrt days with random intercept and slope per person  
+    - Symptom: linear wrt visual score with fixed intercept and slope (>1)  
     - Error: none or multiplicative (+-50%) or additive (+-5)  
     - npops=100  
     - npersons=100  
@@ -122,6 +145,6 @@ Reasoning::
 
 
 
-NOTE: Maybe allow error of additive to drop to zero when v=VMIN?
+NOTE: Maybe allow error of additive to drop to zero when v=VMIN? No, keep as is.
 NOTE: Maybe dditive error should be correlated to slope?
 NOTE: if methodology wants to sample after the study is "over" (e.g. at pop.ndays+4) due to the time delay of scheduling an appointment, what should happen? should it be a NaN (current, easy), or should the sampling proceed (by generating new scores for that specific day, complicated)
