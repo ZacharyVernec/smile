@@ -19,6 +19,7 @@
 from collections import UserList
 from copy import copy
 from warnings import warn
+from abc import ABC, abstractmethod #abstract base class
 
 # Third party imports
 import numpy as np
@@ -415,7 +416,7 @@ class PopulationList(UserList):
     @property
     def dict_scores(self):
         '''dict where each entry is a scoretype, and each value is a list of that score for each population'''
-        return {scorename:[pop.scores[scorename] for pop in self] for scorename in ['visual', 'symptom_noerror', 'symptom']}
+        return {scorename:[pop.scores[scorename] for pop in self] for scorename in ['visual', 'symptom_noerror', 'symptom']} #TODO change iterator
     
     # Data generation methods
     
@@ -686,9 +687,9 @@ class RegressionResultList(UserList):
 
 
 #TODO check score percentage not only first dip, but multiple consecutive days
-#TODO parallelize
     
 class Methodology:
+    '''deprecated'''
     def __init__(self, title='', sample_args=[8, 15, 29], smiledelay=0, smilescorename='symptom'):
         '''
         Sample args that are integers are interpreted as a fixed day
@@ -714,7 +715,7 @@ class Methodology:
             raise Exception("No fixed days in sample_args, which were {}".format(sample_args))
         
         if np.max(self.fixed_days) >= NDAYS:
-            raise Exception("There is a fixed sample day in {} that is later than the LASTVISIT of {}".format(self.fixed_days, NDAYS))
+            raise Exception("There is a fixed sample day in {} that is later than the NDAYS of {}".format(self.fixed_days, NDAYS))
         if np.max(self.fixed_days) > LASTVISIT:
             warn("There is a fixed sample day in {} that is later than the LASTVISIT of {}".format(self.fixed_days, LASTVISIT))
         if np.min(self.fixed_days) < FIRSTVISIT:
@@ -795,3 +796,164 @@ class Methodology:
         for milestone_ratio in self.milestone_ratios:
             ax.plot([0, max_day], [milestone_ratio, milestone_ratio], color='black')
         ax.autoscale()
+        
+class Methodology(ABC):
+    def __init__(self, title=''):
+        self.title = title
+        super().__init__()
+        
+    def sample(self, pop_or_poplist, filter_args=None):
+        #if population is a PopulationList, apply the single-population version to all
+        if isinstance(pop_or_poplist, PopulationList):
+            poplist = pop_or_poplist #renaming variable
+            return PopulationList([self.sample_person(pop, filter_args=filter_args) for pop in poplist], title='sampled by '+self.title)
+        else:
+            population = pop_or_poplist #renaming variable
+            return self.sample_person(population, filter_args=filter_args)
+                
+    @abstractmethod
+    def sample_person(self, population, filter_args=None):
+        #should have:
+        #    #possible filtering
+        #    if filter_args is not None: population = population.filter(**filter_args, copy=True)   
+        #as first two lines
+        pass
+        
+class TraditionalMethodology(Methodology):
+    '''Sampling at fixed days'''
+    def __init__(self, title='', sampling_days=[8, 15, 31]):
+        
+        super().init(title)
+        
+        self.sampling_days = sampling_days
+        if not all(isinstance(day, int) for day in sampling_days):
+            raise TypeError("Sampling days must be ints")
+        if max(sampling_days) >= NDAYS:
+            raise ValueError(f"There is a fixed sample day in {sampling_days} that is later than the simulation duration of {NDAYS}")
+        if max(sampling_days) > LASTVISIT:
+            warn(f"There is a fixed sample day in {sampling_days} that is later than the LASTVISIT of {LASTVISIT}")
+        if min(sampling_days) < FIRSTVISIT:
+            warn(f"There is a fixed sample day in {sampling_days} that is earlier than the FIRSTVISIT of {FIRSTVISIT}")
+        
+    def sample_person(self, population, filter_args=None):
+        #possible filtering
+        if filter_args is not None: population = population.filter(**filter_args, copy=True)
+
+        # Sampling
+        sampling_days = np.tile(self.sampling_days, (population.npersons,1)) #each person (row) has same sampling days
+        sampling_scores = {scorename:np.take_along_axis(population.scores[scorename], fixed_days, axis=1) for scorename in population.scores}
+        
+        # Population
+        samplepop = population.copy(addtitle='\nsampled by '+self.title)
+        samplepop.days = sampling_days
+        samplepop.scores = {scorename:sampling_scores[scorename] for scorename in samplepop.scores}
+        return samplepop
+    
+class SmileMethodology(Methodology):
+    '''Sampling at milestones'''
+    def __init__(self, title='', index_day=0, delay=0, milestone_ratios=[0.7, 0.4], smile_scorename='symptom'):
+        '''
+        index_day determines which day's score will be used as a 'baseline' from which a milestone can be reached
+        milestone_ratios should generally be between 0 and 1 for useful results
+            if a ratio is not reached or a delay pushes it to > NDAYS, it gets a day value of NDAYS and a score value of np.NaN
+        smile_scorename determines which score the milestone_ratios will be based on (can be symptom, visual, or symptom_noerror)
+        '''
+        
+        super().__init__(title)
+        
+        self.index_day = index_day
+        if not isinstance(index_day, int):
+            raise TypeError("Index day must be an int")
+        if index_day >= NDAYS:
+            raise ValueError(f"The index day {index_day} is later than the simulation duration of {NDAYS}")
+        if index_day > LASTVISIT:
+            warn(f"The index day {index_day} is later than the LASTVISIT of {LASTVISIT}")
+        if index_day < FIRSTVISIT:
+            warn(f"The index day {index_day} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
+            
+        self.delay = delay
+            
+        self.milestone_ratios = milestone_ratios
+        if not all(0 < ratio < 1 for ratio in milestone_ratios): 
+            warn(f"Some milestone_ratios in {milestone_ratios} may be unobtainable.")
+            
+        self.smile_scorename = smile_scorename
+        if smile_scorename not in {'symptom', 'visual', 'symptom_noerror'}:
+            raise ValueError(f"smile_scorename of {smile_scorename} not understood")
+            
+    #TODO consider VMIN and SMIN
+    def sample_person(self, population, filter_args=None):
+        #possible filtering
+        if filter_args is not None: population = population.filter(**filter_args, copy=True)
+        
+        smilescores = population.scores[self.smilescorename] #scores which the ratios refer to
+
+        # Compute the scores which will trigger milestones
+        smilescores_at_index = helper.to_vertical(smilescores[:, index_day])
+        smile_vals = smilescores_at_index*self.milestone_ratios 
+        #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
+
+        #TODO use a masked array (possible complication using take_along_axis)
+        # Compute the days where the milestones are triggered, and where we sample
+        milestone_days = np.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
+        #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. The following array will help mitigate this
+        milestone_days_real = np.empty_like(milestone_days, dtype=bool) #will hold the days where the milestone_ratios is reached (exc. those stored as 0 meaning 'never reached')
+        for milestone_col in range(smile_vals.shape[1]): 
+            milestone_vals = helper.to_vertical(smile_vals[:,milestone_col])
+            milestone_days_temp = np.argmax(smilescores <= milestone_vals, axis=1) #the day at which the milestone is reached for each person
+            milestone_days[:,milestone_col] = milestone_days_temp #the day at which the milestone is reached for each person
+            milestone_days_real[:,milestone_col] = np.take_along_axis(smilescores <= milestone_vals, helper.to_vertical(milestone_days_temp), axis=1).flatten()
+        if not np.all(milestone_days_real): warn("There is a milestone that was not reached.")
+        sampling_days = np.where(milestone_days_real, milestone_days+self.delay, milestone_days)  #fake days stay as 0
+        exceed_study_duration = sampling_days > LASTVISIT #Will become fake days since can't be sampled
+        if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
+        milestone_days_real = np.where(exceed_study_duration, False, milestone_days_real)
+        sampling_days = np.where(exceed_study_duration, 0, sampling_days) #get sent to 0 like other fake days
+
+        #Sample at real sampling days
+        milestone_smilescores = np.take_along_axis(smilescores, sampling_days, axis=1) #both real and fake
+        milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) for scorename in population.scores} #both real and fake
+        #replace the 'fake' days and scores with NaN
+        milestone_days = np.where(milestone_days_real, sampling_days, NDAYS) #Fake days will give index errors
+        milestone_scores = {scorename: np.where(milestone_days_real, milestone_scores[scorename], np.nan) for scorename in milestone_scores} #Fake days will be NaN
+
+        # Population
+        samplepop = population.copy(addtitle='\nsampled by '+self.title)
+        samplepop.days = milestone_days
+        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores}
+        return samplepop
+    
+class MixedMethodology(Methodology):
+    '''Sampling at fixed days and at milestones'''
+    def __init__(self, title='', traditional_kwargs, smile_kwargs):
+        super().__init__(title)
+        
+        self.methodologies = [TraditionalMethodology(title=self.title+' (traditional part)', **traditional_kwargs),
+                              SmileMethodology(title=self.title+' (smile part)', **smile_kwargs)]
+    
+    def __getattr__(self, attrname):
+        '''returns the attribute from any and all contained methodologies, or rasises an AttributeError'''
+        methodologies_attributes = []
+        for meth in self.methodologies:
+            try:
+                methodologies_attributes.append(meth.__getattribute__(attrname))
+            except AttributeError:
+                pass
+            
+        if len(methodologies_attributes) > 0:
+            raise AttributeError()
+        else:
+            return methodologies_attributes
+        
+    def sample_person(self, population, filter_args=None):
+        #possible filtering
+        if filter_args is not None: population = population.filter(**filter_args, copy=True)
+            
+        samplepops = PopulationList([methodology.sample_person(population, filter_args=None) for methodology in self.methodologies], title='all samples')
+        
+        samplepop = population.copy(addtitle='\nsampled by '+self.title)
+        samplepop.days = np.hstack(samplepops.days)
+        samplepop.scores = {scorename:np.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items}
+        return samplepop
+        
+        
