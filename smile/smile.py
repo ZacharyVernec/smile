@@ -13,6 +13,7 @@
 #TODO documentation: https://realpython.com/documenting-python-code/
 #TODO possibility of slicing Population with scorename as first element in subscript tuple
 #TODO keep track of expected value of parameters for use when plotting regression results
+#TODO shape doesn't *need* to be the variable name for random, as long as there is 1
 
 
 # Standard library imports
@@ -695,6 +696,7 @@ class Methodology:
         Sample args that are integers are interpreted as a fixed day
         Sample args between 0 and 1 (exclusive) are interpreted as a percentage with which to use SMILE, based on the first fixed day
         Sample args that do not fit the above criteria are ignored
+        smiledelay can be an int or a random function with a single 'shape' parameter which will be used to get the value for each person and milestone
         smilescore determines which score the milestone_ratios will be based on (can be symptom, visual, or symptom_noerror)
         '''
         
@@ -702,24 +704,32 @@ class Methodology:
         
         self.title=title
         self.smilescorename=smilescorename
-        self.smiledelay=smiledelay
         
         #split sample_args into fixed and smile
         sample_args = np.array(sample_args)
         self.fixed_days = sample_args[sample_args == sample_args.astype(int)].astype(int)
         self.milestone_ratios = sample_args[(0 < sample_args) & (sample_args < 1)]
-        
-        # Exception checking
-        
+        #checking fixed_days for errors
         if self.fixed_days.size==0: 
-            raise Exception("No fixed days in sample_args, which were {}".format(sample_args))
-        
+            raise ValueError("No fixed days in sample_args, which were {}".format(sample_args))
         if np.max(self.fixed_days) >= NDAYS:
-            raise Exception("There is a fixed sample day in {} that is later than the NDAYS of {}".format(self.fixed_days, NDAYS))
+            raise IndexError("There is a fixed sample day in {} that is later than the LASTVISIT of {}".format(self.fixed_days, NDAYS))
         if np.max(self.fixed_days) > LASTVISIT:
             warn("There is a fixed sample day in {} that is later than the LASTVISIT of {}".format(self.fixed_days, LASTVISIT))
         if np.min(self.fixed_days) < FIRSTVISIT:
             warn("There is a fixed sample day in {} that is earlier than the FIRSTVISIT of {}".format(self.fixed_days, FIRSTVISIT))
+        
+        #set smiledelay_generator as callable
+        if isinstance(smiledelay, int): 
+            self.smiledelay_generator = lambda shape: smiledelay
+        elif callable(smiledelay):
+            if smiledelay.__code__.co_varnames == ('shape',): 
+                self.smiledelay_generator = smiledelay
+            else: 
+                raise ValueError("The function for smiledelay generation should only have 'shape' as an argument.")
+        else: 
+            raise ValueError("smiledelay is not an int nor is it callable")
+        
         
     # Statistical
     
