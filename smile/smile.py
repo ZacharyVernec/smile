@@ -719,7 +719,7 @@ class Methodology:
         if np.min(self.fixed_days) < FIRSTVISIT:
             warn("There is a fixed sample day in {} that is earlier than the FIRSTVISIT of {}".format(self.fixed_days, FIRSTVISIT))
         
-        #set smiledelay_generator as callable
+        #set smiledelay_generator as callable #TODO merge into SmileMethodology
         if isinstance(smiledelay, int): 
             self.smiledelay_generator = lambda shape: smiledelay
         elif callable(smiledelay):
@@ -833,7 +833,7 @@ class TraditionalMethodology(Methodology):
     '''Sampling at fixed days'''
     def __init__(self, title='', sampling_days=[8, 15, 31]):
         
-        super().init(title)
+        super().__init__(title)
         
         self.sampling_days = sampling_days
         if not all(isinstance(day, int) for day in sampling_days):
@@ -851,7 +851,7 @@ class TraditionalMethodology(Methodology):
 
         # Sampling
         sampling_days = np.tile(self.sampling_days, (population.npersons,1)) #each person (row) has same sampling days
-        sampling_scores = {scorename:np.take_along_axis(population.scores[scorename], fixed_days, axis=1) for scorename in population.scores}
+        sampling_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) for scorename in population.scores}
         
         # Population
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
@@ -896,10 +896,10 @@ class SmileMethodology(Methodology):
         #possible filtering
         if filter_args is not None: population = population.filter(**filter_args, copy=True)
         
-        smilescores = population.scores[self.smilescorename] #scores which the ratios refer to
+        smilescores = population.scores[self.smile_scorename] #scores which the ratios refer to
 
         # Compute the scores which will trigger milestones
-        smilescores_at_index = helper.to_vertical(smilescores[:, index_day])
+        smilescores_at_index = helper.to_vertical(smilescores[:, self.index_day])
         smile_vals = smilescores_at_index*self.milestone_ratios 
         #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
 
@@ -919,6 +919,13 @@ class SmileMethodology(Methodology):
         if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
         milestone_days_real = np.where(exceed_study_duration, False, milestone_days_real)
         sampling_days = np.where(exceed_study_duration, 0, sampling_days) #get sent to 0 like other fake days
+        
+        #include index_days as a real day
+        index_days = np.full_like(sampling_days, fill_value=self.index_day, shape=(population.npersons, 1))
+        index_days_real = np.full_like(milestone_days_real, fill_value=True, shape=(population.npersons, 1))
+        sampling_days = np.hstack([index_days, milestone_days])
+        milestone_days_real = np.hstack([index_days_real, milestone_days_real])
+        
 
         #Sample at real sampling days
         milestone_smilescores = np.take_along_axis(smilescores, sampling_days, axis=1) #both real and fake
@@ -930,16 +937,17 @@ class SmileMethodology(Methodology):
         # Population
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
         samplepop.days = milestone_days
-        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores}
+        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores} #include index_day
         return samplepop
     
 class MixedMethodology(Methodology):
     '''Sampling at fixed days and at milestones'''
-    def __init__(self, title='', traditional_kwargs, smile_kwargs):
+    def __init__(self, traditional_kwargs, smile_kwargs, title=''):
         super().__init__(title)
         
         self.methodologies = [TraditionalMethodology(title=self.title+' (traditional part)', **traditional_kwargs),
                               SmileMethodology(title=self.title+' (smile part)', **smile_kwargs)]
+        #TODO make sure index doesn't overlap with a fixed day
     
     def __getattr__(self, attrname):
         '''returns the attribute from any and all contained methodologies, or rasises an AttributeError'''
