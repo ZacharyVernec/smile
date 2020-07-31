@@ -901,10 +901,13 @@ class SmileMethodology(Methodology):
         if filter_args is not None: population = population.filter(**filter_args, copy=True)
         
         smilescores = population.scores[self.smile_scorename] #scores which the ratios refer to
+        #TODO simplify retrieval of MINs
+        if self.smile_scorename == 'visual': smilescore_lowerbound = VMIN
+        elif self.smile_scorename == 'symptom' or self.smile_scorename == 'symptom_noerror': smilescore_lowerbound = SMIN
 
         # Compute the scores which will trigger milestones
         smilescores_at_index = helper.to_vertical(smilescores[:, self.index_day])
-        smile_vals = smilescores_at_index*self.milestone_ratios 
+        smile_vals = (smilescores_at_index - smilescore_lowerbound)*self.milestone_ratios + smilescore_lowerbound
         #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
 
         #TODO use a masked array (possible complication using take_along_axis)
