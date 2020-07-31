@@ -817,7 +817,7 @@ class Methodology(ABC):
         if isinstance(pop_or_poplist, PopulationList):
             return self.sample_populationlist(pop_or_poplist, filter_args=filter_args)
         elif isinstance(pop_or_poplist, Population):
-            return self.sample_population(pop_or+poplist, filter_args=filter_args)
+            return self.sample_population(pop_or_poplist, filter_args=filter_args)
         else:
             raise TypeError(f"{pop_or_poplist} is a {type(pop_or_poplist)} when it should be a {Population} or a {PopulationList}.")
                 
@@ -950,7 +950,7 @@ class MixedMethodology(Methodology):
         super().__init__(title)
         
         #if a smilemethodology's index_day is also a sampling day of a traditionalmethodology, don't sample it twice
-        try: traditional_kwargs.sampling_days.remove(smile_kwargs.index_day)
+        try: traditional_kwargs['sampling_days'].copy().remove(smile_kwargs['index_day'])
         except ValueError: pass
         
         #add titles if not given
@@ -964,18 +964,18 @@ class MixedMethodology(Methodology):
         
     @classmethod
     def from_methodologies(cls, trad_meth, smile_meth, title=''):        
-        return cls(trad_kwargs=trad_meth.__dict__, smile_kwargs=smile_meth.__dict__, title=title)
+        return cls(traditional_kwargs=trad_meth.__dict__, smile_kwargs=smile_meth.__dict__, title=title)
     
     def __getattr__(self, attrname):
-        '''returns the attribute from any and all contained methodologies, or rasises an AttributeError'''
-        methodologies_attributes = []
-        for meth in self.methodologies.values():
+        '''returns the attribute from any and all contained methodologies, or raises an AttributeError'''
+        methodologies_attributes = {}
+        for methname, meth in self.methodologies.items():
             try:
-                methodologies_attributes.append(meth.__getattribute__(attrname))
+                methodologies_attributes[methname] = meth.__getattribute__(attrname)
             except AttributeError:
                 pass
             
-        if len(methodologies_attributes) > 0:
+        if len(methodologies_attributes) == 0:
             raise AttributeError()
         else:
             return methodologies_attributes
@@ -990,5 +990,5 @@ class MixedMethodology(Methodology):
         
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
         samplepop.days = np.hstack(samplepops.days)
-        samplepop.scores = {scorename:np.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items}
+        samplepop.scores = {scorename:np.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items()}
         return samplepop
