@@ -821,7 +821,7 @@ class Methodology(ABC):
             population = pop_or_poplist #renaming variable
             return self.sample_person(population, filter_args=filter_args)
                 
-    @abstractmethod
+    @abstractmethod #TODO should be sample_population
     def sample_person(self, population, filter_args=None):
         #should have:
         #    #possible filtering
@@ -948,6 +948,11 @@ class MixedMethodology(Methodology):
         self.methodologies = [TraditionalMethodology(title=self.title+' (traditional part)', **traditional_kwargs),
                               SmileMethodology(title=self.title+' (smile part)', **smile_kwargs)]
         #TODO make sure index doesn't overlap with a fixed day
+    @classmethod
+    def from_list(cls, methodologies, title=''):
+        mixed = cls(trad_kwargs={}, smile_kwargs={}, title=title)
+        mixed.methodologies = methodologies
+        return mixed
     
     def __getattr__(self, attrname):
         '''returns the attribute from any and all contained methodologies, or rasises an AttributeError'''
