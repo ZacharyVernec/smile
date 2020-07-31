@@ -953,9 +953,9 @@ class MixedMethodology(Methodology):
                               SmileMethodology(title=self.title+' (smile part)', **smile_kwargs)]
         #TODO make sure index doesn't overlap with a fixed day
     @classmethod
-    def from_list(cls, methodologies, title=''):
+    def from_methodologies(cls, traditional_methodology, smile_methodology, title=''):
         mixed = cls(trad_kwargs={}, smile_kwargs={}, title=title)
-        mixed.methodologies = methodologies
+        mixed.methodologies = [traditional_methodology, smile_methodology]
         return mixed
     
     def __getattr__(self, attrname):
