@@ -949,19 +949,19 @@ class MixedMethodology(Methodology):
     def __init__(self, traditional_kwargs, smile_kwargs, title=''):
         super().__init__(title)
         
-        self.methodologies = [TraditionalMethodology(title=self.title+' (traditional part)', **traditional_kwargs),
-                              SmileMethodology(title=self.title+' (smile part)', **smile_kwargs)]
+        self.methodologies = {'traditional':TraditionalMethodology(title=self.title+' (traditional part)', **traditional_kwargs),
+                              'smile':SmileMethodology(title=self.title+' (smile part)', **smile_kwargs)}
         #TODO make sure index doesn't overlap with a fixed day
     @classmethod
     def from_methodologies(cls, traditional_methodology, smile_methodology, title=''):
         mixed = cls(trad_kwargs={}, smile_kwargs={}, title=title)
-        mixed.methodologies = [traditional_methodology, smile_methodology]
+        mixed.methodologies = {'traditional':traditional_methodology, 'smile':smile_methodology}
         return mixed
     
     def __getattr__(self, attrname):
         '''returns the attribute from any and all contained methodologies, or rasises an AttributeError'''
         methodologies_attributes = []
-        for meth in self.methodologies:
+        for meth in self.methodologies.values():
             try:
                 methodologies_attributes.append(meth.__getattribute__(attrname))
             except AttributeError:
@@ -976,11 +976,12 @@ class MixedMethodology(Methodology):
         #possible filtering
         if filter_args is not None: population = population.filter(**filter_args, copy=True)
             
-        samplepops = PopulationList([methodology.sample_population(population, filter_args=None) for methodology in self.methodologies], title='all samples')
+        samplepops = PopulationList([methodology.sample_population(population, filter_args=None) 
+                                     for methodology in self.methodologies.values()], 
+                                    title='all samples')
         
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
         samplepop.days = np.hstack(samplepops.days)
         samplepop.scores = {scorename:np.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items}
         return samplepop
-        
         
