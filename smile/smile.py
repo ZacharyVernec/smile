@@ -815,14 +815,18 @@ class Methodology(ABC):
     def sample(self, pop_or_poplist, filter_args=None):
         #if population is a PopulationList, apply the single-population version to all
         if isinstance(pop_or_poplist, PopulationList):
-            poplist = pop_or_poplist #renaming variable
-            return PopulationList([self.sample_person(pop, filter_args=filter_args) for pop in poplist], title='sampled by '+self.title)
+            return self.sample_populationlist(pop_or_poplist, filter_args=filter_args)
+        elif isinstance(pop_or_poplist, Population):
+            return self.sample_population(pop_or+poplist, filter_args=filter_args)
         else:
-            population = pop_or_poplist #renaming variable
-            return self.sample_person(population, filter_args=filter_args)
+            raise TypeError(f"{pop_or_poplist} is a {type(pop_or_poplist)} when it should be a {Population} or a {PopulationList}.")
                 
-    @abstractmethod #TODO should be sample_population
-    def sample_person(self, population, filter_args=None):
+    def sample_populationlist(self, poplist, filter_args=None):
+        return PopulationList([self.sample_population(pop, filter_args=filter_args) for pop in poplist], 
+                              title='sampled by '+self.title)
+            
+    @abstractmethod
+    def sample_population(self, population, filter_args=None):
         #should have:
         #    #possible filtering
         #    if filter_args is not None: population = population.filter(**filter_args, copy=True)   
@@ -845,7 +849,7 @@ class TraditionalMethodology(Methodology):
         if min(sampling_days) < FIRSTVISIT:
             warn(f"There is a fixed sample day in {sampling_days} that is earlier than the FIRSTVISIT of {FIRSTVISIT}")
         
-    def sample_person(self, population, filter_args=None):
+    def sample_population(self, population, filter_args=None):
         #possible filtering
         if filter_args is not None: population = population.filter(**filter_args, copy=True)
 
@@ -892,7 +896,7 @@ class SmileMethodology(Methodology):
             raise ValueError(f"smile_scorename of {smile_scorename} not understood")
             
     #TODO consider VMIN and SMIN
-    def sample_person(self, population, filter_args=None):
+    def sample_population(self, population, filter_args=None):
         #possible filtering
         if filter_args is not None: population = population.filter(**filter_args, copy=True)
         
@@ -968,11 +972,11 @@ class MixedMethodology(Methodology):
         else:
             return methodologies_attributes
         
-    def sample_person(self, population, filter_args=None):
+    def sample_population(self, population, filter_args=None):
         #possible filtering
         if filter_args is not None: population = population.filter(**filter_args, copy=True)
             
-        samplepops = PopulationList([methodology.sample_person(population, filter_args=None) for methodology in self.methodologies], title='all samples')
+        samplepops = PopulationList([methodology.sample_population(population, filter_args=None) for methodology in self.methodologies], title='all samples')
         
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
         samplepop.days = np.hstack(samplepops.days)
