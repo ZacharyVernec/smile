@@ -949,14 +949,22 @@ class MixedMethodology(Methodology):
     def __init__(self, traditional_kwargs, smile_kwargs, title=''):
         super().__init__(title)
         
-        self.methodologies = {'traditional':TraditionalMethodology(title=self.title+' (traditional part)', **traditional_kwargs),
-                              'smile':SmileMethodology(title=self.title+' (smile part)', **smile_kwargs)}
-        #TODO make sure index doesn't overlap with a fixed day
+        #if a smilemethodology's index_day is also a sampling day of a traditionalmethodology, don't sample it twice
+        try: traditional_kwargs.sampling_days.remove(smile_kwargs.index_day)
+        except ValueError: pass
+        
+        #add titles if not given
+        if traditional_kwargs['title'] is None:
+            traditional_kwargs['title'] = self.title+' (traditional part)'
+        if smile_kwargs['title'] is None:
+            smile_kwargs['title'] = self.title+' (smile part)'
+        
+        self.methodologies = {'traditional':TraditionalMethodology(**traditional_kwargs),
+                              'smile':SmileMethodology(**smile_kwargs)}
+        
     @classmethod
-    def from_methodologies(cls, traditional_methodology, smile_methodology, title=''):
-        mixed = cls(trad_kwargs={}, smile_kwargs={}, title=title)
-        mixed.methodologies = {'traditional':traditional_methodology, 'smile':smile_methodology}
-        return mixed
+    def from_methodologies(cls, trad_meth, smile_meth, title=''):        
+        return cls(trad_kwargs=trad_meth.__dict__, smile_kwargs=smile_meth.__dict__, title=title)
     
     def __getattr__(self, attrname):
         '''returns the attribute from any and all contained methodologies, or rasises an AttributeError'''
@@ -984,4 +992,3 @@ class MixedMethodology(Methodology):
         samplepop.days = np.hstack(samplepops.days)
         samplepop.scores = {scorename:np.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items}
         return samplepop
-        
