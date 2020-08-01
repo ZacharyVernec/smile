@@ -87,6 +87,7 @@ def normalize(array):
 
 
 def collocate_text(text_blocks, separator="\t", separatorlen=2):
+    '''Combine multiline strings into one large string that looks like each strings was placed side-by-side'''
     text_blocks_lines = [str(text_block).splitlines() for text_block in text_blocks]
     text_lines_arr = np.array(text_blocks_lines).T
     lines = []
@@ -94,15 +95,34 @@ def collocate_text(text_blocks, separator="\t", separatorlen=2):
         lines.append((separator*separatorlen).join(line))
     return "\n".join(lines)
 def print_collocated(text_blocks, separator="\t", separatorlen=2):
+    '''Print multiline strings side-by-side'''
     print(collocate_text(text_blocks, separator=separator, separatorlen=separatorlen))
 #TODO collocate_text is very similar to tile_text, where vseparator="\n" and vseparatorlen=1
 def tile_text(text_blocks_2d, hseparator="\t", hseparatorlen=2, vseparator="\n", vseparatorlen=2):
+    '''Combine multiline strings into one large string that looks like each strings was placed in a grid'''
     lines_of_blocks = [collocate_text(line_of_blocks, separator=hseparator, separatorlen=hseparatorlen) 
                        for line_of_blocks in text_blocks_2d]
     return (vseparator*vseparatorlen).join(lines_of_blocks)  
 def print_tiled(text_blocks_2d, **kwargs):
+    '''Print multiline strings in a grid'''
     print(tile_text(text_blocks_2d, **kwargs))
     
+def collocate_html(list_of_html, separatorpx=10):
+    '''Combine html strings into div blocks arranged side-by-side'''
+    html_string = f"<style> .collocationcontainer {{ display: grid; column-gap: {separatorpx}px;}} </style>"
+    html_string += '<section class="collocationcontainer">'
+    
+    for i in range(len(list_of_html)):
+        html_string += f'<div style="grid-column: {i+1};">'+list_of_html[i]+'</div>'
+        
+    html_string += '</section>'
+    
+    return html_string
+def display_collocated(list_of_html, separatorpx=10):
+    '''Display html side-by-side'''
+    from IPython.core.display import display, HTML
+    html_string = collocate_html(list_of_html, separatorpx=separatorpx)
+    display(HTML(html_string))
 
 
 #currently unused, too much trouble to rewrite smile.py (e.g. having population days and scores be twodarrays)
