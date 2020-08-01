@@ -669,11 +669,21 @@ class RegressionResultList(UserList):
         '''
         return self.get_mses(ground_truths)**(0.5)
     
+    def get_vars(self, ground_truths):
+        '''
+        Returns the variance of the estimates, calculated using the formula mse = var - bias^2
+        Ground truth is either:
+            - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
+            - a dict-like of floats (inc. np.NaN) with keys as the param names
+        '''
+        return self.get_mses(ground_truths) - self.get_biases(ground_truths)**2
+    
     def get_sample_stdevs(self, ddof=1):
         '''
         Returns the sample standard deviations of the estimates
         ddof is the delta dof (degrees of freedom), defined by the formula dof = n - ddof'''
         return self.params_dataframe.std(ddof=ddof)
+    
         
         
     # Plotting methods
