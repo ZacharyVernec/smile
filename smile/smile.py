@@ -626,6 +626,7 @@ class RegressionResultList(UserList):
             param_truths.index = param_means.index #same order as params
         #calculate biases
         biases = param_means - param_truths
+        biases.index = biases.index.copy(name='Biases') #So it isn't shared between return values of different statistical methods
         return biases
     
     def get_percentage_biases(self, ground_truths):
@@ -642,6 +643,7 @@ class RegressionResultList(UserList):
             param_truths.index = biases.index #same order as params
         biases = biases / param_truths * 100
         biases.index = [paramname+" (%)" for paramname in biases.index] #add percentage symbol to parameter text
+        biases.index = biases.index.copy(name='Percentage Biases') #So it isn't shared between return values of different statistical methods
         return biases
     
     def get_mses(self, ground_truths):
@@ -658,7 +660,9 @@ class RegressionResultList(UserList):
             param_truths.index = params.columns #same order as params
         #calculate mean square errors
         square_errors = params.sub(param_truths, axis='columns')**2
-        return square_errors.mean()
+        mses = square_errors.mean()
+        mses.index = mses.index.copy(name='MSEs') #So it isn't shared between return values of different statistical methods
+        return mses
     
     def get_rmses(self, ground_truths):
         '''
@@ -667,7 +671,9 @@ class RegressionResultList(UserList):
             - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
             - a dict-like of floats (inc. np.NaN) with keys as the param names
         '''
-        return self.get_mses(ground_truths)**(0.5)
+        rmses = self.get_mses(ground_truths)**0.5
+        rmses.index = rmses.index.copy(name='RMSEs') #So it isn't shared between return values of different statistical methods
+        return rmses
     
     def get_vars(self, ground_truths):
         '''
@@ -676,13 +682,17 @@ class RegressionResultList(UserList):
             - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
             - a dict-like of floats (inc. np.NaN) with keys as the param names
         '''
-        return self.get_mses(ground_truths) - self.get_biases(ground_truths)**2
+        variance = self.get_mses(ground_truths) - self.get_biases(ground_truths)**2
+        variance.index = variance.index.copy(name="Variances") #So it isn't shared between return values of different statistical methods
+        return variance
     
     def get_sample_stdevs(self, ddof=1):
         '''
         Returns the sample standard deviations of the estimates
         ddof is the delta dof (degrees of freedom), defined by the formula dof = n - ddof'''
-        return self.params_dataframe.std(ddof=ddof)
+        sample_stdevs = self.params_dataframe.std(ddof=ddof)
+        sample_stdevs.index = sample_stdevs.index.copy(name="Sample Std Devs") #So it isn't shared between return values of different statistical methods
+        return sample_stdevs
     
         
         
