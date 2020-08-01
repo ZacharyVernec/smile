@@ -612,14 +612,12 @@ class RegressionResultList(UserList):
     
     # Statistical methods
     
-    def get_biases(self, ground_truths, magnitude=False, relative=False):
+    def get_biases(self, ground_truths):
         '''
         Returns bias of the estimates
         Ground truth is either:
             - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
             - a dict-like of floats (inc. np.NaN) with keys as the param names
-        Magnitude determines whether to return the absolute value of the biases
-        Relative determinves whether to return the percentage biases
         '''
         param_means = self.params_dataframe.mean()
         param_truths = pd.Series(ground_truths)
@@ -628,11 +626,22 @@ class RegressionResultList(UserList):
             param_truths.index = param_means.index #same order as params
         #calculate biases
         biases = param_means - param_truths
-        if relative: 
-            biases = biases / param_truths * 100 #percent
-            biases.index = [paramname+" (%)" for paramname in biases.index] #add percentage symbol to parameter text
-        if magnitude: 
-            biases = np.abs(biases)
+        return biases
+    
+    def get_percentage_biases(self, ground_truths):
+        '''
+        Returns bias of the estimates
+        Ground truth is either:
+            - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
+            - a dict-like of floats (inc. np.NaN) with keys as the param names
+        '''
+        biases = self.get_biases(ground_truths)
+        param_truths = pd.Series(ground_truths)
+        #set index if necessary
+        if isinstance(ground_truths, (list, tuple, np.ndarray)):
+            param_truths.index = biases.index #same order as params
+        biases = biases / param_truths * 100
+        biases.index = [paramname+" (%)" for paramname in biases.index] #add percentage symbol to parameter text
         return biases
     
     def get_mses(self, ground_truths):
