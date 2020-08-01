@@ -686,13 +686,45 @@ class RegressionResultList(UserList):
         variance.index = variance.index.copy(name="Variances") #So it isn't shared between return values of different statistical methods
         return variance
     
+    def get_stdevs(self, ground_truths):
+        '''
+        Returns the variance of the estimates, calculated from the variances
+        Ground truth is either:
+            - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
+            - a dict-like of floats (inc. np.NaN) with keys as the param names
+        '''
+        stdevs = self.get_vars(ground_truths)**0.5
+        stdevs.index = stdevs.index.copy(name="Std Devs") #So it isn't shared between return values of different statistical methods
+        return stdevs
+    
+    def get_stderrs(self, ground_truths):
+        '''
+        Returns the Standard Error of the estimates, calculated using the variance
+        Ground truth is either:
+            - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
+            - a dict-like of floats (inc. np.NaN) with keys as the param names
+        '''
+        stderr = self.get_stdevs(ground_truths)/len(self)**0.5
+        stderr.index = stderr.index.copy(name="Std Errors") #So it isn't shared between return values of different statistical methods
+        return stderr
+        
     def get_sample_stdevs(self, ddof=1):
         '''
         Returns the sample standard deviations of the estimates
-        ddof is the delta dof (degrees of freedom), defined by the formula dof = n - ddof'''
+        ddof is the delta dof (degrees of freedom), defined by the formula dof = n - ddof
+        '''
         sample_stdevs = self.params_dataframe.std(ddof=ddof)
         sample_stdevs.index = sample_stdevs.index.copy(name="Sample Std Devs") #So it isn't shared between return values of different statistical methods
-        return sample_stdevs
+        return sample_stdevs    
+    
+    def get_sample_stderrs(self, ddof=1):
+        '''
+        Returns the Standard Error of the estimates, calculated using the standard deviations
+        ddof is the delta dof (degrees of freedom), defined by the formula dof = n - ddof
+        '''
+        stderr = self.get_sample_stdevs(ddof=ddof)/len(self)**0.5
+        stderr.index = stderr.index.copy(name="Sample Std Errors") #So it isn't shared between return values of different statistical methods
+        return stderr
     
         
         
