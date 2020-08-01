@@ -634,6 +634,38 @@ class RegressionResultList(UserList):
         if magnitude: 
             biases = np.abs(biases)
         return biases
+    
+    def get_mses(self, ground_truths):
+        '''
+        Returns mean square errors of the estimates
+        Ground truth is either:
+            - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
+            - a dict-like of floats (inc. np.NaN) with keys as the param names
+        '''
+        params = self.params_dataframe
+        param_truths = pd.Series(ground_truths)
+        #set index if necessary
+        if isinstance(ground_truths, (list, tuple, np.ndarray)):
+            param_truths.index = params.columns #same order as params
+        #calculate mean square errors
+        square_errors = params.sub(param_truths, axis='columns')**2
+        return square_errors.mean()
+    
+    def get_rmses(self, ground_truths):
+        '''
+        Returns the root mean square errors of the estimates
+        Ground truth is either:
+            - a list-like of floats (inc. np.NaN for unknown) of same length as number of params,
+            - a dict-like of floats (inc. np.NaN) with keys as the param names
+        '''
+        return self.get_mses(ground_truths)**(0.5)
+    
+    def get_sample_stdevs(self, ddof=1):
+        '''
+        Returns the sample standard deviations of the estimates
+        ddof is the delta dof (degrees of freedom), defined by the formula dof = n - ddof'''
+        return self.params_dataframe.std(ddof=ddof)
+        
         
     # Plotting methods
     
