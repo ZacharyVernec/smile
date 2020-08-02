@@ -196,15 +196,18 @@ class Population:
         result = model.fit() #fit model
         
         return RegressionResult(result, self)
-    def regress_mixed(self, x='visual', y='symptom'):
-        '''Mixed effects linear regression on self, with random intercept and slope'''
+    def regress_mixed(self, x='visual', y='symptom', random_effect='both'):
+        '''Mixed effects linear regression on self, with random intercept and slope
+        random_effect can be 'intercept', 'slope', or 'both'
+        '''
+        
         # Argument parsing # TODO make into helper function for clutter reduction
         y_possibilities = {'symptom'} #TODO add more possibilities
         x_possibilities = {'visual'} #TODO add more possibilities
         if y not in y_possibilities:
             raise ValueError('Dependent variable {} not recognized. Use one of {} instead.'.format(y, y_possibilities))
         if x not in x_possibilities:
-            raise ValueError('Independent variable {} not recognized. Use one of {} instead.'.format(x, yx_possibilities))
+            raise ValueError('Independent variable {} not recognized. Use one of {} instead.'.format(x, x_possibilities))
             
         df = self.to_dataframe()
         #check for NaN, will decide later if should be dropped when specifying model
@@ -213,7 +216,14 @@ class Population:
             warn('Population {} has {} NaN values'.format(self.title, null_count))
             
         #regress
-        model = smf.mixedlm(y+" ~ "+x, df, groups=df['person'], re_formula='~'+x) 
+        if random_effect == 'intercept':
+            model = smf.mixedlm(f' y~x ', df, groups=df['person']) 
+        elif random_effect == 'slope':
+            model = smf.mixedlm(f' y~x ', df, groups=df['person'], re_formula=f' ~{x}+0') 
+        elif random_effect == 'both':
+            model = smf.mixedlm(f' y~x ', df, groups=df['person'], re_formula=f' ~{x}') 
+        else:
+            raise ValueError(f"random_effect of {random_effect} not understood")
         #TODO check notes of https://www.statsmodels.org/stable/generated/statsmodels.formula.api.mixedlm
         result = model.fit() #fit model
         
