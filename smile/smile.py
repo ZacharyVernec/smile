@@ -217,11 +217,11 @@ class Population:
             
         #regress
         if random_effect == 'intercept':
-            model = smf.mixedlm(f' y~x ', df, groups=df['person']) 
+            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person']) 
         elif random_effect == 'slope':
-            model = smf.mixedlm(f' y~x ', df, groups=df['person'], re_formula=f' ~{x}+0') 
+            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}+0') 
         elif random_effect == 'both':
-            model = smf.mixedlm(f' y~x ', df, groups=df['person'], re_formula=f' ~{x}') 
+            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}') 
         else:
             raise ValueError(f"random_effect of {random_effect} not understood")
         #TODO check notes of https://www.statsmodels.org/stable/generated/statsmodels.formula.api.mixedlm
@@ -450,7 +450,7 @@ class PopulationList(UserList):
     def regress_linear(self, **kwargs):
         return RegressionResultList([pop.regress_linear(**kwargs) for pop in self], title=self.title+'\nregressed linear')
     def regress_mixed(self, **kwargs):
-        return RegressionResultList([pop.regress_mixed(*kwargs) for pop in self], title=self.title+'\nMixed effects regression')
+        return RegressionResultList([pop.regress_mixed(**kwargs) for pop in self], title=self.title+'\nMixed effects regression')
             
     # Other methods
     
