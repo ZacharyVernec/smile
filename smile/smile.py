@@ -471,7 +471,7 @@ class PopulationList(UserList):
     @classmethod
     def full(cls, length, population, title=None):
         '''Creates a PopulationList of many copies of the given population'''
-        if title==None: title='list of '+population.title
+        if title is None: title='list of '+population.title
         return cls([population.copy() for i in range(length)], title)
     def to_dataframes(self):
         return [pop.to_dataframe() for pop in self]
