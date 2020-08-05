@@ -860,17 +860,18 @@ class SmileMethodology(Methodology):
         
         super().__init__(title)
         
-        self.index_day = index_day
-        if not isinstance(index_day, int):
-            raise TypeError("Index day must be an int")
-        if index_day >= NDAYS:
-            raise ValueError(f"The index day {index_day} is later than the simulation duration of {NDAYS}")
-        if index_day > LASTVISIT:
-            warn(f"The index day {index_day} is later than the LASTVISIT of {LASTVISIT}")
-        if index_day < FIRSTVISIT:
-            warn(f"The index day {index_day} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
+        #set index_day as callable
+        if isinstance(index_day, int):
+            self.index_day = lambda shape: np.full(shape, index_day, dtype=int)
+        elif callable(index_day):
+            if index_day.__code__.co_varnames == ('shape',): 
+                self.index_day = index_day
+            else: 
+                raise ValueError("The function for index day generation should only have 'shape' as an argument.")
+        else:
+            raise ValueError(f"index_day of {index_day} is not an int nor is it callable")
             
-        #set delay as callable from delay
+        #set delay as callable
         if isinstance(delay, int): 
             self.delay = lambda shape: np.full(shape, delay, dtype=int)
         elif callable(delay):
@@ -879,7 +880,7 @@ class SmileMethodology(Methodology):
             else: 
                 raise ValueError("The function for delay generation should only have 'shape' as an argument.")
         else: 
-            raise ValueError("delay is not an int nor is it callable")
+            raise ValueError(f"delay of {delay} is not an int nor is it callable")
             
         self.milestone_ratios = milestone_ratios
         if not all(0 < ratio < 1 for ratio in milestone_ratios): 
@@ -897,9 +898,19 @@ class SmileMethodology(Methodology):
         #TODO simplify retrieval of MINs
         if self.smile_scorename == 'visual': smilescore_lowerbound = VMIN
         elif self.smile_scorename == 'symptom' or self.smile_scorename == 'symptom_noerror': smilescore_lowerbound = SMIN
+            
+        #get and check index days
+        index_days = self.index_day((population.npersons, 1))
+        earliest_index_day = np.min(index_days)
+        if earliest_index_day >= NDAYS:
+            raise ValueError(f"The index day {earliest_index_day} is later than the simulation duration of {NDAYS}")
+        if earliest_index_day > LASTVISIT:
+            warn(f"The index day {earliest_index_day} is later than the LASTVISIT of {LASTVISIT}")
+        if earliest_index_day < FIRSTVISIT:
+            warn(f"The index day {earliest_index_day} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
 
         # Compute the scores which will trigger milestones
-        smilescores_at_index = helper.to_vertical(smilescores[:, self.index_day])
+        smilescores_at_index = np.take_along_axis(smilescores, index_days, axis=1)
         smile_vals = (smilescores_at_index - smilescore_lowerbound)*self.milestone_ratios + smilescore_lowerbound
         #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
 
@@ -925,8 +936,7 @@ class SmileMethodology(Methodology):
         sampling_days = np.where(exceed_study_duration, 0, sampling_days) #get sent to 0 for now like other fake days
         
         #include index_days as a real day
-        index_days = np.full_like(sampling_days, fill_value=self.index_day, shape=(population.npersons, 1))
-        index_days_real = np.full_like(milestone_days_real, fill_value=True, shape=(population.npersons, 1))
+        index_days_real = np.full(index_days.shape, fill_value=True, dtype=bool)
         sampling_days = np.hstack([index_days, sampling_days])
         milestone_days_real = np.hstack([index_days_real, milestone_days_real])
 
