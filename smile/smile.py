@@ -486,14 +486,12 @@ class PopulationList(UserList):
     def to_dataframes(self):
         return [pop.to_dataframe() for pop in self]
     
-    def filter(self, **kwargs):
-        #possibly copy
-        try: 
-            if kwargs['copy'] == True: poplist=self.copy(addtitle='filtered')
-            elif kwargs['copy'] == False: poplist=self
-        except KeyError: poplist = self #default
-            
-        poplist.data = [pop.filter(**kwargs) for pop in poplist]
+    def filter(self, recovered_symptom_score=SMIN, firstday=FIRSTVISIT, lastday=NDAYS, copy=False):
+        if copy==False: poplist=self
+        elif copy==True: poplist=self.copy(addtitle='filtered')
+        else: raise ValueError()
+        
+        poplist.data = [pop.filter(recovered_symptom_score=recovered_symptom_score, firstday=firstday, lastday=lastday, copy=copy) for pop in poplist]
         
         return poplist #may be self or a copy
     
