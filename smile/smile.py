@@ -69,7 +69,7 @@ class Population:
     def ndays(self): return self.days.shape[1]
     @property
     def data_shape(self): return self.days.shape
-    @property #TODO change, since this counts not_sampled as filtered
+    @property
     def nfiltered(self): return self.initial_npersons - self.npersons
     @property
     def ratio_filtered(self):
@@ -276,7 +276,7 @@ class Population:
         return PopulationList([self[i] for i in range(self.npersons)], title=self.title+' (as PopulationList)')
     
     #removing outliers
-    def filter(self, copy=False, scorename='symptom', recovered_score=None, firstday=FIRSTVISIT, lastday=NDAYS):
+    def filter(self, copy=False, scorename='symptom', recovered_score=None, firstday=FIRSTVISIT, lastday=NDAYS, drop_na=False):
         if copy==False: pop=self
         elif copy==True: pop=self.copy(addtitle='filtered')
         else: raise ValueError()
@@ -288,7 +288,10 @@ class Population:
         
         persons_recovered_early = np.any(pop.scores[scorename][:,:firstday] <= recovered_score, axis=1)
         persons_recovered_late = np.min(pop.scores[scorename][:,:lastday], axis=1) > recovered_score
+        persons_with_na = np.any(np.isnan(pop.scores[scorename]), axis=1)
+        
         persons_excluded = np.logical_or(persons_recovered_early, persons_recovered_late)
+        if drop_na: persons_excluded = np.logical_or(persons_excluded, persons_with_na)
         persons_included = np.logical_not(persons_excluded)
 
         #take only the included and recalculate size
