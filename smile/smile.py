@@ -69,7 +69,7 @@ class Population:
     def ndays(self): return self.days.shape[1]
     @property
     def data_shape(self): return self.days.shape
-    @property
+    @property #TODO change, since this counts not_sampled as filtered
     def nfiltered(self): return self.initial_npersons - self.npersons
     @property
     def ratio_filtered(self):
@@ -276,13 +276,18 @@ class Population:
         return PopulationList([self[i] for i in range(self.npersons)], title=self.title+' (as PopulationList)')
     
     #removing outliers
-    def filter(self, recovered_symptom_score=SMIN, firstday=FIRSTVISIT, lastday=NDAYS, copy=False):
+    def filter(self, copy=False, scorename='symptom', recovered_score=None, firstday=FIRSTVISIT, lastday=NDAYS):
         if copy==False: pop=self
         elif copy==True: pop=self.copy(addtitle='filtered')
         else: raise ValueError()
+            
+        #TODO simplify retrieval of MINs
+        if recovered_score is None:
+            if self.scorename == 'visual': recovered_score = VMIN
+            elif self.scorename == 'symptom' or self.scorename == 'symptom_noerror': recovered_score = SMIN
         
-        persons_recovered_early = np.any(pop.scores['symptom'][:,:firstday] <= recovered_symptom_score, axis=1)
-        persons_recovered_late = np.min(pop.scores['symptom'][:,:lastday], axis=1) > recovered_symptom_score
+        persons_recovered_early = np.any(pop.scores[scorename][:,:firstday] <= recovered_score, axis=1)
+        persons_recovered_late = np.min(pop.scores[scorename][:,:lastday], axis=1) > recovered_score
         persons_excluded = np.logical_or(persons_recovered_early, persons_recovered_late)
         persons_included = np.logical_not(persons_excluded)
 
