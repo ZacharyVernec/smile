@@ -152,10 +152,10 @@ class Population:
         
         minvisualscore = np.min(self.scores['visual'], initial=VMIN) #initial arg to avoid error of min on empty array
         if minvisualscore < VMIN: 
-            warn("visual score in {} has min={}, which is below VMIN={}".format(self.title, minscore, VMIN))
+            warn("visual score in {} has min={}, which is below VMIN={}".format(self.title, minvisualscore, VMIN))
         minsymptomscore = np.min(self.scores['symptom'], initial=SMIN) #initial arg to avoid error of min on empty array
         if minsymptomscore < SMIN: 
-            warn("symptom score in {} has  min={}, which is below SMIN={}".format(self.title, minscore, SMIN))
+            warn("symptom score in {} has  min={}, which is below SMIN={}".format(self.title, minsymptomscore, SMIN))
             
         #if all parameters are 'population', the generation process will only have created a single row
         #so, repeat that row 'self.npersons' times to create the full matrix            
@@ -510,6 +510,7 @@ class PopulationList(UserList):
         Direction can be "row" or "col" depending on if the axeslist represents a row or column of a figure
             and determines where the PopulationList title will go
         '''
+        #TODO plot all on same axis if only one given
         #check axes input
         if len(axeslist) != len(self): 
             raise ValueError("{} axes are not enough to plot {} Populations".format(len(axes), len(self)))
