@@ -924,7 +924,8 @@ class SmileMethodology(Methodology):
         #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
 
         # Compute the days where the milestones are triggered #TODO use a masked array (possible complication using take_along_axis)
-        milestone_days = ma.empty_like(smile_vals, dtype=int, fill_value=NDAYS) #will hold the day each milestone_ratio is reached for each person
+        milestone_days = ma.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
+        milestone_days.fill_value = NDAYS
         #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. 
         #The mask will hold the days where the milestone_ratios is not reached (exc. those stored as 0 meaning 'never reached')
         for milestone_col in range(smile_vals.shape[1]): 
@@ -1007,6 +1008,6 @@ class MixedMethodology(Methodology):
                                     title='all samples')
         
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
-        samplepop.days = np.hstack(samplepops.days)
-        samplepop.scores = {scorename:np.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items()}
+        samplepop.days = ma.hstack(samplepops.days)
+        samplepop.scores = {scorename:ma.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items()}
         return samplepop
