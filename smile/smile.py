@@ -215,14 +215,15 @@ class Population:
         null_count = df.isnull().sum().sum()
         if null_count > 0: 
             warn('Population {} has {} NaN values'.format(self.title, null_count))
+        missing='drop'
             
         #regress
         if random_effect == 'intercept':
-            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person']) 
+            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], missing=missing) 
         elif random_effect == 'slope':
-            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}+0') 
+            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}+0', missing=missing) 
         elif random_effect == 'both':
-            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}') 
+            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}', missing=missing) 
         else:
             raise ValueError(f"random_effect of {random_effect} not understood")
         #TODO check notes of https://www.statsmodels.org/stable/generated/statsmodels.formula.api.mixedlm
