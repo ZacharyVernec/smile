@@ -266,8 +266,8 @@ class Population:
     def to_dataframe(self):
         data_dict = {
             'person': np.broadcast_to(np.arange(self.npersons), (self.ndays, self.npersons)).T, # same shape matrix as days or scores, with values that indicate person index
-            'day': self.days,
-            **self.scores
+            'day': ma.filled(self.days),
+            **{scorename: ma.filled(scoreval) for scorename, scoreval in self.scores.items()}
         }
         dataflat_dict = {dataname: data.flatten() for (dataname,data) in data_dict.items()}
         df = pd.DataFrame(dataflat_dict)
