@@ -19,7 +19,7 @@
 # Standard library imports
 from collections import UserList
 from copy import copy
-from warnings import warn
+import warnings
 from abc import ABC, abstractmethod #abstract base class
 
 # Third party imports
@@ -43,6 +43,16 @@ import smile.helper; reload(smile.helper)
 from smile import helper
 import smile.global_params; reload(smile.global_params)
 from smile.global_params import *
+
+#custom warnings
+def warn(message):
+    '''Standard UserWarning but without showing extra information (filename, lineno, line)'''
+    default_formatwarning = warnings.formatwarning
+    def custom_formatwarning(msg, category, filename, lineno, line=None): 
+        return default_formatwarning(msg, category, filename='', lineno='', line='')
+    warnings.formatwarning = custom_formatwarning
+    warnings.warn(message)
+    warnings.formatwarning = default_formatwarning
 
 
 
