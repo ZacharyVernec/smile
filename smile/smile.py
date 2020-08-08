@@ -285,8 +285,8 @@ class Population:
             
         #TODO simplify retrieval of MINs
         if recovered_score is None:
-            if self.scorename == 'visual': recovered_score = VMIN
-            elif self.scorename == 'symptom' or self.scorename == 'symptom_noerror': recovered_score = SMIN
+            if scorename == 'visual': recovered_score = VMIN
+            elif scorename == 'symptom' or scorename == 'symptom_noerror': recovered_score = SMIN
         
         persons_recovered_early = np.any(pop.scores[scorename][:,:firstday] <= recovered_score, axis=1)
         persons_recovered_late = np.min(pop.scores[scorename][:,:lastday], axis=1) > recovered_score
