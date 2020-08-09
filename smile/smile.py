@@ -468,9 +468,9 @@ class PopulationList(UserList):
         #deprecated
         return [pop.regress_persons(**kwargs) for pop in self]
     def regress_linear(self, **kwargs):
-        return RegressionResultList([pop.regress_linear(**kwargs) for pop in self], title=self.title+'\nregressed linear')
+        return RegressionResultList([pop.regress_linear(**kwargs) for pop in self], title=self.title+'\nregressed with linear')
     def regress_mixed(self, **kwargs):
-        return RegressionResultList([pop.regress_mixed(**kwargs) for pop in self], title=self.title+'\nMixed effects regression')
+        return RegressionResultList([pop.regress_mixed(**kwargs) for pop in self], title=self.title+'\nregressed with mixed effects')
             
     # Other methods
     
@@ -828,8 +828,15 @@ class Methodology(ABC):
             raise TypeError(f"{pop_or_poplist} is a {type(pop_or_poplist)} when it should be a {Population} or a {PopulationList}.")
                 
     def sample_populationlist(self, poplist, filter_args=None):
-        return PopulationList([self.sample_population(pop, filter_args=filter_args) for pop in poplist], 
-                              title='sampled by '+self.title)
+        sampled_poplist = PopulationList([self.sample_population(pop, filter_args=filter_args) for pop in poplist])
+        
+        #setting title
+        if len(set(sampled_poplist.titles)) == 1: #if only one unique title
+            sampled_poplist.title = sampled_poplist.titles[0] #use that unique title
+        else: #can only be unspecific
+            sampled_poplist.title='sampled by '+self.title
+            
+        return sampled_poplist
             
     @abstractmethod
     def sample_population(self, population, filter_args=None):
