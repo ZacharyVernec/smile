@@ -877,7 +877,7 @@ class TraditionalMethodology(Methodology):
         return samplepop
     
 class SmileMethodology(Methodology):
-    '''Sampling at milestones'''
+    '''Sampling when milestones happen'''
     def __init__(self, title='', index_day=0, delay=0, milestone_ratios=[0.7, 0.4], smile_scorename='symptom'):
         '''
         index_day determines which day's score will be used as a 'baseline' from which a milestone can be reached
@@ -942,7 +942,7 @@ class SmileMethodology(Methodology):
         smile_vals = (smilescores_at_index - smilescore_lowerbound)*self.milestone_ratios + smilescore_lowerbound
         #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
 
-        # Compute the days where the milestones are triggered #TODO use a masked array (possible complication using take_along_axis)
+        # Compute the days where the milestones are triggered
         milestone_days = ma.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
         milestone_days.fill_value = NDAYS
         #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. 
@@ -982,6 +982,94 @@ class SmileMethodology(Methodology):
         samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores} #include index_day
         return samplepop
     
+class SmilePosterMethodology(SmileMethodology):
+    '''Sampling between milestones'''
+    def __init__(self, **kwargs):
+        '''Same init as SmileMethodology, but without a delay parameter'''
+        super().__init__(**kwargs)
+        delattr(self, 'delay')
+        
+    def sample_population(self, population, filter_args=None):
+        #possible filtering
+        if filter_args is not None: population = population.filter(**filter_args, copy=True)
+        
+        smilescores = population.scores[self.smile_scorename] #scores which the ratios refer to
+        #TODO simplify retrieval of MINs
+        if self.smile_scorename == 'visual': smilescore_lowerbound = VMIN
+        elif self.smile_scorename == 'symptom' or self.smile_scorename == 'symptom_noerror': smilescore_lowerbound = SMIN
+            
+        #get and check index days
+        index_days = self.index_day((population.npersons, 1))
+        earliest_index_day = np.min(index_days)
+        if earliest_index_day >= NDAYS:
+            raise ValueError(f"The index day {earliest_index_day} is later than the simulation duration of {NDAYS}")
+        if earliest_index_day > LASTVISIT:
+            warn(f"The index day {earliest_index_day} is later than the LASTVISIT of {LASTVISIT}")
+        if earliest_index_day < FIRSTVISIT:
+            warn(f"The index day {earliest_index_day} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
+
+        # Compute the scores which will trigger milestones
+        smilescores_at_index = np.take_along_axis(smilescores, index_days, axis=1)
+        smile_vals = (smilescores_at_index - smilescore_lowerbound)*self.milestone_ratios + smilescore_lowerbound
+        #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
+
+        # Compute the days where the milestones are triggered
+        milestone_days = ma.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
+        milestone_days.fill_value = NDAYS
+        #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. 
+        #The mask will hold the days where the milestone_ratios is not reached (exc. those stored as 0 meaning 'never reached')
+        for milestone_col in range(smile_vals.shape[1]): 
+            milestone_vals = helper.to_vertical(smile_vals[:,milestone_col])
+            milestone_days_temp = np.argmax(smilescores <= milestone_vals, axis=1) #the day at which the milestone is reached for each person
+            milestone_days[:,milestone_col] = milestone_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+            milestones_reached_temp = np.take_along_axis(smilescores <= milestone_vals, helper.to_vertical(milestone_days_temp), axis=1).flatten() #record of which persons reached the milestones
+            milestone_days[~milestones_reached_temp, milestone_col] = ma.masked
+        if np.any(milestone_days.mask): warn("There is a milestone that was not reached.")
+            
+        ####################
+            
+        #compute the days at which the scores will be sampled
+        sampling_days = milestone_days
+        for milestone_col in range(sampling_days.shape[1]):
+            #get relevant days between which to sample
+            if milestone_col == 0:
+                relevant_days = np.hstack([index_days, helper.to_vertical(sampling_days[:, milestone_col]])
+            else:
+                relevant_days = sampling_days[:, milestone_col-1:milestone_col]
+            #sample
+            sample_func = lambda arr: np.random.randint(arr[0], arr[1])
+            sampling_days[:, milestone_col] = np.apply_along_axis(sample_func, 1, a)
+            
+        ####################
+        
+        delay = self.delay(milestone_days.shape)
+        sampling_days = milestone_days + delay
+        #exclude excessive days 
+        exceed_study_duration = sampling_days > LASTVISIT #Will become fake days since can't be sampled
+        if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
+        sampling_days[exceed_study_duration] = ma.masked
+        
+        #include index_days as a real day
+        sampling_days = ma.hstack([index_days, sampling_days])
+        #make masked values 0 (to not throw an error when using np.take_along_axis)
+        mask_temp = sampling_days.mask.copy() #since changing masked values will make them no longer masked
+        sampling_days[mask_temp] = 0 #change masked values
+        sampling_days[mask_temp] = ma.masked #put back the mask
+
+        #Sample at sampling days
+        milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) for scorename in population.scores} #both real and fake
+        #mask the fake days
+        milestone_days = ma.masked_array(sampling_days, fill_value=NDAYS) #Fake days will give index errors if used
+        milestone_scores = {scorename: ma.masked_array(milestone_scores[scorename], sampling_days.mask, fill_value=np.nan) for scorename in milestone_scores}
+
+        # Population
+        samplepop = population.copy(addtitle='\nsampled by '+self.title)
+        samplepop.days = milestone_days
+        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores} #include index_day
+        return samplepop
+    
+    
+#TODO add SmilePosterMethodology to Mixed
 class MixedMethodology(Methodology):
     '''Sampling at fixed days and at milestones'''
     def __init__(self, traditional_kwargs, smile_kwargs, title=''):
