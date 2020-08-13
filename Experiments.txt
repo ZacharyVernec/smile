@@ -4,7 +4,7 @@
 # Experiment 0: Recreating the poster
 
 Simulation::  
-    - Visual: linear wrt days with slope of -2 and random intercept between 14 and 18  
+    - Visual: linear wrt days with slope of -0.2 and random intercept between 14 and 18  
     - Symptom: linear wrt visual score with random intercept (mean 6, stdev 2) and slope (1, 2, or 3)  
     - Error: none or multiplicative (+- 30% or +-50%)  
     - npops=1000  
@@ -12,7 +12,14 @@ Simulation::
 Filter:: 
     None  
 Sample:: 
-    Fixed (7 14 28 or 7 14 90) or smile (index is random 7-60, smile are 70% and 40% of visual or symptom, delay is random between 1 and 7)  
+    Fixed 
+    - 7 14 28 or
+    - 7 14 90
+    SmilePoster
+    - index is day 7 and has score sx_idx
+    - sample 1 is at day in [8, 89] and has score in (0.7*sx_idx, sx_idx) and is day 8 if no other option
+    - sample 2 is at day in (day sample 1, last study day] and has score (min sx, 0.4*sx_idx) and is day_sample_1 + 1 or last study day if no other option
+    - sample 3 is at day in (day sample 2, last study day] and is last study day if no other option
 Regression:: 
     Mixed effects with random intercept  
 
