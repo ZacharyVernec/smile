@@ -983,8 +983,9 @@ class SmileMethodology(Methodology):
         return samplepop
     
 class MixedMethodology(Methodology):
-    '''Sampling at fixed days and at milestones'''
+    '''Sampling at fixed days and at milestones (NOT UP TO DATE)'''
     def __init__(self, traditional_kwargs, smile_kwargs, title=''):
+        warn("Mixed methodology only works with a traditional part and a smile part")
         super().__init__(title)
         
         #if a smilemethodology's index_day is also a sampling day of a traditionalmethodology, don't sample it twice
