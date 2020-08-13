@@ -1029,16 +1029,21 @@ class SmilePosterMethodology(SmileMethodology):
         ####################
             
         #compute the days at which the scores will be sampled
+        def sample_func(arr):
+            #TODO change since randint can take arrays as low and high
+            prev_sampling_day, next_milestone = arr[0], arr[1]
+            first_possible_nextsamplingday = prev_sampling_day+1 # don't sample on the same day as previously
+            last_possible_nextsamplingday = next_milestone-1 # last day where smilescore > milestone_val
+            return np.random.randint(first_possible_nextsamplingday, last_possible_nextsamplingday+1)
         sampling_days = milestone_days
         for milestone_col in range(sampling_days.shape[1]):
             #get relevant days between which to sample
             if milestone_col == 0:
-                relevant_days = np.hstack([index_days, helper.to_vertical(sampling_days[:, milestone_col]])
+                relevant_days = np.hstack([index_days, helper.to_vertical(sampling_days[:, milestone_col])])
             else:
                 relevant_days = sampling_days[:, milestone_col-1:milestone_col]
             #sample
-            sample_func = lambda arr: np.random.randint(arr[0], arr[1])
-            sampling_days[:, milestone_col] = np.apply_along_axis(sample_func, 1, a)
+            sampling_days[:, milestone_col] = np.apply_along_axis(sample_func, 1, relevant_days) #TODO change since randint can take arrays as low and high
             
         ####################
         
