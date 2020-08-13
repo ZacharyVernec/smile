@@ -289,6 +289,7 @@ class Population:
     
     #removing outliers
     def filter(self, copy=False, scorename='symptom', recovered_score=None, firstday=FIRSTVISIT, lastday=NDAYS, drop_na=False):
+        #TODO make 'recovery' not necessarily SMIN but either a percentage or any given score value
         if copy==False: pop=self
         elif copy==True: pop=self.copy(addtitle='filtered')
         else: raise ValueError()
@@ -1030,3 +1031,29 @@ class MixedMethodology(Methodology):
         samplepop.days = ma.hstack(samplepops.days)
         samplepop.scores = {scorename:ma.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items()}
         return samplepop
+    
+
+#TODO combine all methodologies into a more unified scheme, 
+# by making sample_population() be a basic unchanging unit
+# and having each sampling day in order be defined by functions of 
+# the index day and index score, the previous sampled day and the previous sampled score, the next days, the next scores, etc.
+class ArbitraryMethodology(Methodology):
+    '''Each sampling day can be defined by any function'''
+    def __init__(self, title='', ordinals_dropped=[], *sampling_functions):
+        '''
+        ordinal_dropped is useful for specifying if some of the sampled days are only used for other sampling days to refer to (and shouldn't be returned)
+        sampling function must depend on previous sampling days, the scores, and the days
+        '''
+        
+        super().__init__(title)
+        
+        self.ordinals_dropped = np.array(ordinals_dropped)
+        if np.any(self.ordinals_dropped != ordinals_dropped.astype('uint')):
+            raise ValueError('Not ordinals')
+        if np.any(self.ordinals_dropped >= len(sampling_functions)):
+            raise IndexError('Out of bounds. Will refer to a sample number that will not exist.')
+        
+        self.sampling_functions = sampling_functions
+        for function in self.sampling_functions:
+            if len(function.__code__.co_varnames) != 2:
+                raise ValueError('')
