@@ -252,6 +252,8 @@ class Population:
             newpop.title += ' '+addtitle
         newpop.parameter_generators = copy(self.parameter_generators)
         newpop.function_generators = copy(self.function_generators)
+        newpop.parameters = copy(self.parameters)
+        newpop.days = copy(self.days)
         newpop.scores = copy(self.scores)
         return newpop
     def double(self, newtitle1=None, addtitle1=None, newtitle2=None, addtitle2=None):
