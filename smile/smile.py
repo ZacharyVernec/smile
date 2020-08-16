@@ -123,7 +123,7 @@ class Population:
         '''
         #generate
         for paramname in self.parameter_generators:
-            self.parameters[paramname] = self.parameter_generators[paramname]()
+            self.parameters[paramname] = np.array(self.parameter_generators[paramname]())
         #reset previous scores
         self.scores = {scorename:None for scorename in self.scores}   
     
@@ -269,8 +269,10 @@ class Population:
         keeping arrays two-dimensional
         '''
         newpop = self.copy()
-        newpop.scores = {scorename:np.array(helper.twodarray(newpop.scores[scorename])[subscript]) #slice as twodarray but keep as ndarray
-                         for scorename in newpop.scores}
+        newpop.parameters = {paramname:np.array(helper.twodarray(paramval)[subscript]) if paramval.ndim > 0 else paramval #slice as twodarray but keep as ndarray
+                             for paramname, paramval in newpop.parameters.items()}
+        newpop.scores = {scorename:np.array(helper.twodarray(scoreval)[subscript]) #slice as twodarray but keep as ndarray
+                         for scorename, scoreval in newpop.scores.items()}
         newpop.days = np.array(helper.twodarray(newpop.days)[subscript]) #slice as twodarray but keep as ndarray
         return newpop
     def to_dataframe(self):
