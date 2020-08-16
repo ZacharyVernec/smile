@@ -27,7 +27,6 @@ from abc import ABC, abstractmethod #abstract base class
 import numpy as np
 import numpy.ma as ma
 from numpy import random
-from scipy.stats import beta
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
@@ -1000,34 +999,13 @@ class SmileMethodology(Methodology):
 #TODO last milestone is based on absolute symptom score
 #TODO filter based on pecentage and absolute symptom score
 class RealisticMethodology(SmileMethodology):
-    '''Sampling similarly to what a real clinician would want'''
-    
-    @staticmethod #TODO move to smile/helper_methods
-    def _delay_generator(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
-        '''
-        Beta distribution rounded to integers
-        Parametrized by location=left_bound, scale=interval_length, mode, and a
-        Note, due to rounding to ints, the value of left_bound+interval_length may be the integer above the max
-        graphed here: https://www.desmos.com/calculator/h8pf93nmoh
-        '''
-        
-        # transformation x -> x' and inverse transformation x' -> x
-        transform_x = lambda x: (x-left_bound)/interval_length #from unit interval to range
-        untransform_xprime = lambda xprime: xprime*interval_length+left_bound #from range to unit interval
-        
-        # shape parameters
-        scaled_mode = transform_x(mode)
-        b = (1/scaled_mode-1)*a + 2-1/scaled_mode
-        
-        values_unitinterval = beta.rvs(a, b, size=shape)
-        
-        return untransform_xprime(values_unitinterval).astype(int)
+    '''Sampling similarly to what a real clinician would want, with simulated delay to get appointment'''
     
     def __init__(self, title='realistic methodology', index_day=0, milestone_ratios=[0.5], smile_scorename='symptom', 
                  min_delay=0, max_delay=21, mode=7, a=2.2):
         #a = 2.2 is determined numerically so that with default mode, the 90th percentile is at 21
         
-        delay_generator = lambda shape: RealisticMethodology._delay_generator(shape, min_delay, max_delay, mode, a)
+        delay_generator = lambda shape: helper.beta(shape, min_delay, max_delay, mode, a).astype('int')
         super().__init__(title=title, index_day=index_day, delay=delay_generator, milestone_ratios=milestone_ratios, smile_scorename=smile_scorename)
     
 class MixedMethodology(Methodology):

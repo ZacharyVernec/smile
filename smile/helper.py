@@ -5,6 +5,7 @@ from math import ceil
 
 # Third party imports
 import numpy as np
+from scipy import stats
 
 def truncatednormal(xmin, xmax, pmsigma=3, shape=None):
     '''
@@ -65,6 +66,23 @@ def truncatednormal_right(mode, xmax, pmsigma=3, shape=None):
            
     if shape is None: return vals[0] #convert back from array
     else: return vals
+def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
+        '''
+        Beta distribution parametrized by location 'left_bound', scale 'interval_length', 'mode', and 'a'
+        graphed here: https://www.desmos.com/calculator/h8pf93nmoh
+        '''
+        
+        # transformation x -> x' and inverse transformation x' -> x
+        transform_x = lambda x: (x-left_bound)/interval_length #from unit interval to range
+        untransform_xprime = lambda xprime: xprime*interval_length+left_bound #from range to unit interval
+        
+        # shape parameters
+        scaled_mode = transform_x(mode)
+        b = (1/scaled_mode-1)*a + 2-1/scaled_mode
+        
+        values_unitinterval = stats.beta.rvs(a, b, size=shape)
+        
+        return untransform_xprime(values_unitinterval)
 
 def rgblist_to_rgbapop(rgblist, npersons, ndays, opacity=1.0):
     '''
