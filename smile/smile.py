@@ -14,6 +14,7 @@
 #TODO possibility of slicing Population with scorename as first element in subscript tuple
 #TODO keep track of expected value of parameters for use when plotting regression results
 #TODO shape doesn't *need* to be the variable name for random, as long as there is 1
+#TODO change calls to ndarray.flatten() into calls to either ndarray.ravel() which returns a view, or ndarray.flat which is an iterator
 
 
 # Standard library imports
@@ -519,32 +520,42 @@ class PopulationList(UserList):
         
         return poplist #may be self or a copy
     
-    def plot(self, axeslist, direction='row', **kwargs):
+    def plot(self, ax, direction='row', **kwargs):
         '''
         Plots all populations sequentially, using same kwargs as in Population.plot() method
-        Direction can be "row" or "col" depending on if the axeslist represents a row or column of a figure
-            and determines where the PopulationList title will go
+        If ax corresponds to a single axis, all are plotted on it and the title is the PopulationList title
+        If ax is an ndarray with an axis per population, then each is plotted on each and direction determines how to put the PopulationList title
+        Direction can be "row", "col", or "none" depending on if the axarr represents a row or column of a figure
+            and determines where the PopulationList title will go ("none" means the title isn't displayed)
         '''
-        #TODO plot all on same axis if only one given
-        #check axes input
-        if len(axeslist) != len(self): 
-            raise ValueError("{} axes are not enough to plot {} Populations".format(len(axes), len(self)))
-        #plot
-        for (i, pop) in enumerate(self):
-                pop.plot(axeslist[i], **kwargs)
-        #PopulationList title
-        ax = axeslist[0] #first axis
-        if direction=='col':
-            pad=30
-            color='blue'
-            ax.annotate(self.title, xy=(0.5, 1), xytext=(0, pad), xycoords='axes fraction', 
-                            textcoords='offset points', size='large', ha='center', va='baseline', color=color)
-        elif direction=='row':
-            pad=15
-            ax.annotate(self.title, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad-pad, 0), xycoords=ax.yaxis.label, 
-                            textcoords='offset points', size='large', ha='right', va='center', color='blue')
-        else: 
-            raise ValueError("Unknown direction {}".format(direction))
+        axarr = np.array(ax)
+        
+        if axarr.size == 1: #plot all on the same
+            axis = axarr.item()
+            for pop in self:
+                pop.plot(axis, **kwargs)
+            axis.set_title(self.title, wrap=True)
+            
+        elif axarr.size == len(self): #plot all sequentially
+            for (i, pop) in enumerate(self):
+                pop.plot(axarr.flat[i], **kwargs)
+            #PopulationList title
+            ax = axarr[0] #first axis
+            if direction == 'col':
+                pad=30
+                color='blue'
+                ax.annotate(self.title, xy=(0.5, 1), xytext=(0, pad), xycoords='axes fraction', 
+                                textcoords='offset points', size='large', ha='center', va='baseline', color=color)
+            elif direction == 'row':
+                pad=15
+                ax.annotate(self.title, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad-pad, 0), xycoords=ax.yaxis.label, 
+                                textcoords='offset points', size='large', ha='right', va='center', color='blue')
+            elif direction != 'none': 
+                raise ValueError("Unknown direction {}".format(direction))
+            
+        else:
+            raise ValueError(f"{len(axes)} axes are not enough to plot {len(self)} Populations")
+        
 
 class RegressionResult:
     '''Wrapper for linear RegressionResults class of statsmodels'''
@@ -765,7 +776,6 @@ class RegressionResultList(UserList):
         
     # Plotting methods
     
-    # TODO add title
     def plot_box(self, axeslist, ground_truths=None, direction='row'):
         '''
         Ground truth is either None, or a list of floats (inc. np.Nan for unknown) of same length as number of params
