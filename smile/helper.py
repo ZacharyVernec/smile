@@ -29,6 +29,7 @@ def truncatednormal(xmin, xmax, pmsigma=3, shape=None):
     return vals
 def truncatednormal_left(xmin, mean, pmsigma=3, shape=None):
     '''
+    careful, the given mean is the mean of the pre-truncated distribution, and won't stay the mean
     the smaller the pmsigma, the closer the distribution is to uniform
     pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
     shape of None returns a simple float
@@ -50,6 +51,7 @@ def truncatednormal_left(xmin, mean, pmsigma=3, shape=None):
     return vals
 def truncatednormal_right(mean, xmax, pmsigma=3, shape=None):
     '''
+    careful, the given mean is the mean of the pre-truncated distribution, and won't stay the mean
     the smaller the pmsigma, the closer the distribution is to uniform
     pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
     shape of None returns a simple float
@@ -185,7 +187,7 @@ class twodarray(np.ndarray):
         elif isinstance(subscript, tuple):
             def areinstances(tup, list_of_classes):
                 if len(tup) != len(list_of_classes):
-                    raise ValueError("tuple and tup_of_classes are of different classes")
+                    raise ValueError("tup and tup_of_classes are of different lengths")
                 for i in range(len(tup)): 
                     if not isinstance(tup[i], list_of_classes[i]): return False
                 return True
@@ -212,6 +214,7 @@ class twodarray(np.ndarray):
         return super().__getitem__(subscript) #now slice like an ndarra
     #TODO add classmethods from_horizontal(listlike, nrows) and from_vertical(listlike, ncols), 
     #    which would tile/repeat a 1d array to make a towdarray of the required height or depth, respectively
+    #TODO add classmethod .slicer() which would use __getitem__ as a twodarray but would return a regular ndarray for compatibility
     
 def to_vertical(arraylike):
     try:
