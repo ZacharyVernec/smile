@@ -12,65 +12,59 @@ def truncatednormal(xmin, xmax, pmsigma=3, shape=None):
     pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
     shape of None returns a simple float
     '''
-    my_mean = (xmax+xmin)/2
-    my_std = (xmax-xmin)/(2*pmsigma)
-    my_shape = shape if shape is not None else 1 #convert to array
+    mode = (xmax+xmin)/2
+    untruncated_std = (xmax-xmin)/(2*pmsigma)
+    arr_shape = shape if shape is not None else 1 #convert to array if needed
     
-    vals = np.random.normal(my_mean, my_std, my_shape)
+    vals = np.random.normal(mode, untruncated_std, arr_shape)
     invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
     
     while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(my_mean, my_std, len(invalid))
+        vals.flat[invalid] = np.random.normal(mean, untruncated_std, len(invalid))
         invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
         
-    #possibly convert back from array
-    vals = vals if shape is not None else vals[0]
-        
-    return vals
-def truncatednormal_left(xmin, mean, pmsigma=3, shape=None):
+    if shape is None: return vals[0] #convert back from array
+    else: return vals
+def truncatednormal_left(xmin, mode, pmsigma=3, shape=None):
     '''
-    careful, the given mean is the mean of the pre-truncated distribution, and won't stay the mean
+    careful, the given mode will not be the mean of the truncated distribution sampled from
     the smaller the pmsigma, the closer the distribution is to uniform
     pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
     shape of None returns a simple float
     '''
-    my_mean = mean
-    my_std = (mean-xmin)/pmsigma
-    my_shape = shape if shape is not None else 1 #convert to array
+    mode = mode
+    untruncated_std = (mean-xmin)/pmsigma
+    arr_shape = shape if shape is not None else 1 #convert to array if needed
     
-    vals = np.random.normal(my_mean, my_std, my_shape)
+    vals = np.random.normal(mode, untruncated_std, arr_shape)
     invalid = np.flatnonzero(vals < xmin)
     
     while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(my_mean, my_std, len(invalid))
+        vals.flat[invalid] = np.random.normal(mode, untruncated_std, len(invalid))
         invalid = np.flatnonzero(vals < xmin)
         
-    #possibly convert back from array
-    vals = vals if shape is not None else vals[0]
-        
-    return vals
-def truncatednormal_right(mean, xmax, pmsigma=3, shape=None):
+    if shape is None: return vals[0] #convert back from array
+    else: return vals
+def truncatednormal_right(mode, xmax, pmsigma=3, shape=None):
     '''
-    careful, the given mean is the mean of the pre-truncated distribution, and won't stay the mean
+    careful, the given mode will not be the mean of the truncated distribution sampled from
     the smaller the pmsigma, the closer the distribution is to uniform
     pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
     shape of None returns a simple float
     '''
-    my_mean = mean
-    my_std = (xmax-mean)/pmsigma
-    my_shape = shape if shape is not None else 1 #convert to array
+    mode = mode
+    untruncated_std = (mean-xmin)/pmsigma
+    arr_shape = shape if shape is not None else 1 #convert to array if needed
     
-    vals = np.random.normal(my_mean, my_std, my_shape)
+    vals = np.random.normal(mode, untruncated_std, arr_shape)
     invalid = np.flatnonzero(vals > xmax)
     
     while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(my_mean, my_std, len(invalid))
+        vals.flat[invalid] = np.random.normal(mode, untruncated_std, arr_shape)
         invalid = np.flatnonzero(vals > xmax)
-        
-    #possibly convert back from array
-    vals = vals if shape is not None else vals[0]
-        
-    return vals
+           
+    if shape is None: return vals[0] #convert back from array
+    else: return vals
 
 def rgblist_to_rgbapop(rgblist, npersons, ndays, opacity=1.0):
     '''
