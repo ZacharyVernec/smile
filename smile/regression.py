@@ -5,9 +5,6 @@ from collections import UserList
 import numpy as np
 import pandas as pd
 
-# Reload library
-#unused
-
 # Local application imports
 #none
 
@@ -65,20 +62,16 @@ def assertRegressionResult(obj):
     else:
         return True #if no error
 def assertListlikeOfRegressionResults(listlike):
-    """Check if all objects are RegressionResults"""
-    if isinstance(listlike, PopulationList):
-        return True #short circuit since must contain only Populations
-    else:
-        for (i, obj) in enumerate(listlike):
-            try: 
-                assertRegressionResult(obj)
-            except AssertionError as e:
-                newmessage = "At index {}, {}".format(i, e.args[0])
-                #append update error message
-                if len(e.args) >= 1:
-                    e.args = (newmessage,) + e.args[1:]
-                raise #re-raise error with updated message
-        return True #if no error
+    for (i, obj) in enumerate(listlike):
+        try: 
+            assertRegressionResult(obj)
+        except AssertionError as e:
+            newmessage = "At index {}, {}".format(i, e.args[0])
+            #append update error message
+            if len(e.args) >= 1:
+                e.args = (newmessage,) + e.args[1:]
+            raise #re-raise error with updated message
+    return True #if no error
 
 # TODO keep track of number of parameters
 class RegressionResultList(UserList):

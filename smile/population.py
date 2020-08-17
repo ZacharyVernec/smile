@@ -1,7 +1,6 @@
 # Standard library imports
 from collections import UserList
 from copy import copy
-import warnings
 from abc import ABC, abstractmethod #abstract base class
 
 # Third party imports
@@ -16,26 +15,12 @@ from patsy import dmatrices
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
-# Reload library
-from importlib import reload
-
 # Local application imports
-import smile.regression; reload(smile.regression)
 from smile.regression import RegressionResult, RegressionResultList
-import smile.helper; reload(smile.helper)
 from smile import helper
-import smile.global_params; reload(smile.global_params)
+from smile.helper import warn
 from smile.global_params import VMIN, SMIN, NDAYS, FIRSTVISIT, LASTVISIT
-
-#custom warnings
-def warn(message):
-    '''Standard UserWarning but without showing extra information (filename, lineno, line)'''
-    default_formatwarning = warnings.formatwarning
-    def custom_formatwarning(msg, category, filename, lineno, line=None): 
-        return default_formatwarning(msg, category, filename='', lineno='', line='')
-    warnings.formatwarning = custom_formatwarning
-    warnings.warn(message)
-    warnings.formatwarning = default_formatwarning
+from smile.global_params import lines_cmap_name, points_cmap_name
 
 
 

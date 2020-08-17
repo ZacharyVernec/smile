@@ -2,23 +2,16 @@
 
 # Standard library imports
 from collections import UserList
-from copy import copy
-import warnings
 from abc import ABC, abstractmethod #abstract base class
 
 # Third party imports
 import numpy as np
 import numpy.ma as ma
 
-# Reload library
-from importlib import reload
-
 # Local application imports
-import smile.population; reload(smile.population); 
 from smile.population import Population, PopulationList
-import smile.helper; reload(smile.helper)
 from smile import helper
-import smile.global_params; reload(smile.global_params)
+from smile.helper import warn
 from smile.global_params import VMIN, SMIN, NDAYS, FIRSTVISIT, LASTVISIT
 
 

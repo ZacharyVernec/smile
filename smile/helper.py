@@ -2,11 +2,25 @@
 
 # Standard library imports
 from math import ceil
+import warnings
 
 # Third party imports
 import numpy as np
 from scipy import stats
 
+
+#warnings
+def warn(message):
+    '''Standard UserWarning but without showing extra information (i.e. exclude filename, lineno, line)'''
+    default_formatwarning = warnings.formatwarning
+    def custom_formatwarning(msg, category, filename, lineno, line=None): 
+        return default_formatwarning(msg, category, filename='', lineno='', line='')
+    warnings.formatwarning = custom_formatwarning
+    warnings.warn(message)
+    warnings.formatwarning = default_formatwarning
+
+    
+#distributions
 def truncatednormal(xmin, xmax, pmsigma=3, shape=None):
     '''
     the smaller the pmsigma, the closer the distribution is to uniform
@@ -66,6 +80,7 @@ def truncatednormal_right(mode, xmax, pmsigma=3, shape=None):
            
     if shape is None: return vals[0] #convert back from array
     else: return vals
+    
 def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         '''
         Beta distribution parametrized by location 'left_bound', scale 'interval_length', 'mode', and 'a'
@@ -84,6 +99,8 @@ def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         
         return untransform_xprime(values_unitinterval)
 
+    
+#matplotlib colors
 def rgblist_to_rgbapop(rgblist, npersons, ndays, opacity=1.0):
     '''
     takes a list of rgb colors with shape=(len,3) and turns it into an array of rgba colors with shape=(npersons, ndays, 4)
@@ -100,6 +117,7 @@ def normalize(array):
     return (array - np.min(array))/(np.max(array)-np.min(array))
 
 
+#printing and displaying
 def collocate_text(text_blocks, hseparator="\t", hseparatorlen=2, vseparator='\n', vseparatorlen=2):
     '''Combine multiline strings into one large string that looks like each strings was placed in a grid'''
     
@@ -149,7 +167,8 @@ def display_collocated(html_elements, **kwargs):
     display(HTML(html_string))
 
 
-#currently unused, too much trouble to rewrite smile.py (e.g. having population days and scores be twodarrays)
+#numpy
+#currently mostly unused, too much trouble to rewrite smile.py (e.g. having population days and scores be twodarrays)
 class twodarray(np.ndarray):
     '''numpy ndarray that always stays two-dimensional when sliced
        and that raises errors when any other method is used that would make it not 2d'''

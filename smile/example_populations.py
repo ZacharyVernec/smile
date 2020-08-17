@@ -1,17 +1,12 @@
-
 # Third party imports
 import numpy as np
 
-# Reload library
-from importlib import reload
-
 # Local application imports
-import smile.smile; reload(smile.smile)
 from smile.smile import Population, PopulationList
-import smile.helper; reload(smile.helper)
 from smile.helper import truncatednormal
-import smile.global_params; reload(smile.global_params)
-from smile.global_params import *
+from smile.global_params import VMIN, SMIN
+
+
 
 # Various functions to exemplify how to create populations
 
