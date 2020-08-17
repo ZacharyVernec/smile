@@ -35,7 +35,7 @@ def truncatednormal(xmin, xmax, pmsigma=3, shape=None):
     invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
     
     while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(mean, untruncated_std, len(invalid))
+        vals.flat[invalid] = np.random.normal(mode, untruncated_std, len(invalid))
         invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
         
     if shape is None: return vals[0] #convert back from array
