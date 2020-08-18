@@ -19,7 +19,7 @@ import statsmodels.formula.api as smf
 from smile.regression import RegressionResult, RegressionResultList
 from smile import helper
 from smile.helper import warn
-from smile.global_params import VMIN, SMIN, get_MIN NDAYS, FIRSTVISIT, LASTVISIT
+from smile.global_params import VMIN, SMIN, get_MIN, NDAYS, FIRSTVISIT, LASTVISIT
 from smile.global_params import lines_cmap_name, points_cmap_name
 
 
@@ -252,8 +252,8 @@ class Population:
     #TODO fix filter in other functions (e.g. in Methodology.sample_populationlist())
     def filter(self, filter_type, copy=False, **kwargs):
         '''Filters the population in one specific way'''
-        self.filter_multi(self, filter_types=[filter_type], filter_kwargs=[kwargs], copy=copy)
-    def filter_multi(self, filters_types, filter_kwargs, copy=False):
+        return self.filter_multi(filter_types=[filter_type], filter_kwargs=[kwargs], copy=copy)
+    def filter_multi(self, filter_types, filter_kwargs, copy=False):
         '''
         Filters the population in multiple ways at once
         filter_types and filter_kwargs are lists, with each position defining what could be a call to filter()
@@ -269,7 +269,7 @@ class Population:
         
         #iterate
         persons_excluded = []
-        for filter_type, kwargs in zip(filters_types, filter_kwargs):
+        for filter_type, kwargs in zip(filter_types, filter_kwargs):
             #get filter inner function depending on given filter_type
             try:
                 pop_filter_func = getattr(pop, f'_get_excluded_{filter_type}')
@@ -279,7 +279,7 @@ class Population:
             persons_excluded.append(pop_filter_func(**kwargs))
             
         #logic
-        persons_excluded = np.logical_or(persons_excluded)
+        persons_excluded = np.logical_or.reduce(persons_excluded) #reduce makes it so persons_exluded can be any length
         persons_included = np.logical_not(persons_excluded)
         
         #take only the included
