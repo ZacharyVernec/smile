@@ -250,7 +250,7 @@ class Population:
     
     #removing outliers 
     #TODO make possible to do multiple filters in the same function call
-    #TODO fix filter in other functions (e.g. in Methodology.sample_populationlist())=
+    #TODO fix filter in other functions (e.g. in Methodology.sample_populationlist())
     def filter(self, filter_type, copy=False, **kwargs):
         #possibly copy
         if copy==False: pop=self
@@ -280,6 +280,13 @@ class Population:
             recovered_score = get_MIN(scorename)
         persons_recovered_late = np.min(self.scores[scorename][:,:lastday], axis=1) > recovered_score
         return persons_recovered_late
+    def _get_excluded_magnitude(self, **kwargs):
+        kwargs_early, kwargs_late = kwargs, copy(kwargs)
+        kwargs_early.pop('lastday', None) #remove extra kwarg if given
+        kwargs_late.pop('firstday', None) #remove extra kwarg if given
+        recovered_early = self._get_excluded_magnitude_early(**kwargs_early)
+        recovered_late = self._get_excluded_magnitude_late(**kwargs_late)
+        return np.logical_or(recovered_early, recovered_late)
     def _get_excluded_ratio_early(self, scorename='symptom', index_day=0, recovered_ratio=0.15, firstday=FIRSTVISIT):
         recovered_scores = helper.to_vertical(self.scores[scorename][:,index_day]*ratio)
         persons_recovered_early = np.any(self.scores[scorename][:,:firstday] <= recovered_scores, axis=1)
@@ -288,6 +295,13 @@ class Population:
         recovered_scores = self.scores[scorename][:,index_day]*ratio
         persons_recovered_late = np.min(self.scores[scorename][:,:lastday], axis=1) > recovered_scores
         return persons_recovered_late
+    def _get_excluded_ratio(self, **kwargs):
+        kwargs_early, kwargs_late = kwargs, copy(kwargs)
+        kwargs_early.pop('lastday', None) #remove extra kwarg if given
+        kwargs_late.pop('firstday', None) #remove extra kwarg if given
+        recovered_early = self._get_excluded_ratio_early(**kwargs_early)
+        recovered_late = self._get_excluded_ratio_late(**kwargs_late)
+        return np.logical_or(recovered_early, recovered_late)
     def _get_excluded_na(self):
         persons_with_na = np.any(np.isnan(self.scores[scorename]), axis=1)
         return persons_with_na
