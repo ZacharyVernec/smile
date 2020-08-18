@@ -517,11 +517,14 @@ class PopulationList(UserList):
         return [pop.to_dataframe() for pop in self]
     
     def filter(self, filter_type, copy=False, **kwargs):
+        return self.filter(filter_types=[filter_type], filter_kwargs=[kwargs], copy=copy)
+    def filter_multi(self, filter_types, filter_kwargs, copy=False):
+        #possibly copy
         if copy==False: poplist=self
         elif copy==True: poplist=self.copy(addtitle='filtered')
         else: raise ValueError()
         
-        poplist.data = [pop.filter(filter_type, copy=copy, **kwargs) for pop in poplist]
+        poplist.data = [pop.filter_multi(filter_types, filter_kwargs, copy=copy) for pop in poplist]
         
         return poplist #may be self or a copy
     
