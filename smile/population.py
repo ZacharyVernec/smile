@@ -304,11 +304,14 @@ class Population:
         recovered_late = self._get_excluded_magnitude_late(**kwargs_late)
         return np.logical_or(recovered_early, recovered_late)
     def _get_excluded_ratio_early(self, scorename='symptom', index_day=0, recovered_ratio=0.15, firstday=FIRSTVISIT):
-        recovered_scores = helper.to_vertical(self.scores[scorename][:,index_day]*ratio)
+        score_lowerbound = get_MIN(scorename)
+        recovered_scores = (self.scores[scorename][:,index_day] - score_lowerbound)*ratio + score_lowerbound
+        recovered_scores = helper.to_vertical(recovered_scores)
         persons_recovered_early = np.any(self.scores[scorename][:,:firstday] <= recovered_scores, axis=1)
         return persons_recovered_early
     def _get_excluded_ratio_late(self, scorename='symptom', index_day=0, recovered_ratio=0.15, lastday=NDAYS):
-        recovered_scores = self.scores[scorename][:,index_day]*ratio
+        score_lowerbound = get_MIN(scorename)
+        recovered_scores = (self.scores[scorename][:,index_day] - score_lowerbound)*ratio + score_lowerbound
         persons_recovered_late = np.min(self.scores[scorename][:,:lastday], axis=1) > recovered_scores
         return persons_recovered_late
     def _get_excluded_ratio(self, **kwargs):
