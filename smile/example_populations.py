@@ -2,7 +2,7 @@
 import numpy as np
 
 # Local application imports
-from smile.smile import Population, PopulationList
+from smile.population import Population, PopulationList
 from smile.helper import truncatednormal
 from smile.global_params import VMIN, SMIN
 

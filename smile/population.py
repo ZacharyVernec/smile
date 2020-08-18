@@ -257,7 +257,7 @@ class Population:
         return PopulationList([self[i] for i in range(self.npersons)], title=self.title+' (as PopulationList)')
     
     #removing outliers
-    def filter(self, filter_type, copy=False, *args, **kwargs):
+    def filter(self, filter_type, copy=False, **kwargs):
         #possibly copy
         if copy==False: pop=self
         elif copy==True: pop=self.copy(addtitle='filtered')
@@ -269,7 +269,7 @@ class Population:
         except AttributeError as err:
             raise ValueError(f"filter_type of '{filter_type}' not known") from err
             
-        persons_excluded = pop_filter_func(*args, **kwargs)
+        persons_excluded = pop_filter_func(**kwargs)
         persons_included = np.logical_not(persons_excluded)
             
         #take only the included
@@ -488,12 +488,12 @@ class PopulationList(UserList):
     def to_dataframes(self):
         return [pop.to_dataframe() for pop in self]
     
-    def filter(self, copy=False, **kwargs):
+    def filter(self, filter_type, copy=False, **kwargs)
         if copy==False: poplist=self
         elif copy==True: poplist=self.copy(addtitle='filtered')
         else: raise ValueError()
         
-        poplist.data = [pop.filter(copy=copy, **kwargs) for pop in poplist]
+        poplist.data = [pop.filter(filter_type, copy=copy, **kwargs) for pop in poplist]
         
         return poplist #may be self or a copy
     
