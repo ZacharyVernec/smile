@@ -2,6 +2,10 @@
 
 VMIN = 6 #minimum possible visual score
 SMIN = 0 #minimum possible symptom score
+def get_MIN(scorename):
+    if scorename == 'visual': return VMIN
+    elif scorename in {'symptom', 'symptom_noerror'}: return SMIN
+    else: raise ValueError(f"Scorename of {scorename} not known")
 
 NDAYS = 160 #number of days in the study
 FIRSTVISIT = 7

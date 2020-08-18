@@ -12,7 +12,7 @@ import numpy.ma as ma
 from smile.population import Population, PopulationList
 from smile import helper
 from smile.helper import warn
-from smile.global_params import VMIN, SMIN, NDAYS, FIRSTVISIT, LASTVISIT
+from smile.global_params import get_MIN, NDAYS, FIRSTVISIT, LASTVISIT
 
 
 
@@ -126,9 +126,7 @@ class SmileMethodology(Methodology):
         if filter_args is not None: population = population.filter(**filter_args, copy=True)
         
         smilescores = population.scores[self.smile_scorename] #scores which the ratios refer to
-        #TODO simplify retrieval of MINs
-        if self.smile_scorename == 'visual': smilescore_lowerbound = VMIN
-        elif self.smile_scorename == 'symptom' or self.smile_scorename == 'symptom_noerror': smilescore_lowerbound = SMIN
+        smilescore_lowerbound = get_MIN(self.smile_scorename)
             
         #get and check index days
         index_days = self.index_day((population.npersons, 1))

@@ -19,7 +19,7 @@ import statsmodels.formula.api as smf
 from smile.regression import RegressionResult, RegressionResultList
 from smile import helper
 from smile.helper import warn
-from smile.global_params import VMIN, SMIN, NDAYS, FIRSTVISIT, LASTVISIT
+from smile.global_params import VMIN, SMIN, get_MIN NDAYS, FIRSTVISIT, LASTVISIT
 from smile.global_params import lines_cmap_name, points_cmap_name
 
 
@@ -271,17 +271,13 @@ class Population:
         pop.days = pop.days[persons_included]
         return pop #may be a self or a copy
     def _get_excluded_magnitude_early(self, scorename='symptom', recovered_score=None, firstday=FIRSTVISIT):
-        #TODO simplify retrieval of MINs
         if recovered_score is None:
-            if scorename == 'visual': recovered_score = VMIN
-            elif scorename == 'symptom' or scorename == 'symptom_noerror': recovered_score = SMIN
+            recovered_score = get_MIN(scorename)
         persons_recovered_early = np.any(self.scores[scorename][:,:firstday] <= recovered_score, axis=1)
         return persons_recovered_early
     def _get_excluded_magnitude_late(self, scorename='symptom', recovered_score=None, lastday=NDAYS):
-        #TODO simplify retrieval of MINs
         if recovered_score is None:
-            if scorename == 'visual': recovered_score = VMIN
-            elif scorename == 'symptom' or scorename == 'symptom_noerror': recovered_score = SMIN
+            recovered_score = get_MIN(scorename)
         persons_recovered_late = np.min(self.scores[scorename][:,:lastday], axis=1) > recovered_score
         return persons_recovered_late
     def _get_excluded_na(self, copy=False):
