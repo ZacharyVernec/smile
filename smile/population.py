@@ -248,14 +248,16 @@ class Population:
     def to_populationlist(self):
         return PopulationList([self[i] for i in range(self.npersons)], title=self.title+' (as PopulationList)')
     
-    #removing outliers
+    #removing outliers 
+    #TODO make possible to do multiple filters in the same function call
+    #TODO fix filter in other functions (e.g. in Methodology.sample_populationlist())
     def filter(self, filter_type, copy=False, **kwargs):
         #possibly copy
         if copy==False: pop=self
         elif copy==True: pop=self.copy(addtitle='filtered')
         else: raise ValueError()
         
-        #filter depending on given filter_type
+        #get filter inner function depending on given filter_type
         try:
             pop_filter_func = getattr(pop, f'_get_excluded_{filter_type}')
         except AttributeError as err:
@@ -267,24 +269,24 @@ class Population:
         #take only the included
         pop.scores = {scorename:pop.scores[scorename][persons_included] for scorename in pop.scores}
         pop.days = pop.days[persons_included]
-        
         return pop #may be a self or a copy
-    def _get_excluded_magnitude_early(selfscorename='symptom', recovered_score=None, firstday=FIRSTVISIT, lastday=NDAYS):
+    def _get_excluded_magnitude_early(self, scorename='symptom', recovered_score=None, firstday=FIRSTVISIT):
         #TODO simplify retrieval of MINs
         if recovered_score is None:
             if scorename == 'visual': recovered_score = VMIN
             elif scorename == 'symptom' or scorename == 'symptom_noerror': recovered_score = SMIN
-        
-        persons_recovered_early = np.any(pop.scores[scorename][:,:firstday] <= recovered_score, axis=1)
-    def _get_excluded_magnitude_late(selfscorename='symptom', recovered_score=None, firstday=FIRSTVISIT, lastday=NDAYS):
+        persons_recovered_early = np.any(self.scores[scorename][:,:firstday] <= recovered_score, axis=1)
+        return persons_recovered_early
+    def _get_excluded_magnitude_late(self, scorename='symptom', recovered_score=None, lastday=NDAYS):
         #TODO simplify retrieval of MINs
         if recovered_score is None:
             if scorename == 'visual': recovered_score = VMIN
             elif scorename == 'symptom' or scorename == 'symptom_noerror': recovered_score = SMIN
-        
-        persons_recovered_late = np.min(pop.scores[scorename][:,:lastday], axis=1) > recovered_score
+        persons_recovered_late = np.min(self.scores[scorename][:,:lastday], axis=1) > recovered_score
+        return persons_recovered_late
     def _get_excluded_na(self, copy=False):
-        persons_with_na = np.any(np.isnan(pop.scores[scorename]), axis=1)
+        persons_with_na = np.any(np.isnan(self.scores[scorename]), axis=1)
+        return persons_with_na
     
     #plotting
     def plot(self, ax, ndays=None, npersons=None, x='day', y='symptom', viztype='lines', vizcolor='person'):
@@ -480,7 +482,7 @@ class PopulationList(UserList):
     def to_dataframes(self):
         return [pop.to_dataframe() for pop in self]
     
-    def filter(self, filter_type, copy=False, **kwargs)
+    def filter(self, filter_type, copy=False, **kwargs):
         if copy==False: poplist=self
         elif copy==True: poplist=self.copy(addtitle='filtered')
         else: raise ValueError()
