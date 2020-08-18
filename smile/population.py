@@ -305,7 +305,7 @@ class Population:
         return np.logical_or(recovered_early, recovered_late)
     def _get_excluded_ratio_early(self, scorename='symptom', index_day=0, recovered_ratio=0.15, firstday=FIRSTVISIT):
         score_lowerbound = get_MIN(scorename)
-        recovered_scores = (self.scores[scorename][:,index_day] - score_lowerbound)*ratio + score_lowerbound
+        recovered_scores = (self.scores[scorename][:,index_day] - score_lowerbound)*recovered_ratio + score_lowerbound
         recovered_scores = helper.to_vertical(recovered_scores)
         persons_recovered_early = np.any(self.scores[scorename][:,:firstday] <= recovered_scores, axis=1)
         return persons_recovered_early
@@ -520,7 +520,7 @@ class PopulationList(UserList):
         return [pop.to_dataframe() for pop in self]
     
     def filter(self, filter_type, copy=False, **kwargs):
-        return self.filter(filter_types=[filter_type], filter_kwargs=[kwargs], copy=copy)
+        return self.filter_multi(filter_types=[filter_type], filter_kwargs=[kwargs], copy=copy)
     def filter_multi(self, filter_types, filter_kwargs, copy=False):
         #possibly copy
         if copy==False: poplist=self
