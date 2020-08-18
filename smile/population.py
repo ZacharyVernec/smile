@@ -248,24 +248,40 @@ class Population:
     def to_populationlist(self):
         return PopulationList([self[i] for i in range(self.npersons)], title=self.title+' (as PopulationList)')
     
-    #removing outliers 
-    #TODO make possible to do multiple filters in the same function call
+    #removing outliers
     #TODO fix filter in other functions (e.g. in Methodology.sample_populationlist())
     def filter(self, filter_type, copy=False, **kwargs):
+        '''Filters the population in one specific way'''
+        self.filter_multi(self, filter_types=[filter_type], filter_kwargs=[kwargs], copy=copy)
+    def filter_multi(self, filters_types, filter_kwargs, copy=False):
+        '''
+        Filters the population in multiple ways at once
+        filter_types and filter_kwargs are lists, with each position defining what could be a call to filter()
+        '''
+        #argument checking
+        if len(filter_types) != len(filter_kwargs): 
+            raise ValueError(f"filter_types {filter_types} must have same length as filter_kwargs, which has length {len(filter_kwargs)}")
+        
         #possibly copy
         if copy==False: pop=self
         elif copy==True: pop=self.copy(addtitle='filtered')
         else: raise ValueError()
         
-        #get filter inner function depending on given filter_type
-        try:
-            pop_filter_func = getattr(pop, f'_get_excluded_{filter_type}')
-        except AttributeError as err:
-            raise ValueError(f"filter_type of '{filter_type}' not known") from err
+        #iterate
+        persons_excluded = []
+        for filter_type, kwargs in zip(filters_types, filter_kwargs):
+            #get filter inner function depending on given filter_type
+            try:
+                pop_filter_func = getattr(pop, f'_get_excluded_{filter_type}')
+            except AttributeError as err:
+                raise ValueError(f"filter_type of '{filter_type}' not known") from err
+            #get result
+            persons_excluded.append(pop_filter_func(**kwargs))
             
-        persons_excluded = pop_filter_func(**kwargs)
+        #logic
+        persons_excluded = np.logical_or(persons_excluded)
         persons_included = np.logical_not(persons_excluded)
-            
+        
         #take only the included
         pop.scores = {scorename:pop.scores[scorename][persons_included] for scorename in pop.scores}
         pop.days = pop.days[persons_included]
