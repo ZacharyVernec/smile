@@ -48,19 +48,11 @@ class Population:
     @property
     def nfiltered(self): return self.initial_npersons - self.npersons
     @property
-    def ratio_filtered(self):
-        try:
-            return self.nfiltered/self.initial_npersons
-        except ZeroDivisionError:
-            return 0
+    def ratio_filtered(self): return self.nfiltered/self.initial_npersons if self.initial_npersons else 0
     @property
     def nsampled(self): return self.initial_ndays - self.ndays
     @property
-    def ratio_sampled(self):
-        try:
-            return self.nsampled/self.initial_ndays
-        except ZeroDivisionError:
-            return 0
+    def ratio_sampled(self): return self.nsampled/self.initial_ndays if self.initial_ndays else 0
         
     # Data generation methods
 
