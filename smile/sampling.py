@@ -99,6 +99,7 @@ class SmileMethodology(Methodology):
                 raise ValueError("The function for index day generation should only have 'shape' as an argument.")
         else:
             raise ValueError(f"index_day of {index_day} is not an int nor is it callable")
+        self.sample_index = sample_index
             
         #set delay as callable
         if isinstance(delay, int): 
@@ -159,7 +160,7 @@ class SmileMethodology(Methodology):
         if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
         sampling_days[exceed_study_duration] = ma.masked
         
-        if sample_index == True: #include index_days as a real day
+        if self.sample_index == True: #include index_days as a real day
             sampling_days = ma.hstack([index_days, sampling_days])
             
         #make masked values 0 (to not throw an error when using np.take_along_axis)
