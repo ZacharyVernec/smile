@@ -260,7 +260,7 @@ class RealisticMethodology(SmileMethodology):
     
     def __init__(self, title='realistic methodology', index_day=0, milestone_ratios=[0.5], smile_scorename='symptom', 
                  min_delay=0, max_delay=21, mode=7, a=2.2):
-        #a = 2.2 is determined numerically so that with default mode, the 90th percentile is at 21
+        '''a = 2.2 is determined numerically so that with default mode, the 90th percentile is at 14'''
         
         delay_generator = lambda shape: helper.beta(shape, min_delay, max_delay, mode, a).astype('int')
         super().__init__(title=title, index_day=index_day, delay=delay_generator, milestone_ratios=milestone_ratios, smile_scorename=smile_scorename)
