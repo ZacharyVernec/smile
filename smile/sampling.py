@@ -82,7 +82,6 @@ class SmileMethodology(Methodology):
             if a ratio is not reached or a delay pushes it to > NDAYS, it gets a day value of NDAYS and a score value of np.NaN
         smile_scorename determines which score the milestone_ratios will be based on (can be symptom, visual, or symptom_noerror)
         '''
-        
         super().__init__(title)
         
         #set index_day as callable
@@ -173,6 +172,40 @@ class SmileMethodology(Methodology):
         samplepop.days = milestone_days
         samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores} #include index_day
         return samplepop
+    
+class MagnitudeMethodology(Methodology):
+    '''Similar to SmileMethodology, but with score magnitude instead of ratio'''
+    def __init__(self, title='', delay=0, milestone_values=[None], smile_scorename='symptom'):
+        '''
+        index_day determines which day's score will be used as a 'baseline' from which a milestone can be reached
+        milestone_value of None corresponds to the smile_scorename's corresponding MIN
+            if a value is not reached or a delay pushes it to > NDAYS, it gets a day value of NDAYS and a score value of np.NaN
+        smile_scorename determines which score the milestone_ratios will be based on (can be symptom, visual, or symptom_noerror)
+        '''
+        super().__init__(title)
+            
+        #set delay as callable
+        if isinstance(delay, int): 
+            self.delay = lambda shape: np.full(shape, delay, dtype=int)
+        elif callable(delay):
+            if delay.__code__.co_varnames == ('shape',): 
+                self.delay = delay
+            else: 
+                raise ValueError("The function for delay generation should only have 'shape' as an argument.")
+        else: 
+            raise ValueError(f"delay of {delay} is not an int nor is it callable")
+            
+        self.smile_scorename = smile_scorename
+        if smile_scorename not in {'symptom', 'visual', 'symptom_noerror'}:
+            raise ValueError(f"smile_scorename of {smile_scorename} not understood")
+            
+        self.milestone_values = np.array([val if val is not None else get_MIN(self.smile_scorename) #convert None to scoreMIN
+                                          for val in milestone_values], dtype=float)
+        if np.min(self.milestone_values) < get_MIN(self.smile_scorename):
+            raise ValueError(f"Some milestone_values in {milestone_values} may be unobtainable.")
+            
+    def sample_population(self, population):
+        raise Exception("Not implemented yet")
     
 #TODO last milestone is based on absolute symptom score
 class RealisticMethodology(SmileMethodology):
