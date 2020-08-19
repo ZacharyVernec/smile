@@ -75,6 +75,7 @@ class TraditionalMethodology(Methodology):
     
 class SmileMethodology(Methodology):
     '''Sampling at milestones'''
+    #TODO add option to not include index_day
     def __init__(self, title='', index_day=0, delay=0, milestone_ratios=[0.7, 0.4], smile_scorename='symptom'):
         '''
         index_day determines which day's score will be used as a 'baseline' from which a milestone can be reached
@@ -133,7 +134,7 @@ class SmileMethodology(Methodology):
         smile_vals = (smilescores_at_index - smilescore_lowerbound)*self.milestone_ratios + smilescore_lowerbound
         #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
 
-        # Compute the days where the milestones are triggered #TODO use a masked array (possible complication using take_along_axis)
+        # Compute the days where the milestones are triggered
         milestone_days = ma.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
         milestone_days.fill_value = NDAYS
         #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. 
@@ -177,7 +178,6 @@ class MagnitudeMethodology(Methodology):
     '''Similar to SmileMethodology, but with score magnitude instead of ratio'''
     def __init__(self, title='', delay=0, milestone_values=[None], smile_scorename='symptom'):
         '''
-        index_day determines which day's score will be used as a 'baseline' from which a milestone can be reached
         milestone_value of None corresponds to the smile_scorename's corresponding MIN
             if a value is not reached or a delay pushes it to > NDAYS, it gets a day value of NDAYS and a score value of np.NaN
         smile_scorename determines which score the milestone_ratios will be based on (can be symptom, visual, or symptom_noerror)
@@ -205,7 +205,51 @@ class MagnitudeMethodology(Methodology):
             raise ValueError(f"Some milestone_values in {milestone_values} may be unobtainable.")
             
     def sample_population(self, population):
-        raise Exception("Not implemented yet")
+        '''similar to SmileMethodology.sample_population()'''
+        smilescores = population.scores[self.smile_scorename] #scores which the milestone_values refer to
+        smilescore_lowerbound = get_MIN(self.smile_scorename)
+        
+        # Reshape the scores which will trigger milestones
+        smile_vals = np.broadcast_to(self.milestone_values, (population.npersons, *self.milestone_values.shape))
+        #smile_vals are the score values to reach. Each row is a person, each column is an ordinal, and each value is the score the reach
+
+        # Compute the days where the milestones are triggered
+        milestone_days = ma.empty_like(smile_vals, dtype=int) #will hold the day each milestone_ratio is reached for each person
+        milestone_days.fill_value = NDAYS
+        #careful: values of 0 in milestone_days might represent 'day 0' or might represent 'never reached milestone'. 
+        #The mask will hold the days where the milestone_ratios is not reached (exc. those stored as 0 meaning 'never reached')
+        for milestone_col in range(smile_vals.shape[1]): 
+            milestone_vals = helper.to_vertical(smile_vals[:,milestone_col])
+            milestone_days_temp = np.argmax(smilescores <= milestone_vals, axis=1) #the day at which the milestone is reached for each person
+            milestone_days[:,milestone_col] = milestone_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+            milestones_reached_temp = np.take_along_axis(smilescores <= milestone_vals, helper.to_vertical(milestone_days_temp), axis=1).flatten() #record of which persons reached the milestones
+            milestone_days[~milestones_reached_temp, milestone_col] = ma.masked
+        if np.any(milestone_days.mask): warn("There is a milestone that was not reached.")
+            
+        #compute the days at which the scores will be sampled (i.e. include delay)
+        delay = self.delay(milestone_days.shape)
+        sampling_days = milestone_days + delay
+        #exclude excessive days 
+        exceed_study_duration = sampling_days > LASTVISIT #Will become fake days since can't be sampled
+        if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
+        sampling_days[exceed_study_duration] = ma.masked
+        
+        #make masked values 0 (to not throw an error when using np.take_along_axis)
+        mask_temp = sampling_days.mask.copy() #since changing masked values will make them no longer masked
+        sampling_days[mask_temp] = 0 #change masked values
+        sampling_days[mask_temp] = ma.masked #put back the mask
+
+        #Sample at sampling days
+        milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) for scorename in population.scores} #both real and fake
+        #mask the fake days
+        milestone_days = ma.masked_array(sampling_days, fill_value=NDAYS) #Fake days will give index errors if used
+        milestone_scores = {scorename: ma.masked_array(milestone_scores[scorename], sampling_days.mask, fill_value=np.nan) for scorename in milestone_scores}
+
+        # Population
+        samplepop = population.copy(addtitle='\nsampled by '+self.title)
+        samplepop.days = milestone_days
+        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores}
+        return samplepop
     
 #TODO last milestone is based on absolute symptom score
 class RealisticMethodology(SmileMethodology):
