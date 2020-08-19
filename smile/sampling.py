@@ -78,8 +78,9 @@ class TraditionalMethodology(Methodology):
     
 class SmileMethodology(Methodology):
     '''Sampling at milestones'''
-    #TODO add option to not include index_day
-    def __init__(self, title='', index_day=0, delay=0, milestone_ratios=[0.7, 0.4], smile_scorename='symptom'):
+    def __init__(self, title='', smile_scorename='symptom',
+                 index_day=0, sample_index=True,
+                 milestone_ratios=[0.7, 0.4], delay=0):
         '''
         index_day determines which day's score will be used as a 'baseline' from which a milestone can be reached
         milestone_ratios should generally be between 0 and 1 for useful results
@@ -118,7 +119,7 @@ class SmileMethodology(Methodology):
         if smile_scorename not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"smile_scorename of {smile_scorename} not understood")
             
-    def sample_population(self, population):        
+    def sample_population(self, population):
         smilescores = population.scores[self.smile_scorename] #scores which the ratios refer to
         smilescore_lowerbound = get_MIN(self.smile_scorename)
             
@@ -158,8 +159,9 @@ class SmileMethodology(Methodology):
         if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
         sampling_days[exceed_study_duration] = ma.masked
         
-        #include index_days as a real day
-        sampling_days = ma.hstack([index_days, sampling_days])
+        if sample_index == True: #include index_days as a real day
+            sampling_days = ma.hstack([index_days, sampling_days])
+            
         #make masked values 0 (to not throw an error when using np.take_along_axis)
         mask_temp = sampling_days.mask.copy() #since changing masked values will make them no longer masked
         sampling_days[mask_temp] = 0 #change masked values
@@ -179,7 +181,8 @@ class SmileMethodology(Methodology):
     
 class MagnitudeMethodology(Methodology):
     '''Similar to SmileMethodology, but with score magnitude instead of ratio'''
-    def __init__(self, title='', delay=0, milestone_values=[None], smile_scorename='symptom'):
+    def __init__(self, title='', smile_scorename='symptom',
+                 milestone_values=[None], delay=0):
         '''
         milestone_value of None corresponds to the smile_scorename's corresponding MIN
             if a value is not reached or a delay pushes it to > NDAYS, it gets a day value of NDAYS and a score value of np.NaN
