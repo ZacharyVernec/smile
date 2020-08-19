@@ -22,3 +22,4 @@ __all__ = ["global_params", "population", "sampling", "regression"]
 #TODO keep track of expected value of parameters for use when plotting regression results
 #TODO shape doesn't *need* to be the variable name for random, as long as there is 1
 #TODO change calls to ndarray.flatten() into calls to either ndarray.ravel() which returns a view, or ndarray.flat which is an iterator
+#TODO replace tile(arr, (npersons, 1)) with broadcast_to(arr, (npersons, len(arr)))
