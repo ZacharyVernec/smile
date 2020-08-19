@@ -73,6 +73,9 @@ class TraditionalMethodology(Methodology):
         samplepop.scores = {scorename:sampling_scores[scorename] for scorename in samplepop.scores}
         return samplepop
     
+    
+#TODO add option to not include index_day for SmileMEthodology and MagnitudeMethodology
+    
 class SmileMethodology(Methodology):
     '''Sampling at milestones'''
     #TODO add option to not include index_day
@@ -262,28 +265,33 @@ class RealisticMethodology(SmileMethodology):
         delay_generator = lambda shape: helper.beta(shape, min_delay, max_delay, mode, a).astype('int')
         super().__init__(title=title, index_day=index_day, delay=delay_generator, milestone_ratios=milestone_ratios, smile_scorename=smile_scorename)
     
+#TODO optimize
 class MixedMethodology(Methodology):
-    '''Sampling at fixed days and at milestones (NOT UP TO DATE)'''
-    def __init__(self, traditional_kwargs, smile_kwargs, title=''):
-        warn("Mixed methodology only works with a traditional part and a smile part")
+    '''
+    Sampling according to many methodologies at once
+    Careful,  may oversample some points
+    '''
+    def __init__(self, methodologies, title=''):
+        warn("MixedMethodology may oversample some points\n"
+             "e.g. if a SmileMethodology's index_day is also a sampling day of a TraditionalMethodology\n"
+             "it will be sampled twice")
+        
         super().__init__(title)
         
-        #if a smilemethodology's index_day is also a sampling day of a traditionalmethodology, don't sample it twice
-        try: traditional_kwargs['sampling_days'].copy().remove(smile_kwargs['index_day'])
-        except ValueError: pass
+        #TODO prevent some oversampling by checking index_days and sampling_days
         
-        #add titles if not given
-        if traditional_kwargs['title'] is None:
-            traditional_kwargs['title'] = self.title+' (traditional part)'
-        if smile_kwargs['title'] is None:
-            smile_kwargs['title'] = self.title+' (smile part)'
+        self.methodologies = methodologies
         
-        self.methodologies = {'traditional':TraditionalMethodology(**traditional_kwargs),
-                              'smile':SmileMethodology(**smile_kwargs)}
+    def sample_population(self, population):
+        #one population per sampling methodology
+        samplepops = PopulationList([methodology.sample_population(population) 
+                                     for methodology in self.methodologies])
         
-    @classmethod
-    def from_methodologies(cls, trad_meth, smile_meth, title=''):        
-        return cls(traditional_kwargs=trad_meth.__dict__, smile_kwargs=smile_meth.__dict__, title=title)
+        #combine all sampled populations together
+        samplepop = population.copy(addtitle='\nsampled by '+self.title)
+        samplepop.days = ma.hstack(samplepops.days)
+        samplepop.scores = {scorename:ma.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items()}
+        return samplepop
     
     def __getattr__(self, attrname):
         '''returns the attribute from any and all contained methodologies, or raises an AttributeError'''
@@ -298,14 +306,3 @@ class MixedMethodology(Methodology):
             raise AttributeError()
         else:
             return methodologies_attributes
-        
-    def sample_population(self, population):
-            
-        samplepops = PopulationList([methodology.sample_population(population) 
-                                     for methodology in self.methodologies.values()], 
-                                    title='all samples')
-        
-        samplepop = population.copy(addtitle='\nsampled by '+self.title)
-        samplepop.days = ma.hstack(samplepops.days)
-        samplepop.scores = {scorename:ma.hstack(scorevalues) for (scorename, scorevalues) in samplepops.dict_scores.items()}
-        return samplepop
