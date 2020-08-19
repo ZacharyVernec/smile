@@ -21,17 +21,17 @@ class Methodology(ABC):
         self.title = title
         super().__init__()
         
-    def sample(self, pop_or_poplist, filter_args=None):
+    def sample(self, pop_or_poplist):
         #if population is a PopulationList, apply the single-population version to all
         if isinstance(pop_or_poplist, PopulationList):
-            return self.sample_populationlist(pop_or_poplist, filter_args=filter_args)
+            return self.sample_populationlist(pop_or_poplist)
         elif isinstance(pop_or_poplist, Population):
-            return self.sample_population(pop_or_poplist, filter_args=filter_args)
+            return self.sample_population(pop_or_poplist)
         else:
             raise TypeError(f"{pop_or_poplist} is a {type(pop_or_poplist)} when it should be a {Population} or a {PopulationList}.")
                 
-    def sample_populationlist(self, poplist, filter_args=None):
-        sampled_poplist = PopulationList([self.sample_population(pop, filter_args=filter_args) for pop in poplist])
+    def sample_populationlist(self, poplist):
+        sampled_poplist = PopulationList([self.sample_population(pop) for pop in poplist])
         
         #setting title
         if len(set(sampled_poplist.titles)) == 1: #if only one unique title
@@ -42,11 +42,7 @@ class Methodology(ABC):
         return sampled_poplist
             
     @abstractmethod
-    def sample_population(self, population, filter_args=None):
-        #should have:
-        #    #possible filtering
-        #    if filter_args is not None: population = population.filter(**filter_args, copy=True)   
-        #as first two lines
+    def sample_population(self, population):
         pass
         
 class TraditionalMethodology(Methodology):
@@ -65,9 +61,7 @@ class TraditionalMethodology(Methodology):
         if min(sampling_days) < FIRSTVISIT:
             warn(f"There is a fixed sample day in {sampling_days} that is earlier than the FIRSTVISIT of {FIRSTVISIT}")
         
-    def sample_population(self, population, filter_args=None):
-        #possible filtering
-        if filter_args is not None: population = population.filter(**filter_args, copy=True)
+    def sample_population(self, population):
 
         # Sampling
         sampling_days = np.tile(self.sampling_days, (population.npersons,1)) #each person (row) has same sampling days
@@ -121,10 +115,7 @@ class SmileMethodology(Methodology):
         if smile_scorename not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"smile_scorename of {smile_scorename} not understood")
             
-    def sample_population(self, population, filter_args=None):
-        #possible filtering
-        if filter_args is not None: population = population.filter(**filter_args, copy=True)
-        
+    def sample_population(self, population):        
         smilescores = population.scores[self.smile_scorename] #scores which the ratios refer to
         smilescore_lowerbound = get_MIN(self.smile_scorename)
             
@@ -184,7 +175,6 @@ class SmileMethodology(Methodology):
         return samplepop
     
 #TODO last milestone is based on absolute symptom score
-#TODO filter based on pecentage and absolute symptom score
 class RealisticMethodology(SmileMethodology):
     '''Sampling similarly to what a real clinician would want, with simulated delay to get appointment'''
     
@@ -232,11 +222,9 @@ class MixedMethodology(Methodology):
         else:
             return methodologies_attributes
         
-    def sample_population(self, population, filter_args=None):
-        #possible filtering
-        if filter_args is not None: population = population.filter(**filter_args, copy=True)
+    def sample_population(self, population):
             
-        samplepops = PopulationList([methodology.sample_population(population, filter_args=None) 
+        samplepops = PopulationList([methodology.sample_population(population) 
                                      for methodology in self.methodologies.values()], 
                                     title='all samples')
         
