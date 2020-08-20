@@ -261,61 +261,36 @@ class MagnitudeMethodology(Methodology):
 class RealisticMethodology(Methodology):
     '''
     Will help understand how to implement a sequential model for Methodology
-    by checking how it connibalizes code from other methodologies
+    by checking how it cannibalizes code from other methodologies
     '''
 
-    def __init__(self, title='', smile_scorename='symptom',
-                 index_day=0, sample_index=True, 
-                 milestone_ratios=[0.7, 0.4], milestone_values=[None], delays=0):
+    def __init__(self, title=''):
         #title
         super().__init__(title=title)
-        
-        ##FROM SmileMethodology
-        #set index_day as callable
-        if isinstance(index_day, int):
-            self.index_day = lambda shape: np.full(shape, index_day, dtype=int)
-        elif callable(index_day):
-            if index_day.__code__.co_varnames == ('shape',): 
-                self.index_day = index_day
-            else: 
-                raise ValueError("The function for index day generation should only have 'shape' as an argument.")
-        else:
-            raise ValueError(f"index_day of {index_day} is not an int nor is it callable")
-        self.sample_index = sample_index
-        
-        self.delays = []
-        if not isintance(delays, (list, tuple)):
-            delays = [delays]
-        #TODO better check if delay can be broadcasted to 'number of visits'
-        if len(delays) == 1: delays = delays*2
-        elif len(delays) != 2: raise ValueError()
-        ##FROM SmileMethodology/MagnitudeMethodology, but transformed to take lists
-        for delay in delays:
-            #set delay as callable
-            if isinstance(delay, int): 
-                self.delays.append(lambda shape: np.full(shape, delay, dtype=int))
-            elif callable(delay):
-                if delay.__code__.co_varnames == ('shape',): 
-                    self.delays.append(delay)
-                else: 
-                    raise ValueError("The function for delay generation should only have 'shape' as an argument.")
-            else: 
-                raise ValueError(f"delay of {delay} is not an int nor is it callable")
             
-        ##FROM SmileMethodology/MagnitudeMethodology
-        self.smile_scorename = smile_scorename
-        if smile_scorename not in {'symptom', 'visual', 'symptom_noerror'}:
-            raise ValueError(f"smile_scorename of {smile_scorename} not understood")
-                
-        ##FROM SmileMethodology
-        self.milestone_ratios = milestone_ratios
-        if not all(0 < ratio < 1 for ratio in milestone_ratios): 
-            warn(f"Some milestone_ratios in {milestone_ratios} may be unobtainable.")
-        ##FROM MagnitudeMethodology
-        self.milestone_values = np.array([val if val is not None else get_MIN(self.smile_scorename) #convert None to scoreMIN
-                                          for val in milestone_values], dtype=float)
-        if np.min(self.milestone_values) < get_MIN(self.smile_scorename):
-            raise ValueError(f"Some milestone_values in {milestone_values} may be unobtainable.")
+        #organizing
+        self.methodology_parameters = []
+        self.methdology_parameters.append({
+            'method': 'traditional with delay',
+            'day': 0,
+            'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9) #90% at 21
+        })
+        self.methodology_parameters.append({
+            'method': 'smile with delay',
+            'index': 'previous sample',
+            'ratio': 0.5,
+            'scorename': 'symptom',
+            'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
+            'max day': 'previous sample + 28 days' #TODO check if includes delay
+        })
+        self.methdology_parameters.append({
+            'method': 'magnitude with delay',
+            'value': 6,
+            'include_equal': False,
+            'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
+            'max day': 'NDAYS',
+            'already reached': 'use NaN'
+        }) 
             
     def sample_population(self, population):
         pass
