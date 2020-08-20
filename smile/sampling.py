@@ -325,17 +325,17 @@ class RealisticMethodology(Methodology):
         milestone_days.fill_value = NDAYS
         
         for method in self.methods:
-            if method.methodname == 'traditional':
+            if method['methodname'] == 'traditional':
                 #TODO check if dict has necessary entries (e.g. day)
                 pass
-            elif method.methodname == 'smile':
+            elif method['methodname'] == 'smile':
                 #TODO check if dict has necessary entries (e.g. ratio)
                 pass
-            elif method.methodname == 'magnitude':
+            elif method['methodname'] == 'magnitude':
                 #TODO check if dict has necessary entries (e.g. value)
                 pass
             else:
-                raise ValueError(f"methodname of {method.methodname} not known")
+                raise ValueError(f"methodname of {method['methodname']} not known")
     
 #TODO optimize
 class MixedMethodology(Methodology):
