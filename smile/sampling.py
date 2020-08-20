@@ -291,15 +291,31 @@ class RealisticMethodology(Methodology):
             'value': 6,
             'include_equal': False,
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
-            'max day': 'NDAYS',
+            'limit': 'NDAYS',
             'if_reached': 'NaN'
         }) 
         
-        # check if methods have necesary entries
+        # check if methods have necessary entries of correct type
         for method in self.methods:
             if not {'methodname', 'delay', 'limit', 'if_reached'} <= method.keys():
                 raise ValueError(f"Missing keys in {method.keys()}")
-            #TODO check if method entries are of correct type
+            #check methodname
+            if method['methodname'] not in {'traditional', 'smile', 'magnitude'}:
+                raise ValueError(f"methodname of {method['methodname']} not understood")
+            #check delay
+            if isinstance(method['delay'], int): 
+                method['delay'] = lambda shape: np.full(shape, method['delay'], dtype=int)
+            elif callable(delay):
+                if not method['delay'].__code__.co_varnames == ('shape',): 
+                    raise ValueError("The function for delay generation should only have 'shape' as an argument.")
+            else: 
+                raise ValueError(f"delay of {delay} is not an int nor is it callable")
+            #check limit
+            if not isinstance(method['limit'], int):
+                raise ValueError(f"limit is not an int in {method}")
+            #check if_reached
+            if not method['if_reached'] in {None, 'NaN'}:
+                raise ValueError(f"if_reached of {method['if_reached']} not known")
             
     def sample_population(self, population):
         for method in self.methods:
