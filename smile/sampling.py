@@ -293,7 +293,7 @@ class RealisticMethodology(Methodology):
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
             'max day': 'NDAYS',
             'if_reached': 'NaN'
-        }) 
+        })
             
     def sample_population(self, population):
         pass
