@@ -293,7 +293,7 @@ class RealisticMethodology(Methodology):
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
             'limit': 'NDAYS',
             'if_reached': 'NaN'
-        }) 
+        })
         
         # check if methods have necessary entries of correct type
         for method in self.methods:
@@ -316,8 +316,14 @@ class RealisticMethodology(Methodology):
             #check if_reached
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
+    
+    @parameter
+    def nmethods(self): return len(self.methods)
             
     def sample_population(self, population):
+        sampling_days = ma.empty_like((population.npersons, len()), dtype=int)
+        milestone_days.fill_value = NDAYS
+        
         for method in self.methods:
             if method.methodname == 'traditional':
                 #TODO check if dict has necessary entries (e.g. day)
