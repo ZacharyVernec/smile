@@ -270,21 +270,24 @@ class RealisticMethodology(Methodology):
             
         #organizing
         self.methodology_parameters = []
-        self.methdology_parameters.append({
-            'method': 'traditional with delay',
+        self.methodology_parameters.append({
+            'method': 'traditional',
             'day': 0,
-            'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9) #90% at 21
+            'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
+            'max day': None, #Irrelevant because max(day+delay) < NDAYS
+            'already reached': None #Irrelevant because first sampling method
         })
         self.methodology_parameters.append({
-            'method': 'smile with delay',
+            'method': 'smile',
             'index': 'previous sample',
             'ratio': 0.5,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
-            'max day': 'previous sample + 28 days' #TODO check if includes delay
+            'max day': 'previous sample + 28 days' #TODO check if shouldn't includes delay
+            'already reached': None #Irrelevant becaue index is previous sample
         })
         self.methdology_parameters.append({
-            'method': 'magnitude with delay',
+            'method': 'magnitude',
             'value': 6,
             'include_equal': False,
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
