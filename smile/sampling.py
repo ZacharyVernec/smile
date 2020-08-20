@@ -269,30 +269,30 @@ class RealisticMethodology(Methodology):
         super().__init__(title=title)
             
         #organizing
-        self.methodology_parameters = []
-        self.methodology_parameters.append({
-            'method': 'traditional',
+        self.methods = []
+        self.methods.append({
+            'methodname': 'traditional',
             'day': 0,
             'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
-            'max day': None, #Irrelevant because max(day+delay) < NDAYS
-            'already reached': None #Irrelevant because first sampling method
+            'limit': None, #Irrelevant because max(day+delay) < NDAYS
+            'if_reached': None #Irrelevant because first sampling method
         })
-        self.methodology_parameters.append({
-            'method': 'smile',
+        self.methods.append({
+            'methodname': 'smile',
             'index': 'previous sample',
             'ratio': 0.5,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
-            'max day': 'previous sample + 28 days' #TODO check if shouldn't includes delay
-            'already reached': None #Irrelevant becaue index is previous sample
+            'limit': 'previous sample + 28 days' #TODO check if shouldn't includes delay
+            'if_reached': None #Irrelevant becaue index is previous sample
         })
-        self.methdology_parameters.append({
-            'method': 'magnitude',
+        self.methods.append({
+            'methodname': 'magnitude',
             'value': 6,
             'include_equal': False,
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
             'max day': 'NDAYS',
-            'already reached': 'use NaN'
+            'if_reached': 'NaN'
         }) 
             
     def sample_population(self, population):
