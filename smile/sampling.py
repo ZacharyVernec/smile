@@ -321,9 +321,11 @@ class RealisticMethodology(Methodology):
     def nmethods(self): return len(self.methods)
             
     def sample_population(self, population):
-        sampling_days = ma.empty_like((population.npersons, len()), dtype=int)
-        milestone_days.fill_value = NDAYS
+        #contains all days which will be sampled for all persons
+        sampling_days = ma.empty_like((population.npersons, self.nmethods), dtype=int)
+        #TODO set sampling_days.fill_value
         
+        #populate sampling_days according to the methods
         for method in self.methods:
             if method['methodname'] == 'traditional':
                 #TODO check if dict has necessary entries (e.g. day)
@@ -336,6 +338,13 @@ class RealisticMethodology(Methodology):
                 pass
             else:
                 raise ValueError(f"methodname of {method['methodname']} not known")
+                
+        #use sampling_days to return a sampled_population
+        #TODO implement
+        sampled_population = population.copy(addtitle='\nsampled by '+self.title)
+        sampled_population.days = sampled_population.days #TODO change
+        sampled_population.scores = sampled_population.scores #TODO change
+        return sampled_population
     
 #TODO optimize
 class MixedMethodology(Methodology):
