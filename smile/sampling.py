@@ -293,10 +293,27 @@ class RealisticMethodology(Methodology):
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
             'max day': 'NDAYS',
             'if_reached': 'NaN'
-        })
+        }) 
+        
+        # check if methods have necesary entries
+        for method in self.methods:
+            if not {'methodname', 'delay', 'limit', 'if_reached'} <= method.keys():
+                raise ValueError(f"Missing keys in {method.keys()}")
+            #TODO check if method entries are of correct type
             
     def sample_population(self, population):
-        pass
+        for method in self.methods:
+            if method.methodname == 'traditional':
+                #TODO check if dict has necessary entries (e.g. day)
+                pass
+            elif method.methodname == 'smile':
+                #TODO check if dict has necessary entries (e.g. ratio)
+                pass
+            elif method.methodname == 'magnitude':
+                #TODO check if dict has necessary entries (e.g. value)
+                pass
+            else:
+                raise ValueError(f"methodname of {method.methodname} not known")
     
 #TODO optimize
 class MixedMethodology(Methodology):
