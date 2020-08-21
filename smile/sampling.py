@@ -318,11 +318,11 @@ class RealisticMethodology(Methodology):
     def _check_parameters_traditional(self):
         if not isinstance(method['day'], int):
                     raise TypeError("Sampling day must be int")
-                if method['day'] >= NDAYS:
-                    raise ValueError(f"day of {method['day']} is later than the simulation duration of {NDAYS}")
-                if method['day'] > LASTVISIT:
-                    warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
-                if method['day'] < FIRSTVISIT:
+        if method['day'] >= NDAYS:
+            raise ValueError(f"day of {method['day']} is later than the simulation duration of {NDAYS}")
+        if method['day'] > LASTVISIT:
+            warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
+        if method['day'] < FIRSTVISIT:
                     warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
     
     @property
