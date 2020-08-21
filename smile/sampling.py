@@ -330,19 +330,22 @@ class RealisticMethodology(Methodology):
         
     def sample_population(self, population):
         #contains all days which will be sampled for all persons
-        sampling_days = ma.empty_like((population.npersons, self.nmethods), dtype=int)
+        sampling_days = ma.empty((population.npersons, self.nmethods), dtype=int)
         #TODO set sampling_days.fill_value
         
         #populate sampling_days according to the methods
-        for method in self.methods:
+        for i, method in enumerate(self.methods):
             if method['methodname'] == 'traditional':
-                pass
+                sampling_days[:,i] = day
             elif method['methodname'] == 'smile':
                 pass
             elif method['methodname'] == 'magnitude':
                 pass
             else:
                 raise ValueError(f"methodname of {method['methodname']} not known")
+            #TODO add delay
+            #TODO check limit
+            #TODO check if_reached
                 
         #use sampling_days to return a sampled_population
         #TODO implement
