@@ -312,10 +312,10 @@ class RealisticMethodology(Methodology):
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
             parameterchecker_func = getattr(self, '_check_parameters_'+method['methodname'])
-            parameterchecker_func()
+            parameterchecker_func(method)
     
-            
-    def _check_parameters_traditional(self):
+    @staticmethod
+    def _check_parameters_traditional(method):
         if not isinstance(method['day'], int):
                     raise TypeError("Sampling day must be int")
         if method['day'] >= NDAYS:
