@@ -340,7 +340,7 @@ class RealisticMethodology(Methodology):
         elif isinstance(method['index'], tuple): #check if refers to previous sample
             if len(method['index']) == 2 and method['index'][0] == 'sample':
                 if isinstance(method['index'][1], int):
-                        if method['order'] < method['index'][1] <= -1:
+                        if -method['order'] < method['index'][1] <= -1:
                             method['index'] = lambda shape: None
                             raise Exception("Not implemented yet since can't refer to sampling_days")
                         else:
