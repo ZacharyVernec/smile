@@ -311,10 +311,23 @@ class RealisticMethodology(Methodology):
             #check if_reached
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
+            parameterchecker_func = getattr(self, '_check_parameters_'+method['methodname'])
+            parameterchecker_func()
+    
+            
+    def _check_parameters_traditional(self):
+        if not isinstance(method['day'], int):
+                    raise TypeError("Sampling day must be int")
+                if method['day'] >= NDAYS:
+                    raise ValueError(f"day of {method['day']} is later than the simulation duration of {NDAYS}")
+                if method['day'] > LASTVISIT:
+                    warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
+                if method['day'] < FIRSTVISIT:
+                    warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
     
     @property
     def nmethods(self): return len(self.methods)
-            
+        
     def sample_population(self, population):
         #contains all days which will be sampled for all persons
         sampling_days = ma.empty_like((population.npersons, self.nmethods), dtype=int)
