@@ -268,6 +268,7 @@ class RealisticMethodology(Methodology):
         #organizing
         self.methods = []
         self.methods.append({
+            'methodorder': 0, #Should be set automatically
             'methodname': 'traditional',
             'day': 0,
             'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
@@ -275,15 +276,17 @@ class RealisticMethodology(Methodology):
             'if_reached': None #Irrelevant because first sampling method
         })
         self.methods.append({
+            'methodorder': 1, #Should be set automatically
             'methodname': 'smile',
             'index': 'previous sample',
             'ratio': 0.5,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
-            'limit': 'previous sample + 28 days' #TODO check if shouldn't includes delay
+            'limit': 'previous sample + 28 days', #TODO check if shouldn't includes delay
             'if_reached': None #Irrelevant becaue index is previous sample
         })
         self.methods.append({
+            'methodorder': 0, #Should be set automatically
             'methodname': 'magnitude',
             'value': 6,
             'include_equal': False,
