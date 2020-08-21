@@ -73,9 +73,6 @@ class TraditionalMethodology(Methodology):
         samplepop.scores = {scorename:sampling_scores[scorename] for scorename in samplepop.scores}
         return samplepop
     
-    
-#TODO add option to not include index_day for SmileMEthodology and MagnitudeMethodology
-    
 class SmileMethodology(Methodology):
     '''Sampling at milestones'''
     def __init__(self, title='', smile_scorename='symptom',
@@ -297,8 +294,6 @@ class RealisticMethodology(Methodology):
         
         # check if methods have necessary entries of correct type
         for method in self.methods:
-            if not {'methodname', 'delay', 'limit', 'if_reached'} <= method.keys():
-                raise ValueError(f"Missing keys in {method.keys()}")
             #check methodname
             if method['methodname'] not in {'traditional', 'smile', 'magnitude'}:
                 raise ValueError(f"methodname of {method['methodname']} not understood")
@@ -309,10 +304,10 @@ class RealisticMethodology(Methodology):
                 if not method['delay'].__code__.co_varnames == ('shape',): 
                     raise ValueError("The function for delay generation should only have 'shape' as an argument.")
             else: 
-                raise ValueError(f"delay of {delay} is not an int nor is it callable")
+                raise TypeError(f"delay of {delay} is not an int nor is it callable")
             #check limit
             if not isinstance(method['limit'], int):
-                raise ValueError(f"limit is not an int in {method}")
+                raise TypeError(f"limit is not an int in {method}")
             #check if_reached
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
@@ -328,13 +323,10 @@ class RealisticMethodology(Methodology):
         #populate sampling_days according to the methods
         for method in self.methods:
             if method['methodname'] == 'traditional':
-                #TODO check if dict has necessary entries (e.g. day)
                 pass
             elif method['methodname'] == 'smile':
-                #TODO check if dict has necessary entries (e.g. ratio)
                 pass
             elif method['methodname'] == 'magnitude':
-                #TODO check if dict has necessary entries (e.g. value)
                 pass
             else:
                 raise ValueError(f"methodname of {method['methodname']} not known")
