@@ -331,35 +331,33 @@ class RealisticMethodology(Methodology):
     @staticmethod
     def _check_parameters_smile(method):
         #set index_day as callable
-        #TODO should also have sample_days as co_varnames
         if isinstance(method['index'], int):
-            method['index'] = lambda shape: np.full(shape, method['index'], dtype=int)
-        elif callable(method['index']):
-            if method['index'].__code__.co_varnames != ('shape',): 
-                raise ValueError("The function for index day generation should only have 'shape' as an argument.")
+            method['index'] = lambda shape, prev_sampling_days: np.full(shape, method['index'], dtype=int)
         elif isinstance(method['index'], tuple): #check if refers to previous sample
             if len(method['index']) == 2 and method['index'][0] == 'sample':
                 if isinstance(method['index'][1], int):
                         if -method['order'] < method['index'][1] <= -1:
-                            method['index'] = lambda shape: None
-                            raise Exception("Not implemented yet since can't refer to sampling_days")
+                            method['index'] = lambda shape, prev_sampling_days: prev_sampling_days[:, method['index'][1]]
                         else:
                             raise ValueError("index reference of {method['index'][1]} does not refer to a previous sample"
                                              "i.e. it is not negative or it is negative but too large")
                 else:
                     raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
             else: 
-                raise ValueError(f"index tuple of {method['index']} is described wrong. "
+                raise ValueError(f"index tuple of {method['index']} is defined wrong. "
                                  "It should have length 2 and it's first value should be the string 'sample'")
+        #check if properly set as callable
+        if callable(method['index']):
+            if method['index'].__code__.co_varnames != ('shape', 'prev_sampling_days'): 
+                raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
         else:
-            raise TypeError(f"index of {method['index']} is not an int, a tuble, nor is it callable")
+            raise TypeError(f"index of {method['index']} is not an int, a tuple, nor is it callable")
         #check ratio
         if not (0 < method['ratio'] < 1): 
             warn(f"ratio of {method['ratio']} may be unobtainable.")
         #check scorename
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {method['scorename']} not understood")
-        
     
     @property
     def nmethods(self): return len(self.methods)

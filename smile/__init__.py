@@ -24,5 +24,6 @@ __all__ = ["global_params", "population", "sampling", "regression"]
 #TODO change calls to ndarray.flatten() into calls to either ndarray.ravel() which returns a view, or ndarray.flat which is an iterator
 #TODO replace tile(arr, (npersons, 1)) with broadcast_to(arr, (npersons, len(arr)))
 #TODO have population keep track of personnumbers
+#TODO replace callable parameter checking with sets rather than tuples
 
 #TODO classify todolist into multiple categories
