@@ -327,7 +327,6 @@ class RealisticMethodology(Methodology):
             warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
         if method['day'] < FIRSTVISIT:
                     warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
-                
     @staticmethod
     def _check_parameters_smile(method):
         #set index_day as callable
@@ -372,7 +371,26 @@ class RealisticMethodology(Methodology):
             if method['name'] == 'traditional':
                 sampling_days[:,i] = day
             elif method['name'] == 'smile':
-                pass
+                smilescores = population.scores[method['scorename']] #scores which the ratios refer to
+                smilescore_lowerbound = get_MIN(method['scorename'])
+                
+                #get and check index days
+                index_days = method['index']((population.npersons,), sampling_days[:,i])
+                #TODO check if not outside NDAYS, FIRSTVISIT, LASTVISIT
+                
+                # Compute the scores which will trigger milestones
+                smilescores_at_index = np.take_along_axis(smilescores, helper.to_vertical(index_days), axis=1) #column array
+                smile_vals = (smilescores_at_index - smilescore_lowerbound)*method['ratio'] + smilescore_lowerbound #column array
+                
+                # Compute the days where the milestones are triggered
+                sampling_days_temp = np.argmax(smilescores <= smile_vals, axis=1) #the day at which the milestone is reached for each person
+                sampling_days[:,i] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+                persons_reached_milestone = np.take_along_axis(smilescores <= smile_vals, 
+                                                               helper.to_vertical(sampling_days_temp), 
+                                                               axis=1) #record of which persons reached the milestones
+                sampling_days[~persons_reached_milestone.flatten(), i] = 2**16 #arbitrary but distinct to represent 'unreached' #TODO classattribute
+                sampling_days[~persons_reached_milestone.flatten(), i] = ma.masked
+                if np.any(milestone_days.mask): warn("There is a milestone that was not reached.")
             elif method['name'] == 'magnitude':
                 pass
             else:
