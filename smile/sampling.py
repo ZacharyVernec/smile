@@ -266,19 +266,18 @@ class RealisticMethodology(Methodology):
         super().__init__(title=title)
             
         #organizing
-        #TODO rename methodname and methodorder
         self.methods = []
         self.methods.append({
-            'methodorder': 0, #Should be set automatically
-            'methodname': 'traditional',
+            'order': 0, #Should be set automatically
+            'name': 'traditional',
             'day': 0,
             'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
             'limit': None, #Irrelevant because max(day+delay) < NDAYS
             'if_reached': None #Irrelevant because first sampling method
         })
         self.methods.append({
-            'methodorder': 1, #Should be set automatically
-            'methodname': 'smile',
+            'order': 1, #Should be set automatically
+            'name': 'smile',
             'index': ('sample', -1),
             'ratio': 0.5,
             'scorename': 'symptom',
@@ -287,8 +286,8 @@ class RealisticMethodology(Methodology):
             'if_reached': None #Irrelevant becaue index is previous sample
         })
         self.methods.append({
-            'methodorder': 0, #Should be set automatically
-            'methodname': 'magnitude',
+            'order': 0, #Should be set automatically
+            'name': 'magnitude',
             'value': 6,
             'include_equal': False,
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
@@ -298,9 +297,9 @@ class RealisticMethodology(Methodology):
         
         # check if methods have necessary entries of correct type
         for method in self.methods:
-            #check methodname
-            if method['methodname'] not in {'traditional', 'smile', 'magnitude'}:
-                raise ValueError(f"methodname of {method['methodname']} not understood")
+            #check name
+            if method['name'] not in {'traditional', 'smile', 'magnitude'}:
+                raise ValueError(f"name of {method['name']} not understood")
             #check delay
             if isinstance(method['delay'], int): 
                 method['delay'] = lambda shape: np.full(shape, method['delay'], dtype=int)
@@ -315,7 +314,7 @@ class RealisticMethodology(Methodology):
             #check if_reached
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
-            parameterchecker_func = getattr(self, '_check_parameters_'+method['methodname'])
+            parameterchecker_func = getattr(self, '_check_parameters_'+method['name'])
             parameterchecker_func(method)
     
     @staticmethod
@@ -341,7 +340,7 @@ class RealisticMethodology(Methodology):
         elif isinstance(method['index'], tuple): #check if refers to previous sample
             if len(method['index']) == 2 and method['index'][0] == 'sample':
                 if isinstance(method['index'][1], int):
-                        if method['methodorder'] < method['index'][1] <= -1:
+                        if method['order'] < method['index'][1] <= -1:
                             method['index'] = lambda shape: None
                             raise Exception("Not implemented yet since can't refer to sampling_days")
                         else:
@@ -372,14 +371,14 @@ class RealisticMethodology(Methodology):
         
         #populate sampling_days according to the methods
         for i, method in enumerate(self.methods):
-            if method['methodname'] == 'traditional':
+            if method['name'] == 'traditional':
                 sampling_days[:,i] = day
-            elif method['methodname'] == 'smile':
+            elif method['name'] == 'smile':
                 pass
-            elif method['methodname'] == 'magnitude':
+            elif method['name'] == 'magnitude':
                 pass
             else:
-                raise ValueError(f"methodname of {method['methodname']} not known")
+                raise ValueError(f"name of {method['name']} not known")
             #TODO add delay
             #TODO check limit
             #TODO check if_reached
