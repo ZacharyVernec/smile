@@ -368,6 +368,8 @@ class RealisticMethodology(Methodology):
         
         #populate sampling_days according to the methods
         for i, method in enumerate(self.methods):
+            
+            #get day each person calls in
             if method['name'] == 'traditional':
                 sampling_days[:,i] = method['day']
             elif method['name'] == 'smile':
@@ -406,7 +408,16 @@ class RealisticMethodology(Methodology):
                 if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
             else:
                 raise ValueError(f"name of {method['name']} not known")
-            #TODO add delay
+                
+            #add delay
+            delay_gen = method['delay']
+            sampling_days[:,i] += delay_gen((population.npersons,))
+            #exclude excessive days
+            exceed_study_duration = sampling_days[:,i] > LASTVISIT #Will become fake days since can't be sampled
+            if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
+            sampling_days[exceed_study_duration] = 2**16+2 #arbitrary but distinct to represent 'unreached' #TODO classattribute
+            sampling_days[exceed_study_duration] = ma.masked
+            
             #TODO check limit
             #TODO check if_reached
                 
