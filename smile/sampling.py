@@ -369,7 +369,7 @@ class RealisticMethodology(Methodology):
         #populate sampling_days according to the methods
         for i, method in enumerate(self.methods):
             if method['name'] == 'traditional':
-                sampling_days[:,i] = day
+                sampling_days[:,i] = method['day']
             elif method['name'] == 'smile':
                 smilescores = population.scores[method['scorename']] #scores which the method ratio refers to
                 smilescore_lowerbound = get_MIN(method['scorename'])
