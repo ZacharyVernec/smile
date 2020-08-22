@@ -272,7 +272,7 @@ class RealisticMethodology(Methodology):
             'name': 'traditional',
             'day': 0,
             'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
-            'limit': None, #Irrelevant because max(day+delay) < NDAYS
+            'limit': (None, None), #Irrelevant because max(day+delay) < NDAYS
             'if_reached': None #Irrelevant because first sampling method
         })
         self.methods.append({
@@ -282,7 +282,7 @@ class RealisticMethodology(Methodology):
             'ratio': 0.5,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
-            'limit': 'previous sample + 28 days', #TODO check if shouldn't includes delay
+            'limit': ((('sample', -1), lambda val: val+28), 'clip'),
             'if_reached': None #Irrelevant becaue index is previous sample
         })
         self.methods.append({
@@ -291,7 +291,7 @@ class RealisticMethodology(Methodology):
             'value': 6,
             'include_equal': False,
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
-            'limit': 'NDAYS',
+            'limit': ('NDAYS', 'clip'),
             'if_reached': 'NaN'
         })
         
@@ -328,6 +328,7 @@ class RealisticMethodology(Methodology):
         if method['day'] < FIRSTVISIT:
                     warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
     @staticmethod
+    #TODO let index be a function of previous sample
     def _check_parameters_smile(method):
         #set index_day as callable
         if isinstance(method['index'], int):
@@ -361,6 +362,7 @@ class RealisticMethodology(Methodology):
     @property
     def nmethods(self): return len(self.methods)
         
+    #TODO use maskedarray functions, e.g. np.where should be ma.where 
     def sample_population(self, population):
         #contains all days which will be sampled for all persons
         sampling_days = ma.empty((population.npersons, self.nmethods), dtype=int)
@@ -412,13 +414,39 @@ class RealisticMethodology(Methodology):
             #add delay
             delay_gen = method['delay']
             sampling_days[:,i] += delay_gen((population.npersons,))
-            #exclude excessive days
-            exceed_study_duration = sampling_days[:,i] > LASTVISIT #Will become fake days since can't be sampled
-            if np.any(exceed_study_duration): warn("The delay is pushing a sampling day past the study duration.")
-            sampling_days[exceed_study_duration] = 2**16+2 #arbitrary but distinct to represent 'unreached' #TODO classattribute
-            sampling_days[exceed_study_duration] = ma.masked
             
-            #TODO check limit
+            #limit
+            #TODO parse earlier, simplify, generalize 
+            #TODO check if shouldn't includes delay
+            limitval, limitbehaviour = method['limit'] #unpack
+            #default
+            if limitval is None:
+                limitval = LASTVISIT
+            if limitbehaviour is None:
+                limitbehaviour = 'raise'
+            #check limit
+            if isinstance(limitval, int):
+                #replacement value is arbitrary but distinct to represent 'reached' #TODO classattribute
+                sampling_days[:,i] = np.where(sampling_days[:,i] > limitval, sampling_days[:,i], 2**16+2)
+                #TODO mask
+            elif isinstance(limitval, tuple): #check if refers to previous sample
+                #TODO type and value checks, like for index of smile
+                prev_val, func = limitval #unpack
+                limitval = lambda shape, prev_sampling_days: prev_sampling_days[:, method['index'][1]]
+                raise Exception("Not implemented yet")
+                #TODO finish
+            #act on limit
+            if limitbehaviour == 'raise':
+                if np.any(sampling_days[:,i] == 2**16+2): #same value as just above #TODO classattribute
+                    raise IndexError("Reached limit") #TODO better error message
+            if limitbehaviour == 'clip':
+                sampling_days[:,i] = np.where(sampling_days[:,i] == 2**16+2, limitval ,sampling_days[:,i])
+                #TODO implement when limitval is a function
+            if limitbehaviour == 'NaN':
+                raise Exception("Not implemented yet")
+                #TODO or not TODO: could just be default and implemented later (when setting scores)
+            #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
+            
             #TODO check if_reached
                 
         #use sampling_days to return a sampled_population
