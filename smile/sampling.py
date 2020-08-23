@@ -255,6 +255,7 @@ class MagnitudeMethodology(Methodology):
         samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores}
         return samplepop
     
+#TODO should warn how many people trigger limit or if_reached
 class RealisticMethodology(Methodology):
     '''
     Will help understand how to implement a sequential model for Methodology
@@ -332,7 +333,7 @@ class RealisticMethodology(Methodology):
             else:
                 raise ValueError(f"limit of {method['limit']} should be a tuple of (limitvalue, limitbehaviour)")
             #check if_reached
-            if not method['if_reached'] in {None, 'NaN'}:
+            if not method['if_reached'] in {'same', 'NaN', 'raise'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
             #check method-specific parameters
             parameterchecker_func = getattr(self, '_check_parameters_'+method['name'])
@@ -467,7 +468,18 @@ class RealisticMethodology(Methodology):
                 #TODO or not TODO: could just be default and implemented later (when setting scores)
             #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
             
-            #TODO check if_reached
+            #check if_reached
+            already_reached = (sampling_days[:,i] <= sampling_days[:,i-1])
+            #checks if new sample is technically before previous
+            if method['if_reached'] == 'same':
+                #fast forward new sample to previous (prevents backwards time-travel)
+                sampling_days[:,i] = np.where(already_reached, sampling_days[:,i-1], sampling_days[:,i])
+            if method['if_reached'] == 'NaN':
+                #TODO or not TODO: could just be default and implemented later (when setting scores)
+                raise Exception("Not implemented yet")
+            if method['if_reached'] == 'raise':
+                if np.any(already_reached): 
+                    raise ValueError("Patient was already here when he arrived for his prev sample")
                 
         #use sampling_days to return a sampled_population
         #TODO implement
