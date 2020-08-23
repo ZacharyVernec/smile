@@ -1,3 +1,4 @@
+
 #TODO check score percentage not only first dip, but multiple consecutive days
 
 # Standard library imports
@@ -166,15 +167,17 @@ class SmileMethodology(Methodology):
         sampling_days[mask_temp] = ma.masked #put back the mask
 
         #Sample at sampling days
-        milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) for scorename in population.scores} #both real and fake
+        milestone_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) 
+                            for scorename in population.scores} #both real and fake
         #mask the fake days
         milestone_days = ma.masked_array(sampling_days, fill_value=NDAYS) #Fake days will give index errors if used
-        milestone_scores = {scorename: ma.masked_array(milestone_scores[scorename], sampling_days.mask, fill_value=np.nan) for scorename in milestone_scores}
+        milestone_scores = {scorename: ma.masked_array(milestone_scores[scorename], sampling_days.mask, fill_value=np.nan) 
+                            for scorename in milestone_scores}
 
         # Population
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
         samplepop.days = milestone_days
-        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores} #include index_day
+        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores
         return samplepop
     
 class MagnitudeMethodology(Methodology):
@@ -480,12 +483,23 @@ class RealisticMethodology(Methodology):
             if method['if_reached'] == 'raise':
                 if np.any(already_reached): 
                     raise ValueError("Patient was already here when he arrived for his prev sample")
-                
-        #use sampling_days to return a sampled_population
-        #TODO implement
+        
+        #make masked values 0 (to not throw an error when using np.take_along_axis)
+        mask_temp = sampling_days.mask.copy() #since changing masked values will make them no longer masked
+        sampling_days[mask_temp] = 0 #change masked values
+        sampling_days[mask_temp] = ma.masked #put back the mask
+        #Sample at sampling days
+        new_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) 
+                      for scorename in population.scores} #both real and fake
+        #mask the fake days
+        new_days = ma.masked_array(sampling_days, fill_value=NDAYS) #Fake days will give index errors if used
+        new_scores = {scorename: ma.masked_array(new_scores[scorename], sampling_days.mask, fill_value=np.nan)
+                      for scorename in new_scores}
+
+        # Population
         sampled_population = population.copy(addtitle='\nsampled by '+self.title)
-        sampled_population.days = sampled_population.days #TODO change
-        sampled_population.scores = sampled_population.scores #TODO change
+        sampled_population.days = new_days
+        sampled_population.scores = {scorename:new_scores[scorename] for scorename in samplepop.scores}
         return sampled_population
     
 #TODO optimize
