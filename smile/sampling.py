@@ -312,11 +312,11 @@ class RealisticMethodology(Methodology):
                 raise TypeError(f"delay of {delay} is not an int nor is it callable")
             #check limit
             if isinstance(method['limit'], tuple) and len(method['limit']) == 2:
-                #limitvalue
+                #limitvalfunc
                 if method['limit'][0] is None:
                     method['limit'][0] = LASTVISIT
                 if isinstance(method['limit'][0], int):
-                    method['limit'][0] = (0, lambda val: method['limit'][0])
+                    method['limit'][0] = (0, lambda val: method['limit'][0]) #inclusive limit
                 if isinstance(method['limit'][0], tuple) and len(method['limit'][0]) == 2:
                     if isinstance(method['limit'][0][0], int):
                         if not(-method['order'] < method['limit'][0][0] <= -1):
@@ -449,30 +449,19 @@ class RealisticMethodology(Methodology):
             
             #limit
             #TODO check if shouldn't includes delay
-            limitval, limitbehaviour = method['limit'] #unpack
-            #default
-            if limitval is None:
-                limitval = LASTVISIT
-            if limitbehaviour is None:
-                limitbehaviour = 'raise'
-            #check limit
-            if isinstance(limitval, int):
-                #replacement value is arbitrary but distinct to represent 'reached' #TODO classattribute
-                sampling_days[:,i] = np.where(sampling_days[:,i] > limitval, sampling_days[:,i], 2**16+2)
-                #TODO mask
-            elif isinstance(limitval, tuple): #check if refers to previous sample
-                #TODO type and value checks, like for index of smile
-                prev_val, func = limitval #unpack
-                limitval = lambda shape, prev_sampling_days: prev_sampling_days[:, method['index'][1]]
-                raise Exception("Not implemented yet")
-                #TODO finish
+            limitvaltuple, limitbehaviour = method['limit'] #unpack
+            ref_index, limitvalfunc = limitvaltuple #unpack
+            prev_sampling_days = sampling_days[:,i]
+            limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
+            #get exceeding limit
+            #replacement value is arbitrary but distinct to represent 'reached' #TODO classattribute
+            sampling_days[:,i] = np.where(sampling_days[:,i] > limitvals, sampling_days[:,i], 2**16+2) #TODO use mask
             #act on limit
             if limitbehaviour == 'raise':
                 if np.any(sampling_days[:,i] == 2**16+2): #same value as just above #TODO classattribute
                     raise IndexError("Reached limit") #TODO better error message
             if limitbehaviour == 'clip':
-                sampling_days[:,i] = np.where(sampling_days[:,i] == 2**16+2, limitval ,sampling_days[:,i])
-                #TODO implement when limitval is a function
+                sampling_days[:,i] = np.where(sampling_days[:,i] == 2**16+2, limitvals ,sampling_days[:,i])
             if limitbehaviour == 'NaN':
                 raise Exception("Not implemented yet")
                 #TODO or not TODO: could just be default and implemented later (when setting scores)
