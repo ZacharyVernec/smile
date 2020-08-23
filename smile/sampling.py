@@ -259,132 +259,151 @@ class MagnitudeMethodology(Methodology):
         return samplepop
     
 #TODO should warn how many people trigger limit or if_reached
-class RealisticMethodology(Methodology):
+class SequentialMethodology(Methodology):
     '''
-    Will help understand how to implement a sequential model for Methodology
-    by checking how it cannibalizes code from other methodologies
+    Each sampling method is added one at a time, in order
     '''
 
     def __init__(self, title=''):
         #title
         super().__init__(title=title)
-            
-        #organizing
         self.methods = []
-        self.methods.append({
-            'order': 0, #Should be set automatically
-            'name': 'traditional',
-            'day': 0,
-            'delay': lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
-            'limit': (None, None), #Irrelevant because max(day+delay) < NDAYS
-            'if_reached': None #Irrelevant because first sampling method
-        })
-        self.methods.append({
-            'order': 1, #Should be set automatically
-            'name': 'smile',
-            'index': ('sample', -1),
-            'ratio': 0.5,
-            'triggered_by_equal': True,
-            'scorename': 'symptom',
-            'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
-            'limit': ((-1, lambda prev_day: day+28), 'clip'),
-            'if_reached': None #Irrelevant becaue index is previous sample
-        })
-        self.methods.append({
-            'order': 2, #Should be set automatically
-            'name': 'magnitude',
-            'value': 6,
-            'triggered_by_equal': True,
-            'scorename': 'symptom',
-            'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
-            'limit': ('NDAYS', 'clip'),
-            'if_reached': 'NaN'
-        })
-        
-        # check if methods have necessary entries of correct type
-        for method in self.methods:
-            #check name
-            if method['name'] not in {'traditional', 'smile', 'magnitude'}:
-                raise ValueError(f"name of {method['name']} not understood")
-            #check delay
-            if isinstance(method['delay'], int): 
-                method['delay'] = lambda shape: np.full(shape, method['delay'], dtype=int)
-            elif callable(delay):
-                if not method['delay'].__code__.co_varnames == ('shape',): 
-                    raise ValueError("The function for delay generation should only have 'shape' as an argument.")
-            else: 
-                raise TypeError(f"delay of {delay} is not an int nor is it callable")
-            #check limit
-            if isinstance(method['limit'], tuple) and len(method['limit']) == 2:
-                #limitvalfunc
-                if method['limit'][0] is None:
-                    method['limit'][0] = LASTVISIT
-                if isinstance(method['limit'][0], int):
-                    method['limit'][0] = (0, lambda val: method['limit'][0]) #inclusive limit
-                if isinstance(method['limit'][0], tuple) and len(method['limit'][0]) == 2:
-                    if isinstance(method['limit'][0][0], int):
-                        if not(-method['order'] < method['limit'][0][0] <= -1):
-                            raise ValueError(f"index reference of {method['limit'][0][0]} does not refer to a previous sample"
-                                              "i.e. it is not negative or it is negative but too large")
-                    else:
-                        raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
+                            
+    def add_method(name, delay=0, limit=(None, None), if_reached='raise', **kwargs):
+        '''
+        name: What method is used for this sampler, can be traditional, smile, or magnitude.
+        delay: can be an int or a callable with input 'shape'.
+        limit: 2-tuple where the first entry determines the limit value 
+                which is an int or tuple of ref to previous sample and function of that value,
+            and the second entry determines what to do when the limit is reached
+                which is to use NaN, to clip to the limit, or to raise an error.
+        if_reached: determines what to do if this sample has already been reached at a previous session.
+            Essentially, what to do if after the previous method's sample you tell the patient
+            to 'call back when _addedmethod_' but they respond with 'oh but I've already _addedsampler_'
+        kwargs: any keyword arguments relevant for the sampler type
+        '''
+        method = {'order':self.nmethods, 'name':name, 'delay':delay, 'limit':limit, 'if_reached':if_reached, **kwargs}
+                            
+        #check parameters
+        #check name
+        if method['name'] not in {'traditional', 'smile', 'magnitude'}:
+            raise ValueError(f"name of {method['name']} not understood")
+                            
+        #check delay
+        if isinstance(method['delay'], int): 
+            method['delay'] = lambda shape: np.full(shape, method['delay'], dtype=int)
+        elif callable(delay):
+            if not method['delay'].__code__.co_varnames == ('shape',): 
+                raise ValueError("The function for delay generation should only have 'shape' as an argument.")
+        else: 
+            raise TypeError(f"delay of {delay} is not an int nor is it callable")
+                            
+        #check limit
+        if isinstance(method['limit'], tuple) and len(method['limit']) == 2:
+            #limitvalfunc
+            if method['limit'][0] is None:
+                method['limit'][0] = LASTVISIT
+            if isinstance(method['limit'][0], int):
+                method['limit'][0] = (0, lambda val: method['limit'][0]) #inclusive limit
+            if isinstance(method['limit'][0], tuple) and len(method['limit'][0]) == 2:
+                if isinstance(method['limit'][0][0], int):
+                    if not(-method['order'] < method['limit'][0][0] <= -1):
+                        raise ValueError(f"index reference of {method['limit'][0][0]} does not refer to a previous sample"
+                                          "i.e. it is not negative or it is negative but too large")
                 else:
-                    raise TypeError(f"limit value of {method['limit'][0]} should be a tuple of (reference_to_prev_sample, lambda)")
-                #limitbehaviour
-                if method['limit'][1] not in {None, 'NaN', 'clip', 'raise'}:
-                    raise ValueError(f"limitbehaviour of {method['limit'][1]} not understood.")
+                    raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
             else:
-                raise ValueError(f"limit of {method['limit']} should be a tuple of (limitvalue, limitbehaviour)")
-            #check if_reached
-            if not method['if_reached'] in {'same', 'NaN', 'raise'}:
+                raise TypeError(f"limit value of {method['limit'][0]} should be a tuple of (reference_to_prev_sample, lambda)")
+            #limitbehaviour
+            if method['limit'][1] not in {None, 'NaN', 'clip', 'raise'}:
+                raise ValueError(f"limitbehaviour of {method['limit'][1]} not understood.")
+        else:
+            raise ValueError(f"limit of {method['limit']} should be a tuple of (limitvalue, limitbehaviour)")
+                            
+        #check if_reached
+        if not method['if_reached'] in {'same', 'NaN', 'raise'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
-            #check method-specific parameters
-            parameterchecker_func = getattr(self, '_check_parameters_'+method['name'])
-            parameterchecker_func(method)
-    
-    @staticmethod
-    def _check_parameters_traditional(method):
+                            
+        #add method
+        self.methods.append(method)
+    def add_method_traditional(day=0, delay=0, limit=(None, None), if_reached='raise'):
+        '''day: which day of the simulation to sample'''
+        
+        self.add_method(name='traditional', limit=limit, if_reached=if_reached, day=day)
+        method = self.methods[-1]
+                            
+        #check parameter
+                            
         if not isinstance(method['day'], int):
-                    raise TypeError("Sampling day must be int")
+            raise TypeError("Sampling day must be int")
         if method['day'] >= NDAYS:
             raise ValueError(f"day of {method['day']} is later than the simulation duration of {NDAYS}")
         if method['day'] > LASTVISIT:
             warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
         if method['day'] < FIRSTVISIT:
-                    warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
+            warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
     #TODO let index be a function of previous sample
-    @staticmethod
-    def _check_parameters_smile(method):
+    def add_method_smile(index=0, ratio=0.5, triggered_by_equal=True, scorename='symptom',
+                         delay=0, limit=(None, None), if_reached='raise'):
+        '''
+        index: int of the day or 2-tuple where the first entry is the string 'sample'
+            and the second entry determines which previous sample to reference (positive or negative int)
+        ratio: what ratio triggers this smile milestone, should generally be between 0 and 1 for useful results
+        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
+        scorename: which score the ratio refers to
+        delay, limit, if_reached: as in add_method
+        '''
+        
+        self.add_method(name='smile', limit=limit, if_reached=if_reached,
+                       index=index, ratio=ratio, triggered_by_equal=triggered_by_equal, scorename=scorename)
+        method = self.methods[-1]
+                            
+        #check parameters
+                            
         #set index_day as callable
         if isinstance(method['index'], int):
             method['index'] = lambda shape, prev_sampling_days: np.full(shape, method['index'], dtype=int)
         elif isinstance(method['index'], tuple): #check if refers to previous sample
             if len(method['index']) == 2 and method['index'][0] == 'sample':
                 if isinstance(method['index'][1], int):
-                        if -method['order'] < method['index'][1] <= -1:
-                            method['index'] = lambda shape, prev_sampling_days: prev_sampling_days[:, method['index'][1]]
-                        else:
-                            raise ValueError(f"index reference of {method['index'][1]} does not refer to a previous sample"
-                                              "i.e. it is not negative or it is negative but too large")
+                    prev_ref = method['index'][1]
+                    if -method['order'] < prev_ref < method['order']:
+                        method['index'] = lambda shape, prev_sampling_days: prev_sampling_days[:, prev_ref]
+                    else:
+                        raise ValueError(f"index reference of {prev_ref} does not refer to a previous sample"
                 else:
                     raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
             else: 
                 raise ValueError(f"index tuple of {method['index']} is defined wrong. "
                                  "It should have length 2 and it's first value should be the string 'sample'")
         #check if properly set as callable
-        if callable(method['index']):
-            if method['index'].__code__.co_varnames != ('shape', 'prev_sampling_days'): 
-                raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
+        if method['index'].__code__.co_varnames != ('shape', 'prev_sampling_days'): 
+            raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
         else:
-            raise TypeError(f"index of {method['index']} is not an int, a tuple, nor is it callable")
+            raise TypeError(f"index of {method['index']} is not an int, a tuple, nor is properly set as a callable")
+                                             
         #check ratio
         if not (0 < method['ratio'] < 1): 
             warn(f"ratio of {method['ratio']} may be unobtainable.")
+
         #check scorename
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
-            raise ValueError(f"scorename of {method['scorename']} not understood")
-    @staticmethod
-    def _check_parameters_magnitude(method):
+            raise ValueError(f"scorename of {method['scorename']} not understood")                             
+    def add_method_magnitude(value=get_MIN('symptom'), triggered_by_equal=True, scorename='symptom',
+                             delay=0, limit=(None, None), if_reached='raise'): #TODO remove defaults
+        '''
+        value: what value triggers this milestone
+        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
+        scorename: which score the value refers to
+        delay, limit, if_reached: as in add_method
+        '''
+        
+        self.add_method(name='magnitude', limit=limit, if_reached=if_reached,
+                       value=value, triggered_by_equal=triggered_by_equal, scorename=scorename)
+        method = self.methods[-1]
+                        
+        #check parameters
+                                         
         #check scorename
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {method['scorename']} not understood")
@@ -501,6 +520,25 @@ class RealisticMethodology(Methodology):
         sampled_population.days = new_days
         sampled_population.scores = {scorename:new_scores[scorename] for scorename in samplepop.scores}
         return sampled_population
+                                         
+class RealisticSequentialMethodology(SequentialMethodology):
+    '''Discussed on a phone call'''
+    def __init__(self):
+        super().__init__('realistic')
+                                     
+        #limit is irrelevant because max(day+delay) < NDAYS
+        #if_reached is irrelevant because first sampling method
+        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
+        self.add_method_traditional(day=0, delay=first_delay_func)
+        
+        #if_reached is irrelevant because index is previous sample
+        other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
+        self.add_method_smile(index=('sample', -1), ratio=0.5, triggered_by_equal=True, scorename='symptom',
+                             delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'))
+        
+        #same delay as previous
+        self.add_method_magnitude(value=6, triggered_by_equal=True, scorename='symptom',
+                                 delay=other_delay_func, limit=(NDAYS, 'clip'), if_reached='NaN')
     
 #TODO optimize
 class MixedMethodology(Methodology):
