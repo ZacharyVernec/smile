@@ -286,10 +286,10 @@ class RealisticMethodology(Methodology):
             'if_reached': None #Irrelevant becaue index is previous sample
         })
         self.methods.append({
-            'order': 0, #Should be set automatically
+            'order': 2, #Should be set automatically
             'name': 'magnitude',
             'value': 6,
-            'include_equal': False,
+            'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
             'limit': ('NDAYS', 'clip'),
             'if_reached': 'NaN'
@@ -314,6 +314,7 @@ class RealisticMethodology(Methodology):
             #check if_reached
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
+            #check method specific parameters
             parameterchecker_func = getattr(self, '_check_parameters_'+method['name'])
             parameterchecker_func(method)
     
@@ -327,8 +328,8 @@ class RealisticMethodology(Methodology):
             warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
         if method['day'] < FIRSTVISIT:
                     warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
-    @staticmethod
     #TODO let index be a function of previous sample
+    @staticmethod
     def _check_parameters_smile(method):
         #set index_day as callable
         if isinstance(method['index'], int):
@@ -358,6 +359,15 @@ class RealisticMethodology(Methodology):
         #check scorename
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {method['scorename']} not understood")
+    @staticmethod
+    def _check_parameters_magnitude(method):
+        #check scorename
+        if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
+            raise ValueError(f"scorename of {method['scorename']} not understood")
+        #check value
+        if method['value'] < get_MIN(method['scorename']): 
+            warn(f"value of {method['value']} may be unobtainable since it is smaller than "
+                 f"the MIN of {get_MIN([method['scorename']])}")
     
     @property
     def nmethods(self): return len(self.methods)
