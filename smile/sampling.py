@@ -280,6 +280,7 @@ class RealisticMethodology(Methodology):
             'name': 'smile',
             'index': ('sample', -1),
             'ratio': 0.5,
+            'triggered_by_equal': True,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
             'limit': ((('sample', -1), lambda val: val+28), 'clip'),
@@ -289,6 +290,7 @@ class RealisticMethodology(Methodology):
             'order': 2, #Should be set automatically
             'name': 'magnitude',
             'value': 6,
+            'triggered_by_equal': True,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #same as prev
             'limit': ('NDAYS', 'clip'),
@@ -397,9 +399,10 @@ class RealisticMethodology(Methodology):
                 smile_vals = (smilescores_at_index - smilescore_lowerbound)*method['ratio'] + smilescore_lowerbound #column array
                 
                 # Compute the days where the milestones are triggered
-                sampling_days_temp = np.argmax(smilescores <= smile_vals, axis=1) #the day at which the milestone is reached for each person
+                comparison_array = (smilescores <= smile_vals) if method['triggered_by_equal'] else (smilescores < smile_vals)
+                sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
                 sampling_days[:,i] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
-                persons_reached_milestone = np.take_along_axis(smilescores <= smile_vals, 
+                persons_reached_milestone = np.take_along_axis(comparison_array, 
                                                                helper.to_vertical(sampling_days_temp), 
                                                                axis=1) #record of which persons reached the milestones
                 sampling_days[~persons_reached_milestone.flatten(), i] = 2**16 #arbitrary but distinct to represent 'unreached' #TODO classattribute
@@ -410,9 +413,10 @@ class RealisticMethodology(Methodology):
                 smilescore_lowerbound = get_MIN(method['scorename'])
                 
                 # Compute the days where the milestones are triggered
-                sampling_days_temp = np.argmax(smilescores <= method['value'], axis=1) #the day at which the milestone is reached for each person
+                comparison_array = (smilescores <= method['value']) if method['triggered_by_equal'] else (smilescores < method['value'])
+                sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
                 sampling_days[:,i] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
-                persons_reached_milestone = np.take_along_axis(smilescores <= method['value'], 
+                persons_reached_milestone = np.take_along_axis(comparison_array, 
                                                                helper.to_vertical(sampling_days_temp), 
                                                                axis=1) #record of which persons reached the milestones
                 sampling_days[~persons_reached_milestone.flatten(), i] = 2**16+1 #arbitrary but distinct to represent 'unreached' #TODO classattribute
