@@ -283,7 +283,7 @@ class RealisticMethodology(Methodology):
             'triggered_by_equal': True,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
-            'limit': ((-1, lambda val: val+28), 'clip'),
+            'limit': ((-1, lambda prev_day: day+28), 'clip'),
             'if_reached': None #Irrelevant becaue index is previous sample
         })
         self.methods.append({
@@ -311,7 +311,7 @@ class RealisticMethodology(Methodology):
             else: 
                 raise TypeError(f"delay of {delay} is not an int nor is it callable")
             #check limit
-            if isinstance(method['limit'], tuple) and len(method['limit']) != 2:
+            if isinstance(method['limit'], tuple) and len(method['limit']) == 2:
                 #limitvalue
                 if method['limit'][0] is None:
                     method['limit'][0] = LASTVISIT
@@ -448,7 +448,6 @@ class RealisticMethodology(Methodology):
             sampling_days[:,i] += delay_gen((population.npersons,))
             
             #limit
-            #TODO parse earlier, simplify, generalize 
             #TODO check if shouldn't includes delay
             limitval, limitbehaviour = method['limit'] #unpack
             #default
