@@ -284,7 +284,6 @@ class RealisticMethodology(Methodology):
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
             'limit': ((-1, lambda val: val+28), 'clip'),
-            'limit': lambda prev_sampling_days, ref_index
             'if_reached': None #Irrelevant becaue index is previous sample
         })
         self.methods.append({
@@ -335,7 +334,7 @@ class RealisticMethodology(Methodology):
             #check if_reached
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
-            #check method specific parameters
+            #check method-specific parameters
             parameterchecker_func = getattr(self, '_check_parameters_'+method['name'])
             parameterchecker_func(method)
     
