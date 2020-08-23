@@ -283,7 +283,8 @@ class RealisticMethodology(Methodology):
             'triggered_by_equal': True,
             'scorename': 'symptom',
             'delay': lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
-            'limit': ((('sample', -1), lambda val: val+28), 'clip'),
+            'limit': ((-1, lambda val: val+28), 'clip'),
+            'limit': lambda prev_sampling_days, ref_index
             'if_reached': None #Irrelevant becaue index is previous sample
         })
         self.methods.append({
@@ -311,8 +312,26 @@ class RealisticMethodology(Methodology):
             else: 
                 raise TypeError(f"delay of {delay} is not an int nor is it callable")
             #check limit
-            if not isinstance(method['limit'], int):
-                raise TypeError(f"limit is not an int in {method}")
+            if isinstance(method['limit'], tuple) and len(method['limit']) != 2:
+                #limitvalue
+                if method['limit'][0] is None:
+                    method['limit'][0] = LASTVISIT
+                if isinstance(method['limit'][0], int):
+                    method['limit'][0] = (0, lambda val: method['limit'][0])
+                if isinstance(method['limit'][0], tuple) and len(method['limit'][0]) == 2:
+                    if isinstance(method['limit'][0][0], int):
+                        if not(-method['order'] < method['limit'][0][0] <= -1):
+                            raise ValueError(f"index reference of {method['limit'][0][0]} does not refer to a previous sample"
+                                              "i.e. it is not negative or it is negative but too large")
+                    else:
+                        raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
+                else:
+                    raise TypeError(f"limit value of {method['limit'][0]} should be a tuple of (reference_to_prev_sample, lambda)")
+                #limitbehaviour
+                if method['limit'][1] not in {None, 'NaN', 'clip', 'raise'}:
+                    raise ValueError(f"limitbehaviour of {method['limit'][1]} not understood.")
+            else:
+                raise ValueError(f"limit of {method['limit']} should be a tuple of (limitvalue, limitbehaviour)")
             #check if_reached
             if not method['if_reached'] in {None, 'NaN'}:
                 raise ValueError(f"if_reached of {method['if_reached']} not known")
@@ -342,8 +361,8 @@ class RealisticMethodology(Methodology):
                         if -method['order'] < method['index'][1] <= -1:
                             method['index'] = lambda shape, prev_sampling_days: prev_sampling_days[:, method['index'][1]]
                         else:
-                            raise ValueError("index reference of {method['index'][1]} does not refer to a previous sample"
-                                             "i.e. it is not negative or it is negative but too large")
+                            raise ValueError(f"index reference of {method['index'][1]} does not refer to a previous sample"
+                                              "i.e. it is not negative or it is negative but too large")
                 else:
                     raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
             else: 
