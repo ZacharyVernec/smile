@@ -1,3 +1,8 @@
+# Third party imports
+import numpy as np
+
+
+
 # Study parameters
 
 VMIN = 6 #minimum possible visual score
@@ -15,6 +20,20 @@ assert(0 <= FIRSTVISIT)
 assert(FIRSTVISIT <= LASTVISIT)
 assert(LASTVISIT < NDAYS)
 assert(all(isinstance(numb, int) for numb in [FIRSTVISIT, LASTVISIT, NDAYS]))
+
+
+# Sampling parameters (used in SequentialMethodology)
+# Temp day values for different cases 
+# must be arbitrary distrinct int32s, all larger than NDAYS
+
+_UNREACHED_SMILE = 2**16+1
+_UNREACHED_MAGNITUDE = 2**16+2
+_LIMITREACHED = 2**16+3
+
+max_int = np.iinfo(np.array(0, dtype=int).dtype).max
+assert(all(val <= max_int 
+           for val in [_UNREACHED_SMILE, _UNREACHED_MAGNITUDE, _LIMITREACHED]))
+
 
 # Graphing parameters
 

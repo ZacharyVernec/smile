@@ -15,6 +15,7 @@ from smile.population import Population, PopulationList
 from smile import helper
 from smile.helper import warn
 from smile.global_params import get_MIN, NDAYS, FIRSTVISIT, LASTVISIT
+from smile.global_params import _UNREACHED_SMILE, _UNREACHED_MAGNITUDE, _LIMITREACHED
 
 
 
@@ -425,8 +426,7 @@ class SequentialMethodology(Methodology):
     #TODO use maskedarray functions, e.g. np.where should be ma.where 
     def sample_population(self, population):
         #contains all days which will be sampled for all persons
-        sampling_days = ma.empty((population.npersons, self.nmethods), dtype=int)
-        #TODO set sampling_days.fill_value
+        sampling_days = np.empty((population.npersons, self.nmethods), dtype=int)
         
         #populate sampling_days according to the methods
         for i, method in enumerate(self.methods):
@@ -453,8 +453,7 @@ class SequentialMethodology(Methodology):
                 persons_reached_milestone = np.take_along_axis(comparison_array, 
                                                                helper.to_vertical(sampling_days_temp), 
                                                                axis=1) #record of which persons reached the milestones
-                sampling_days[~persons_reached_milestone.flatten(), i] = 2**16 #arbitrary but distinct to represent 'unreached' #TODO classattribute
-                sampling_days[~persons_reached_milestone.flatten(), i] = ma.masked
+                sampling_days[~persons_reached_milestone.flatten(), i] = _UNREACHED_SMILE
                 if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
             elif method['name'] == 'magnitude':
                 smilescores = population.scores[method['scorename']] #scores which the method value refers to
@@ -467,33 +466,30 @@ class SequentialMethodology(Methodology):
                 persons_reached_milestone = np.take_along_axis(comparison_array, 
                                                                helper.to_vertical(sampling_days_temp), 
                                                                axis=1) #record of which persons reached the milestones
-                sampling_days[~persons_reached_milestone.flatten(), i] = 2**16+1 #arbitrary but distinct to represent 'unreached' #TODO classattribute
-                sampling_days[~persons_reached_milestone.flatten(), i] = ma.masked
+                sampling_days[~persons_reached_milestone.flatten(), i] = _UNREACHED_MAGNITUDE
                 if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
             else:
                 raise ValueError(f"name of {method['name']} not known")
                 
             #add delay
             delay_gen = method['delay']
-            sampling_days[:,i] += delay_gen((population.npersons,))
+            persons_valid = sampling_days[:,i] < NDAYS
+            npersons_valid = persons_valid.sum()
+            sampling_days[persons_valid,i] += delay_gen((npersons_valid,))
             
-            #limit
-            #TODO check if shouldn't includes delay
+            #limit #TODO check if should be done before delay
             limitvaltuple, limitbehaviour = method['limit'] #unpack
             ref_index, limitvalfunc = limitvaltuple #unpack
             prev_sampling_days = sampling_days[:,:i]
             limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
-            #get exceeding limit
-            #replacement value is arbitrary but distinct to represent 'reached' #TODO classattribute
-            print(sampling_days[:,i].shape)
-            print(limitvals)
-            sampling_days[:,i] = np.where(sampling_days[:,i] > limitvals, sampling_days[:,i], 2**16+2) #TODO use mask
+            #set where exceed limit
+            sampling_days[:,i] = np.where(sampling_days[:,i] > limitvals, sampling_days[:,i], _LIMITREACHED)
             #act on limit
             if limitbehaviour == 'raise':
-                if np.any(sampling_days[:,i] == 2**16+2): #same value as just above #TODO classattribute
+                if np.any(sampling_days[:,i] == _LIMITREACHED):
                     raise IndexError("Reached limit") #TODO better error message
             if limitbehaviour == 'clip':
-                sampling_days[:,i] = np.where(sampling_days[:,i] == 2**16+2, limitvals ,sampling_days[:,i])
+                sampling_days[:,i] = np.where(sampling_days[:,i] == _LIMITREACHED, limitvals ,sampling_days[:,i])
             if limitbehaviour == 'NaN':
                 raise Exception("Not implemented yet")
                 #TODO or not TODO: could just be default and implemented later (when setting scores)
@@ -513,22 +509,22 @@ class SequentialMethodology(Methodology):
                     if np.any(already_reached): 
                         raise ValueError("Patient was already here when he arrived for his prev sample")
         
-        #make masked values 0 (to not throw an error when using np.take_along_axis)
-        mask_temp = sampling_days.mask.copy() #since changing masked values will make them no longer masked
-        sampling_days[mask_temp] = 0 #change masked values
-        sampling_days[mask_temp] = ma.masked #put back the mask
+        #convert to mask with masked values being 0 (to not throw an error when using np.take_along_axis)
+        mask = sampling_days >= NDAYS
+        sampling_days = np.where(mask, 0, sampling_days)
+        
         #Sample at sampling days
         new_scores = {scorename:np.take_along_axis(population.scores[scorename], sampling_days, axis=1) 
                       for scorename in population.scores} #both real and fake
         #mask the fake days
-        new_days = ma.masked_array(sampling_days, fill_value=NDAYS) #Fake days will give index errors if used
-        new_scores = {scorename: ma.masked_array(new_scores[scorename], sampling_days.mask, fill_value=np.nan)
+        new_days = ma.masked_array(sampling_days, mask=mask, fill_value=NDAYS) #Fake days will give index errors if used
+        new_scores = {scorename: ma.masked_array(new_scores[scorename], mask=mask, fill_value=np.nan)
                       for scorename in new_scores}
 
         # Population
         sampled_population = population.copy(addtitle='\nsampled by '+self.title)
         sampled_population.days = new_days
-        sampled_population.scores = {scorename:new_scores[scorename] for scorename in samplepop.scores}
+        sampled_population.scores = new_scores
         return sampled_population
                                          
 class RealisticSequentialMethodology(SequentialMethodology):
