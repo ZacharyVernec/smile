@@ -270,7 +270,7 @@ class SequentialMethodology(Methodology):
         super().__init__(title=title)
         self.methods = []
                             
-    def add_method(self, name, delay=0, limit=(None, None), if_reached='raise', **kwargs):
+    def add_method(self, name, delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise', **kwargs):
         '''
         name: What method is used for this sampler, can be traditional, smile, or magnitude.
         delay: can be an int or a callable with input 'shape'.
@@ -320,7 +320,7 @@ class SequentialMethodology(Methodology):
             else:
                 raise TypeError(f"limit value of {method['limit'][0]} should be a tuple of (reference_to_prev_sample, lambda)")
             #limitbehaviour
-            if method['limit'][1] not in {None, 'NaN', 'clip', 'raise'}:
+            if method['limit'][1] not in {'NaN', 'clip', 'raise'}:
                 raise ValueError(f"limitbehaviour of {method['limit'][1]} not understood.")
         else:
             raise ValueError(f"limit of {method['limit']} should be a tuple of (limitvalue, limitbehaviour)")
@@ -331,7 +331,7 @@ class SequentialMethodology(Methodology):
                             
         #add method
         self.methods.append(method)
-    def add_method_traditional(self, day=0, delay=0, limit=(None, None), if_reached='raise'):
+    def add_method_traditional(self, day=0, delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'):
         '''day: which day of the simulation to sample'''
         
         self.add_method(name='traditional', limit=limit, if_reached=if_reached, day=day)
@@ -348,8 +348,8 @@ class SequentialMethodology(Methodology):
         if method['day'] < FIRSTVISIT:
             warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
     #TODO let index be a function of previous sample
-    def add_method_smile(self, index=0, ratio=0.5, triggered_by_equal=True, scorename='symptom',
-                         delay=0, limit=(None, None), if_reached='raise'):
+    def add_method_smile(self, index=FIRSTVISIT, ratio=0.5, triggered_by_equal=True, scorename='symptom',
+                         delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'):
         '''
         index: int of the day or 2-tuple where the first entry is the string 'sample'
             and the second entry determines which previous sample to reference (positive or negative int)
@@ -397,7 +397,7 @@ class SequentialMethodology(Methodology):
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {method['scorename']} not understood")                             
     def add_method_magnitude(self, value=get_MIN('symptom'), triggered_by_equal=True, scorename='symptom', #TODO use None rather than get_MIN()
-                             delay=0, limit=(None, None), if_reached='raise'): #TODO remove defaults
+                             delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'): #TODO remove defaults
         '''
         value: what value triggers this milestone
         triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
@@ -500,17 +500,18 @@ class SequentialMethodology(Methodology):
             #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
             
             #check if_reached
-            already_reached = (sampling_days[:,i] <= sampling_days[:,i-1])
-            #checks if new sample is technically before previous
-            if method['if_reached'] == 'same':
-                #fast forward new sample to previous (prevents backwards time-travel)
-                sampling_days[:,i] = np.where(already_reached, sampling_days[:,i-1], sampling_days[:,i])
-            if method['if_reached'] == 'NaN':
-                #TODO or not TODO: could just be default and implemented later (when setting scores)
-                raise Exception("Not implemented yet")
-            if method['if_reached'] == 'raise':
-                if np.any(already_reached): 
-                    raise ValueError("Patient was already here when he arrived for his prev sample")
+            if i > 0:
+                already_reached = (sampling_days[:,i] <= sampling_days[:,i-1])
+                #checks if new sample is technically before previous
+                if method['if_reached'] == 'same':
+                    #fast forward new sample to previous (prevents backwards time-travel)
+                    sampling_days[:,i] = np.where(already_reached, sampling_days[:,i-1], sampling_days[:,i])
+                if method['if_reached'] == 'NaN':
+                    #TODO or not TODO: could just be default and implemented later (when setting scores)
+                    raise Exception("Not implemented yet")
+                if method['if_reached'] == 'raise':
+                    if np.any(already_reached): 
+                        raise ValueError("Patient was already here when he arrived for his prev sample")
         
         #make masked values 0 (to not throw an error when using np.take_along_axis)
         mask_temp = sampling_days.mask.copy() #since changing masked values will make them no longer masked
