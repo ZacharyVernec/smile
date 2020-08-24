@@ -483,7 +483,7 @@ class SequentialMethodology(Methodology):
             prev_sampling_days = sampling_days[:,:i]
             limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
             #set where exceed limit
-            sampling_days[:,i] = np.where(sampling_days[:,i] > limitvals, sampling_days[:,i], _LIMITREACHED)
+            sampling_days[:,i] = np.where(sampling_days[:,i] > limitvals, _LIMITREACHED, sampling_days[:,i])
             #act on limit
             if limitbehaviour == 'raise':
                 if np.any(sampling_days[:,i] == _LIMITREACHED):
