@@ -4,6 +4,7 @@
 # Standard library imports
 from collections import UserList
 from abc import ABC, abstractmethod #abstract base class
+from functools import partial #for binding variables to functions
 
 # Third party imports
 import numpy as np
@@ -177,7 +178,7 @@ class SmileMethodology(Methodology):
         # Population
         samplepop = population.copy(addtitle='\nsampled by '+self.title)
         samplepop.days = milestone_days
-        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores
+        samplepop.scores = {scorename:milestone_scores[scorename] for scorename in samplepop.scores}
         return samplepop
     
 class MagnitudeMethodology(Methodology):
@@ -269,7 +270,7 @@ class SequentialMethodology(Methodology):
         super().__init__(title=title)
         self.methods = []
                             
-    def add_method(name, delay=0, limit=(None, None), if_reached='raise', **kwargs):
+    def add_method(self, name, delay=0, limit=(None, None), if_reached='raise', **kwargs):
         '''
         name: What method is used for this sampler, can be traditional, smile, or magnitude.
         delay: can be an int or a callable with input 'shape'.
@@ -290,8 +291,11 @@ class SequentialMethodology(Methodology):
             raise ValueError(f"name of {method['name']} not understood")
                             
         #check delay
-        if isinstance(method['delay'], int): 
-            method['delay'] = lambda shape: np.full(shape, method['delay'], dtype=int)
+        if isinstance(method['delay'], int):
+            func = lambda shape, value: np.full(shape, value, dtype=int)
+            #need to bind current value to future calls to avoid circular reference
+            partial_func = partial(func, value=method['delay'])
+            method['delay'] = lambda shape: partial_func(shape)
         elif callable(delay):
             if not method['delay'].__code__.co_varnames == ('shape',): 
                 raise ValueError("The function for delay generation should only have 'shape' as an argument.")
@@ -300,18 +304,19 @@ class SequentialMethodology(Methodology):
                             
         #check limit
         if isinstance(method['limit'], tuple) and len(method['limit']) == 2:
-            #limitvalfunc
+            #limitval
             if method['limit'][0] is None:
-                method['limit'][0] = LASTVISIT
+                method['limit'] = (LASTVISIT, method['limit'][1])
             if isinstance(method['limit'][0], int):
-                method['limit'][0] = (0, lambda val: method['limit'][0]) #inclusive limit
+                intvalue = method['limit'][0]
+                method['limit'] = ((None, lambda val: intvalue), method['limit'][1])
+            #limitvalfunc
             if isinstance(method['limit'][0], tuple) and len(method['limit'][0]) == 2:
                 if isinstance(method['limit'][0][0], int):
-                    if not(-method['order'] < method['limit'][0][0] <= -1):
-                        raise ValueError(f"index reference of {method['limit'][0][0]} does not refer to a previous sample"
-                                          "i.e. it is not negative or it is negative but too large")
-                else:
-                    raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
+                    if not(-method['order'] <= method['limit'][0][0] <= method['order']):
+                        raise ValueError(f"index reference of {method['limit'][0][0]} does not refer to a previous sample.")
+                elif method['limit'][0][0] is not None:
+                    raise TypeError(f"index reference has value {method['limit'][0][0]} which is not an int")
             else:
                 raise TypeError(f"limit value of {method['limit'][0]} should be a tuple of (reference_to_prev_sample, lambda)")
             #limitbehaviour
@@ -326,7 +331,7 @@ class SequentialMethodology(Methodology):
                             
         #add method
         self.methods.append(method)
-    def add_method_traditional(day=0, delay=0, limit=(None, None), if_reached='raise'):
+    def add_method_traditional(self, day=0, delay=0, limit=(None, None), if_reached='raise'):
         '''day: which day of the simulation to sample'''
         
         self.add_method(name='traditional', limit=limit, if_reached=if_reached, day=day)
@@ -343,7 +348,7 @@ class SequentialMethodology(Methodology):
         if method['day'] < FIRSTVISIT:
             warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
     #TODO let index be a function of previous sample
-    def add_method_smile(index=0, ratio=0.5, triggered_by_equal=True, scorename='symptom',
+    def add_method_smile(self, index=0, ratio=0.5, triggered_by_equal=True, scorename='symptom',
                          delay=0, limit=(None, None), if_reached='raise'):
         '''
         index: int of the day or 2-tuple where the first entry is the string 'sample'
@@ -362,15 +367,19 @@ class SequentialMethodology(Methodology):
                             
         #set index_day as callable
         if isinstance(method['index'], int):
-            method['index'] = lambda shape, prev_sampling_days: np.full(shape, method['index'], dtype=int)
+            func = lambda shape, value: np.full(shape, value, dtype=int)
+            #need to bind current value to future calls to avoid circular reference
+            partial_func = partial(func, value=method['index'])
+            method['index'] = lambda shape, prev_sampling_days: partial_func(shape)
+            
         elif isinstance(method['index'], tuple): #check if refers to previous sample
             if len(method['index']) == 2 and method['index'][0] == 'sample':
                 if isinstance(method['index'][1], int):
                     prev_ref = method['index'][1]
-                    if -method['order'] < prev_ref < method['order']:
+                    if -method['order'] <= prev_ref <= method['order']:
                         method['index'] = lambda shape, prev_sampling_days: prev_sampling_days[:, prev_ref]
                     else:
-                        raise ValueError(f"index reference of {prev_ref} does not refer to a previous sample"
+                        raise ValueError(f"index reference of {prev_ref} does not refer to a previous sample")
                 else:
                     raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
             else: 
@@ -379,8 +388,6 @@ class SequentialMethodology(Methodology):
         #check if properly set as callable
         if method['index'].__code__.co_varnames != ('shape', 'prev_sampling_days'): 
             raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
-        else:
-            raise TypeError(f"index of {method['index']} is not an int, a tuple, nor is properly set as a callable")
                                              
         #check ratio
         if not (0 < method['ratio'] < 1): 
@@ -389,7 +396,7 @@ class SequentialMethodology(Methodology):
         #check scorename
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {method['scorename']} not understood")                             
-    def add_method_magnitude(value=get_MIN('symptom'), triggered_by_equal=True, scorename='symptom',
+    def add_method_magnitude(self, value=get_MIN('symptom'), triggered_by_equal=True, scorename='symptom', #TODO use None rather than get_MIN()
                              delay=0, limit=(None, None), if_reached='raise'): #TODO remove defaults
         '''
         value: what value triggers this milestone
@@ -474,10 +481,12 @@ class SequentialMethodology(Methodology):
             #TODO check if shouldn't includes delay
             limitvaltuple, limitbehaviour = method['limit'] #unpack
             ref_index, limitvalfunc = limitvaltuple #unpack
-            prev_sampling_days = sampling_days[:,i]
+            prev_sampling_days = sampling_days[:,:i]
             limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
             #get exceeding limit
             #replacement value is arbitrary but distinct to represent 'reached' #TODO classattribute
+            print(sampling_days[:,i].shape)
+            print(limitvals)
             sampling_days[:,i] = np.where(sampling_days[:,i] > limitvals, sampling_days[:,i], 2**16+2) #TODO use mask
             #act on limit
             if limitbehaviour == 'raise':
