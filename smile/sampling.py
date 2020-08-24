@@ -498,8 +498,7 @@ class SequentialMethodology(Methodology):
             if limitbehaviour == 'clip':
                 sampling_days[:,i] = np.where(sampling_days[:,i] == _LIMITREACHED, limitvals ,sampling_days[:,i])
             if limitbehaviour == 'NaN':
-                raise Exception("Not implemented yet")
-                #TODO or not TODO: could just be default and implemented later (when setting scores)
+                pass #will be masked with fill_value = NaN
             #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
             
             #check if_reached
