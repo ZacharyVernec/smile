@@ -397,10 +397,10 @@ class SequentialMethodology(Methodology):
         #check scorename
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {method['scorename']} not understood")                             
-    def add_method_magnitude(self, value=get_MIN('symptom'), triggered_by_equal=True, scorename='symptom', #TODO use None rather than get_MIN()
+    def add_method_magnitude(self, value=None, triggered_by_equal=True, scorename='symptom', #TODO use None rather than get_MIN()
                              delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'): #TODO remove defaults
         '''
-        value: what value triggers this milestone
+        value: what value triggers this milestone (None means minimum possible given the scorename)
         triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
         scorename: which score the value refers to
         delay, limit, if_reached: as in add_method
@@ -416,9 +416,16 @@ class SequentialMethodology(Methodology):
         if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {method['scorename']} not understood")
         #check value
-        if method['value'] < get_MIN(method['scorename']): 
-            warn(f"value of {method['value']} may be unobtainable since it is smaller than "
-                 f"the MIN of {get_MIN([method['scorename']])}")
+        if method['value'] is None:
+            method['value'] = get_MIN(method['scorename'])
+        if method['triggered_by_equal']:
+            if method['value'] < get_MIN(method['scorename']):
+                warn(f"value of {method['value']} may be unobtainable since it is smaller than "
+                     f"{scorename}'s min of MIN of {get_MIN([method['scorename']])}")
+        else:
+            if method['value'] <= get_MIN(method['scorename']):
+                warn(f"value of {method['value']} may be unobtainable since it is smaller or equal to "
+                     f"{scorename}'s MIN of {get_MIN([method['scorename']])}")
     
     @property
     def nmethods(self): return len(self.methods)
