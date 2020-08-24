@@ -335,7 +335,7 @@ class SequentialMethodology(Methodology):
     def add_method_traditional(self, day=0, delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'):
         '''day: which day of the simulation to sample'''
         
-        self.add_method(name='traditional', limit=limit, if_reached=if_reached, day=day)
+        self.add_method(name='traditional', limit=limit, if_reached=if_reached, day=day, delay=delay)
         method = self.methods[-1]
                             
         #check parameter
@@ -360,7 +360,7 @@ class SequentialMethodology(Methodology):
         delay, limit, if_reached: as in add_method
         '''
         
-        self.add_method(name='smile', limit=limit, if_reached=if_reached,
+        self.add_method(name='smile', limit=limit, if_reached=if_reached, delay=delay,
                        index=index, ratio=ratio, triggered_by_equal=triggered_by_equal, scorename=scorename)
         method = self.methods[-1]
                             
@@ -406,7 +406,7 @@ class SequentialMethodology(Methodology):
         delay, limit, if_reached: as in add_method
         '''
         
-        self.add_method(name='magnitude', limit=limit, if_reached=if_reached,
+        self.add_method(name='magnitude', limit=limit, if_reached=if_reached, delay=delay,
                        value=value, triggered_by_equal=triggered_by_equal, scorename=scorename)
         method = self.methods[-1]
                         
