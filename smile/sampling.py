@@ -144,7 +144,7 @@ class SequentialMethodology(Methodology):
             method['day'] = lambda shape, prev_sampling_days: partial_func(shape)
             
         elif isinstance(method['day'], tuple): #check if refers to previous sample
-            if len(method['day']) == 2 and method['index'][0] == 'sample':
+            if len(method['day']) == 2 and method['day'][0] == 'sample':
                 if isinstance(method['day'][1], int):
                     prev_ref = method['day'][1]
                     if -method['order'] <= prev_ref <= method['order']:
@@ -154,7 +154,7 @@ class SequentialMethodology(Methodology):
                 else:
                     raise TypeError(f"index reference has value {method['day'][1]} which is not an int")
             else: 
-                raise ValueError(f"index tuple of {method['day']} is defined wrong. "
+                raise ValueError(f"day tuple of {method['day']} is defined wrong. "
                                  "It should have length 2 and it's first value should be the string 'sample'")
                 
         #check if properly set as callable
@@ -252,7 +252,7 @@ class SequentialMethodology(Methodology):
             #get day each person calls in
             if method['name'] == 'traditional':
                 sampling_days[:,i] = method['day']((population.npersons,), sampling_days[:,i])
-                #TODO check if not outside NDAYS, FIRSTVISIT, LASTVISIT
+                #TODO check if int not outside NDAYS, FIRSTVISIT, LASTVISIT
                 
             elif method['name'] == 'smile':
                 smilescores = population.scores[method['scorename']] #scores which the method ratio refers to
@@ -260,7 +260,7 @@ class SequentialMethodology(Methodology):
                 
                 #get and check index days
                 index_days = method['index']((population.npersons,), sampling_days[:,i])
-                #TODO check if not outside NDAYS, FIRSTVISIT, LASTVISIT
+                #TODO check if int not outside NDAYS, FIRSTVISIT, LASTVISIT
                 
                 # Compute the scores which will trigger milestones
                 smilescores_at_index = np.take_along_axis(smilescores, helper.to_vertical(index_days), axis=1) #column array
@@ -298,6 +298,7 @@ class SequentialMethodology(Methodology):
             persons_valid = sampling_days[:,i] < NDAYS
             npersons_valid = persons_valid.sum()
             sampling_days[persons_valid,i] += delay_gen((npersons_valid,))
+            #TODO check if int
             
             #limit #TODO check if should be done before delay
             limitvaltuple, limitbehaviour = method['limit'] #unpack
@@ -356,11 +357,11 @@ class RealisticMethodology(SequentialMethodology):
                                      
         #limit is irrelevant because max(day+delay) < NDAYS
         #if_reached is irrelevant because first sampling method
-        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
+        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
         self.add_method_traditional(day=0, delay=first_delay_func)
         
         #if_reached is irrelevant because index is previous sample
-        other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8), #90% at 7
+        other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
         self.add_method_smile(index=('sample', -1), ratio=0.5, triggered_by_equal=True, scorename='symptom',
                              delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'))
         
@@ -368,10 +369,10 @@ class RealisticMethodology(SequentialMethodology):
         self.add_method_magnitude(value=6, triggered_by_equal=False, scorename='symptom',
                                  delay=other_delay_func, limit=(LASTVISIT, 'clip'), if_reached='NaN')
         
-class TraditionalMethodology(sequentialMethodology):
+class TraditionalMethodology(SequentialMethodology):
     def __init__(self):
         super().__init__('traditional')
-        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
+        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
         self.add_method_traditional(day=0, delay=first_delay_func)
         self.add_method_traditional(day=('sample', 0), delay=14)
         self.add_method_traditional(day=('sample', 0), delay=28)
