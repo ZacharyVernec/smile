@@ -425,7 +425,7 @@ class SequentialMethodology(Methodology):
         else:
             if method['value'] <= get_MIN(method['scorename']):
                 warn(f"value of {method['value']} may be unobtainable since it is smaller or equal to "
-                     f"{scorename}'s MIN of {get_MIN([method['scorename']])}")
+                     f"{scorename}'s MIN of {get_MIN(method['scorename'])}")
     
     @property
     def nmethods(self): return len(self.methods)
