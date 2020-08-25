@@ -25,5 +25,6 @@ __all__ = ["global_params", "population", "sampling", "regression"]
 #TODO replace tile(arr, (npersons, 1)) with broadcast_to(arr, (npersons, len(arr)))
 #TODO have population keep track of personnumbers
 #TODO replace callable parameter checking with sets rather than tuples
+#TODO merge Methodology ABC with SequentialMethodology, and split it's methods into 3 Layer classes
 
 #TODO classify todolist into multiple categories

@@ -251,7 +251,7 @@ class SequentialMethodology(Methodology):
             
             #get day each person calls in
             if method['name'] == 'traditional':
-                sampling_days[:,i] = method['day']((population.npersons,), sampling_days[:,i])
+                sampling_days[:,i] = method['day']((population.npersons,), sampling_days[:,:i])
                 #TODO check if int not outside NDAYS, FIRSTVISIT, LASTVISIT
                 
             elif method['name'] == 'smile':
@@ -259,7 +259,7 @@ class SequentialMethodology(Methodology):
                 smilescore_lowerbound = get_MIN(method['scorename'])
                 
                 #get and check index days
-                index_days = method['index']((population.npersons,), sampling_days[:,i])
+                index_days = method['index']((population.npersons,), sampling_days[:,:i])
                 #TODO check if int not outside NDAYS, FIRSTVISIT, LASTVISIT
                 
                 # Compute the scores which will trigger milestones
@@ -363,7 +363,7 @@ class RealisticMethodology(SequentialMethodology):
         #if_reached is irrelevant because index is previous sample
         other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
         self.add_method_smile(index=('sample', -1), ratio=0.5, triggered_by_equal=True, scorename='symptom',
-                             delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'))
+                             delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN')
         
         #same delay as previous
         self.add_method_magnitude(value=6, triggered_by_equal=False, scorename='symptom',
