@@ -15,7 +15,7 @@ from smile.population import Population, PopulationList
 from smile import helper
 from smile.helper import warn
 from smile.global_params import get_MIN, NDAYS, FIRSTVISIT, LASTVISIT
-from smile.global_params import _UNREACHED_SMILE, _UNREACHED_MAGNITUDE, _LIMITREACHED
+from smile.global_params import _UNREACHED_SMILE, _UNREACHED_MAGNITUDE, _LIMITREACHED, _ALREADYREACHED
 
 
 
@@ -490,28 +490,29 @@ class SequentialMethodology(Methodology):
             ref_index, limitvalfunc = limitvaltuple #unpack
             prev_sampling_days = sampling_days[:,:i]
             limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
-            #set where exceed limit
-            sampling_days[:,i] = np.where(sampling_days[:,i] > limitvals, _LIMITREACHED, sampling_days[:,i])
+            #check where reached or exceeded limit
+            reached_limit = sampling_days[:,i] > limitvals
             #act on limit
             if limitbehaviour == 'raise':
-                if np.any(sampling_days[:,i] == _LIMITREACHED):
+                if np.any(reached_limit):
                     raise IndexError("Reached limit") #TODO better error message
             if limitbehaviour == 'clip':
-                sampling_days[:,i] = np.where(sampling_days[:,i] == _LIMITREACHED, limitvals ,sampling_days[:,i])
+                sampling_days[:,i] = np.where(reached_limit, limitvals, sampling_days[:,i])
             if limitbehaviour == 'NaN':
-                pass #will be masked with fill_value = NaN
+                #will be masked with fill_value = NaN
+                sampling_days[:,i] = np.where(reached_limit, _LIMITREACHED, sampling_days[:,i])
             #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
             
             #check if_reached
             if i > 0:
+                #checks if new sample is technically before previous (prevents backwards time-travel)
                 already_reached = (sampling_days[:,i] <= sampling_days[:,i-1])
-                #checks if new sample is technically before previous
                 if method['if_reached'] == 'same':
-                    #fast forward new sample to previous (prevents backwards time-travel)
+                    #fast forwards new sample to previous sample
                     sampling_days[:,i] = np.where(already_reached, sampling_days[:,i-1], sampling_days[:,i])
                 if method['if_reached'] == 'NaN':
-                    #TODO or not TODO: could just be default and implemented later (when setting scores)
-                    raise Exception("Not implemented yet")
+                    #will be masked with fill_value = NaN
+                    sampling_days[:,i] = np.where(already_reached, _ALREADYREACHED, sampling_days[:,i]) 
                 if method['if_reached'] == 'raise':
                     if np.any(already_reached): 
                         raise ValueError("Patient was already here when he arrived for his prev sample")

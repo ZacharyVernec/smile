@@ -29,9 +29,10 @@ assert(all(isinstance(numb, int) for numb in [FIRSTVISIT, LASTVISIT, NDAYS]))
 _UNREACHED_SMILE = 2**16+1
 _UNREACHED_MAGNITUDE = 2**16+2
 _LIMITREACHED = 2**16+3
+_ALREADYREACHED = 2**16+4
 
 max_int = np.iinfo(np.array(0, dtype=int).dtype).max
-assert(all(val <= max_int 
+assert(all(NDAYS <= val <= max_int 
            for val in [_UNREACHED_SMILE, _UNREACHED_MAGNITUDE, _LIMITREACHED]))
 
 
