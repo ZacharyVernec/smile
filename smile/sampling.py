@@ -282,6 +282,7 @@ class SequentialMethodology(Methodology):
         if_reached: determines what to do if this sample has already been reached at a previous session.
             Essentially, what to do if after the previous method's sample you tell the patient
             to 'call back when _addedmethod_' but they respond with 'oh but I've already _addedsampler_'
+            Can be 'same', 'NaN', 'raise'
         kwargs: any keyword arguments relevant for the sampler type
         '''
         method = {'order':self.nmethods, 'name':name, 'delay':delay, 'limit':limit, 'if_reached':if_reached, **kwargs}
