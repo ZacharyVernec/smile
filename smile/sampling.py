@@ -130,13 +130,6 @@ class SequentialMethodology(Methodology):
         #check parameter
         
         if isinstance(method['day'], int):
-            #check validity
-            if method['day'] >= NDAYS:
-                raise ValueError(f"day of {method['day']} is later than the simulation duration of {NDAYS}")
-            if method['day'] > LASTVISIT:
-                warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
-            if method['day'] < FIRSTVISIT:
-                warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
             #convert to callable
             func = lambda shape, value: np.full(shape, value, dtype=int)
             #need to bind current value to future calls to avoid circular reference

@@ -249,7 +249,6 @@ class Population:
         return PopulationList([self[i] for i in range(self.npersons)], title=self.title+' (as PopulationList)')
     
     #removing outliers
-    #TODO fix filter in other functions (e.g. in Methodology.sample_populationlist())
     def filter(self, filter_type, copy=False, **kwargs):
         '''Filters the population in one specific way'''
         return self.filter_multi(filter_types=[filter_type], filter_kwargs=[kwargs], copy=copy)
@@ -524,10 +523,11 @@ class PopulationList(UserList):
     def filter_multi(self, filter_types, filter_kwargs, copy=False):
         #possibly copy
         if copy==False: poplist=self
-        elif copy==True: poplist=self.copy(addtitle='filtered')
+        elif copy==True: poplist=self.copy()
         else: raise ValueError()
         
         poplist.data = [pop.filter_multi(filter_types, filter_kwargs, copy=copy) for pop in poplist]
+        poplist.title += ' filtered'
         
         return poplist #may be self or a copy
     
