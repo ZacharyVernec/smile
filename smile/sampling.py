@@ -128,15 +128,38 @@ class SequentialMethodology(Methodology):
         method = self.methods[-1]
                             
         #check parameter
-                            
-        if not isinstance(method['day'], int):
-            raise TypeError("Sampling day must be int")
-        if method['day'] >= NDAYS:
-            raise ValueError(f"day of {method['day']} is later than the simulation duration of {NDAYS}")
-        if method['day'] > LASTVISIT:
-            warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
-        if method['day'] < FIRSTVISIT:
-            warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
+        
+        if isinstance(method['day'], int):
+            #check validity
+            if method['day'] >= NDAYS:
+                raise ValueError(f"day of {method['day']} is later than the simulation duration of {NDAYS}")
+            if method['day'] > LASTVISIT:
+                warn(f"day of {method['day']} is later than the LASTVISIT of {LASTVISIT}")
+            if method['day'] < FIRSTVISIT:
+                warn(f"day of {method['day']} is earlier than the FIRSTVISIT of {FIRSTVISIT}")
+            #convert to callable
+            func = lambda shape, value: np.full(shape, value, dtype=int)
+            #need to bind current value to future calls to avoid circular reference
+            partial_func = partial(func, value=method['day'])
+            method['day'] = lambda shape, prev_sampling_days: partial_func(shape)
+            
+        elif isinstance(method['day'], tuple): #check if refers to previous sample
+            if len(method['day']) == 2 and method['index'][0] == 'sample':
+                if isinstance(method['day'][1], int):
+                    prev_ref = method['day'][1]
+                    if -method['order'] <= prev_ref <= method['order']:
+                        method['day'] = lambda shape, prev_sampling_days: prev_sampling_days[:, prev_ref]
+                    else:
+                        raise ValueError(f"index reference of {prev_ref} does not refer to a previous sample")
+                else:
+                    raise TypeError(f"index reference has value {method['day'][1]} which is not an int")
+            else: 
+                raise ValueError(f"index tuple of {method['day']} is defined wrong. "
+                                 "It should have length 2 and it's first value should be the string 'sample'")
+                
+        #check if properly set as callable
+        if method['day'].__code__.co_varnames != ('shape', 'prev_sampling_days'): 
+            raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
     #TODO let index be a function of previous sample
     def add_method_smile(self, index=FIRSTVISIT, ratio=0.5, triggered_by_equal=True, scorename='symptom',
                          delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'):
@@ -228,7 +251,9 @@ class SequentialMethodology(Methodology):
             
             #get day each person calls in
             if method['name'] == 'traditional':
-                sampling_days[:,i] = method['day']
+                sampling_days[:,i] = method['day']((population.npersons,), sampling_days[:,i])
+                #TODO check if not outside NDAYS, FIRSTVISIT, LASTVISIT
+                
             elif method['name'] == 'smile':
                 smilescores = population.scores[method['scorename']] #scores which the method ratio refers to
                 smilescore_lowerbound = get_MIN(method['scorename'])
@@ -250,6 +275,7 @@ class SequentialMethodology(Methodology):
                                                                axis=1) #record of which persons reached the milestones
                 sampling_days[~persons_reached_milestone.flatten(), i] = _UNREACHED_SMILE
                 if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
+                    
             elif method['name'] == 'magnitude':
                 smilescores = population.scores[method['scorename']] #scores which the method value refers to
                 smilescore_lowerbound = get_MIN(method['scorename'])
@@ -263,6 +289,7 @@ class SequentialMethodology(Methodology):
                                                                axis=1) #record of which persons reached the milestones
                 sampling_days[~persons_reached_milestone.flatten(), i] = _UNREACHED_MAGNITUDE
                 if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
+                    
             else:
                 raise ValueError(f"name of {method['name']} not known")
                 
