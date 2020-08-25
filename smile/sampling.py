@@ -365,5 +365,13 @@ class RealisticMethodology(SequentialMethodology):
                              delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'))
         
         #same delay as previous
-        self.add_method_magnitude(value=6, triggered_by_equal=True, scorename='symptom',
-                                 delay=other_delay_func, limit=(NDAYS, 'clip'), if_reached='NaN')
+        self.add_method_magnitude(value=6, triggered_by_equal=False, scorename='symptom',
+                                 delay=other_delay_func, limit=(LASTVISIT, 'clip'), if_reached='NaN')
+        
+class TraditionalMethodology(sequentialMethodology):
+    def __init__(self):
+        super().__init__('traditional')
+        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9), #90% at 21
+        self.add_method_traditional(day=0, delay=first_delay_func)
+        self.add_method_traditional(day=('sample', 0), delay=14)
+        self.add_method_traditional(day=('sample', 0), delay=28)
