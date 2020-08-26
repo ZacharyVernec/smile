@@ -21,6 +21,7 @@ def warn(message):
 
     
 #distributions
+#TODO have non-general call the general
 def truncatednormal(xmin, xmax, pmsigma=3, shape=None):
     '''
     the smaller the pmsigma, the closer the distribution is to uniform
@@ -80,6 +81,23 @@ def truncatednormal_right(mode, xmax, pmsigma=3, shape=None):
            
     if shape is None: return vals[0] #convert back from array
     else: return vals
+def truncatednormal_general(xmin, mode, xmax, untruncated_std, shape=None):
+    '''
+    mode and untruncated_std are the mean and stdev parameters of the pre-truncated distribution
+    shape of None returns a simple float
+    '''
+    arr_shape = shape if shape is not None else 1 #convert to array if needed
+    
+    vals = np.random.normal(mode, untruncated_std, arr_shape)
+    invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
+    
+    while(len(invalid) > 0):
+        vals.flat[invalid] = np.random.normal(mode, untruncated_std, len(invalid))
+        invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
+        
+    if shape is None: return vals[0] #convert back from array
+    else: return vals
+    
     
 def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         '''
