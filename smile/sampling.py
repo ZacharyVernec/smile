@@ -18,11 +18,22 @@ from smile.global_params import get_MIN, NDAYS, FIRSTVISIT, LASTVISIT
 from smile.global_params import _UNREACHED_SMILE, _UNREACHED_MAGNITUDE, _LIMITREACHED, _ALREADYREACHED
 
 
-
+#TODO should warn how many people trigger limit or if_reached
+#TODO replace 'order' with 'position'
 class Methodology(ABC):
+    '''
+    Each sampling method is added one at a time, in order
+    '''
     def __init__(self, title=''):
         self.title = title
-        super().__init__()
+        self.samplers = []
+        
+    @property
+    def nsamplers(self): return len(self.samplers)
+        
+    def add_sampler(self, sampler):
+        sampler._init_with_order(self.nsamplers)
+        self.samplers.append(sampler)
         
     def sample(self, pop_or_poplist):
         #if population is a PopulationList, apply the single-population version to all
@@ -44,286 +55,13 @@ class Methodology(ABC):
             
         return sampled_poplist
             
-    @abstractmethod
-    def sample_population(self, population):
-        pass
-    
-#TODO should warn how many people trigger limit or if_reached
-class SequentialMethodology(Methodology):
-    '''
-    Each sampling method is added one at a time, in order
-    '''
-
-    def __init__(self, title=''):
-        #title
-        super().__init__(title=title)
-        self.methods = []
-                            
-    def add_method(self, name, delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise', **kwargs):
-        '''
-        name: What method is used for this sampler, can be traditional, smile, or magnitude.
-        delay: can be an int or a callable with input 'shape'.
-        limit: 2-tuple where the first entry determines the limit value 
-                which is an int or tuple of ref to previous sample and function of that value,
-            and the second entry determines what to do when the limit is reached
-                which is to use NaN, to clip to the limit, or to raise an error.
-        if_reached: determines what to do if this sample has already been reached at a previous session.
-            Essentially, what to do if after the previous method's sample you tell the patient
-            to 'call back when _addedmethod_' but they respond with 'oh but I've already _addedsampler_'
-            Can be 'same', 'NaN', 'raise'
-        kwargs: any keyword arguments relevant for the sampler type
-        '''
-        method = {'order':self.nmethods, 'name':name, 'delay':delay, 'limit':limit, 'if_reached':if_reached, **kwargs}
-                            
-        #check parameters
-        #check name
-        if method['name'] not in {'traditional', 'smile', 'magnitude'}:
-            raise ValueError(f"name of {method['name']} not understood")
-                            
-        #check delay
-        if isinstance(method['delay'], int):
-            func = lambda shape, value: np.full(shape, value, dtype=int)
-            #need to bind current value to future calls to avoid circular reference
-            partial_func = partial(func, value=method['delay'])
-            method['delay'] = lambda shape: partial_func(shape)
-        elif callable(delay):
-            if not method['delay'].__code__.co_varnames == ('shape',): 
-                raise ValueError("The function for delay generation should only have 'shape' as an argument.")
-        else: 
-            raise TypeError(f"delay of {delay} is not an int nor is it callable")
-                            
-        #check limit
-        if isinstance(method['limit'], tuple) and len(method['limit']) == 2:
-            #limitval
-            if method['limit'][0] is None:
-                method['limit'] = (LASTVISIT, method['limit'][1])
-            if isinstance(method['limit'][0], int):
-                intvalue = method['limit'][0]
-                method['limit'] = ((None, lambda val: intvalue), method['limit'][1])
-            #limitvalfunc
-            if isinstance(method['limit'][0], tuple) and len(method['limit'][0]) == 2:
-                if isinstance(method['limit'][0][0], int):
-                    if not(-method['order'] <= method['limit'][0][0] <= method['order']):
-                        raise ValueError(f"index reference of {method['limit'][0][0]} does not refer to a previous sample.")
-                elif method['limit'][0][0] is not None:
-                    raise TypeError(f"index reference has value {method['limit'][0][0]} which is not an int")
-            else:
-                raise TypeError(f"limit value of {method['limit'][0]} should be a tuple of (reference_to_prev_sample, lambda)")
-            #limitbehaviour
-            if method['limit'][1] not in {'NaN', 'clip', 'raise'}:
-                raise ValueError(f"limitbehaviour of {method['limit'][1]} not understood.")
-        else:
-            raise ValueError(f"limit of {method['limit']} should be a tuple of (limitvalue, limitbehaviour)")
-                            
-        #check if_reached
-        if not method['if_reached'] in {'same', 'NaN', 'raise'}:
-                raise ValueError(f"if_reached of {method['if_reached']} not known")
-                            
-        #add method
-        self.methods.append(method)
-    def add_method_traditional(self, day=0, delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'):
-        '''day: which day of the simulation to sample'''
-        
-        self.add_method(name='traditional', limit=limit, if_reached=if_reached, day=day, delay=delay)
-        method = self.methods[-1]
-                            
-        #check parameter
-        
-        if isinstance(method['day'], int):
-            #convert to callable
-            func = lambda shape, value: np.full(shape, value, dtype=int)
-            #need to bind current value to future calls to avoid circular reference
-            partial_func = partial(func, value=method['day'])
-            method['day'] = lambda shape, prev_sampling_days: partial_func(shape)
-            
-        elif isinstance(method['day'], tuple): #check if refers to previous sample
-            if len(method['day']) == 2 and method['day'][0] == 'sample':
-                if isinstance(method['day'][1], int):
-                    prev_ref = method['day'][1]
-                    if -method['order'] <= prev_ref <= method['order']:
-                        method['day'] = lambda shape, prev_sampling_days: prev_sampling_days[:, prev_ref]
-                    else:
-                        raise ValueError(f"index reference of {prev_ref} does not refer to a previous sample")
-                else:
-                    raise TypeError(f"index reference has value {method['day'][1]} which is not an int")
-            else: 
-                raise ValueError(f"day tuple of {method['day']} is defined wrong. "
-                                 "It should have length 2 and it's first value should be the string 'sample'")
-                
-        #check if properly set as callable
-        if method['day'].__code__.co_varnames != ('shape', 'prev_sampling_days'): 
-            raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
-    #TODO let index be a function of previous sample
-    def add_method_smile(self, index=FIRSTVISIT, ratio=0.5, triggered_by_equal=True, scorename='symptom',
-                         delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'):
-        '''
-        index: int of the day or 2-tuple where the first entry is the string 'sample'
-            and the second entry determines which previous sample to reference (positive or negative int)
-        ratio: what ratio triggers this smile milestone, should generally be between 0 and 1 for useful results
-        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
-        scorename: which score the ratio refers to
-        delay, limit, if_reached: as in add_method
-        '''
-        
-        self.add_method(name='smile', limit=limit, if_reached=if_reached, delay=delay,
-                       index=index, ratio=ratio, triggered_by_equal=triggered_by_equal, scorename=scorename)
-        method = self.methods[-1]
-                            
-        #check parameters
-                            
-        #set index_day as callable
-        if isinstance(method['index'], int):
-            func = lambda shape, value: np.full(shape, value, dtype=int)
-            #need to bind current value to future calls to avoid circular reference
-            partial_func = partial(func, value=method['index'])
-            method['index'] = lambda shape, prev_sampling_days: partial_func(shape)
-            
-        elif isinstance(method['index'], tuple): #check if refers to previous sample
-            if len(method['index']) == 2 and method['index'][0] == 'sample':
-                if isinstance(method['index'][1], int):
-                    prev_ref = method['index'][1]
-                    if -method['order'] <= prev_ref <= method['order']:
-                        method['index'] = lambda shape, prev_sampling_days: prev_sampling_days[:, prev_ref]
-                    else:
-                        raise ValueError(f"index reference of {prev_ref} does not refer to a previous sample")
-                else:
-                    raise TypeError(f"index reference has value {method['index'][1]} which is not an int")
-            else: 
-                raise ValueError(f"index tuple of {method['index']} is defined wrong. "
-                                 "It should have length 2 and it's first value should be the string 'sample'")
-        #check if properly set as callable
-        if method['index'].__code__.co_varnames != ('shape', 'prev_sampling_days'): 
-            raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
-                                             
-        #check ratio
-        if not (0 < method['ratio'] < 1): 
-            warn(f"ratio of {method['ratio']} may be unobtainable.")
-
-        #check scorename
-        if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
-            raise ValueError(f"scorename of {method['scorename']} not understood")                             
-    def add_method_magnitude(self, value=None, triggered_by_equal=True, scorename='symptom', 
-                             delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'): #TODO remove defaults
-        '''
-        value: what value triggers this milestone (None means minimum possible given the scorename)
-        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
-        scorename: which score the value refers to
-        delay, limit, if_reached: as in add_method
-        '''
-        
-        self.add_method(name='magnitude', limit=limit, if_reached=if_reached, delay=delay,
-                       value=value, triggered_by_equal=triggered_by_equal, scorename=scorename)
-        method = self.methods[-1]
-                        
-        #check parameters
-                                         
-        #check scorename
-        if method['scorename'] not in {'symptom', 'visual', 'symptom_noerror'}:
-            raise ValueError(f"scorename of {method['scorename']} not understood")
-        #check value
-        if method['value'] is None:
-            method['value'] = get_MIN(method['scorename'])
-        if method['triggered_by_equal']:
-            if method['value'] < get_MIN(method['scorename']):
-                warn(f"value of {method['value']} may be unobtainable since it is smaller than "
-                     f"{scorename}'s min of MIN of {get_MIN([method['scorename']])}")
-        else:
-            if method['value'] <= get_MIN(method['scorename']):
-                warn(f"value of {method['value']} may be unobtainable since it is smaller or equal to "
-                     f"{scorename}'s MIN of {get_MIN(method['scorename'])}")
-    
-    @property
-    def nmethods(self): return len(self.methods)
-        
     def sample_population(self, population):
         #contains all days which will be sampled for all persons
-        sampling_days = np.empty((population.npersons, self.nmethods), dtype=int)
+        sampling_days = np.empty((population.npersons, self.nsamplers), dtype=int)
         
         #populate sampling_days according to the methods
-        for i, method in enumerate(self.methods):
-            
-            #get day each person calls in
-            if method['name'] == 'traditional':
-                sampling_days[:,i] = method['day']((population.npersons,), sampling_days[:,:i])
-                #TODO check if int not outside NDAYS, FIRSTVISIT, LASTVISIT
-                
-            elif method['name'] == 'smile':
-                smilescores = population.scores[method['scorename']] #scores which the method ratio refers to
-                smilescore_lowerbound = get_MIN(method['scorename'])
-                
-                #get and check index days
-                index_days = method['index']((population.npersons,), sampling_days[:,:i])
-                #TODO check if int not outside NDAYS, FIRSTVISIT, LASTVISIT
-                
-                # Compute the scores which will trigger milestones
-                smilescores_at_index = np.take_along_axis(smilescores, helper.to_vertical(index_days), axis=1) #column array
-                smile_vals = (smilescores_at_index - smilescore_lowerbound)*method['ratio'] + smilescore_lowerbound #column array
-                
-                # Compute the days where the milestones are triggered
-                comparison_array = (smilescores <= smile_vals) if method['triggered_by_equal'] else (smilescores < smile_vals)
-                sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
-                sampling_days[:,i] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
-                persons_reached_milestone = np.take_along_axis(comparison_array, 
-                                                               helper.to_vertical(sampling_days_temp), 
-                                                               axis=1) #record of which persons reached the milestones
-                sampling_days[~persons_reached_milestone.flatten(), i] = _UNREACHED_SMILE
-                if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
-                    
-            elif method['name'] == 'magnitude':
-                smilescores = population.scores[method['scorename']] #scores which the method value refers to
-                smilescore_lowerbound = get_MIN(method['scorename'])
-                
-                # Compute the days where the milestones are triggered
-                comparison_array = (smilescores <= method['value']) if method['triggered_by_equal'] else (smilescores < method['value'])
-                sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
-                sampling_days[:,i] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
-                persons_reached_milestone = np.take_along_axis(comparison_array, 
-                                                               helper.to_vertical(sampling_days_temp), 
-                                                               axis=1) #record of which persons reached the milestones
-                sampling_days[~persons_reached_milestone.flatten(), i] = _UNREACHED_MAGNITUDE
-                if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
-                    
-            else:
-                raise ValueError(f"name of {method['name']} not known")
-                
-            #add delay
-            delay_gen = method['delay']
-            persons_valid = sampling_days[:,i] < NDAYS
-            npersons_valid = persons_valid.sum()
-            sampling_days[persons_valid,i] += delay_gen((npersons_valid,))
-            #TODO check if int
-            
-            #limit #TODO check if should be done before delay
-            limitvaltuple, limitbehaviour = method['limit'] #unpack
-            ref_index, limitvalfunc = limitvaltuple #unpack
-            prev_sampling_days = sampling_days[:,:i]
-            limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
-            #check where reached or exceeded limit
-            reached_limit = sampling_days[:,i] > limitvals
-            #act on limit
-            if limitbehaviour == 'raise':
-                if np.any(reached_limit):
-                    raise IndexError("Reached limit") #TODO better error message
-            if limitbehaviour == 'clip':
-                sampling_days[:,i] = np.where(reached_limit, limitvals, sampling_days[:,i])
-            if limitbehaviour == 'NaN':
-                #will be masked with fill_value = NaN
-                sampling_days[:,i] = np.where(reached_limit, _LIMITREACHED, sampling_days[:,i])
-            #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
-            
-            #check if_reached
-            if i > 0:
-                #checks if new sample is technically before previous (prevents backwards time-travel)
-                already_reached = (sampling_days[:,i] <= sampling_days[:,i-1])
-                if method['if_reached'] == 'same':
-                    #fast forwards new sample to previous sample
-                    sampling_days[:,i] = np.where(already_reached, sampling_days[:,i-1], sampling_days[:,i])
-                if method['if_reached'] == 'NaN':
-                    #will be masked with fill_value = NaN
-                    sampling_days[:,i] = np.where(already_reached, _ALREADYREACHED, sampling_days[:,i]) 
-                if method['if_reached'] == 'raise':
-                    if np.any(already_reached): 
-                        raise ValueError("Patient was already here when he arrived for his prev sample")
+        for order, sampler in enumerate(self.samplers):
+            sampler.sample(population, order, sampling_days)
         
         #convert to mask with masked values being 0 (to not throw an error when using np.take_along_axis)
         mask = sampling_days >= NDAYS
@@ -342,8 +80,309 @@ class SequentialMethodology(Methodology):
         sampled_population.days = new_days
         sampled_population.scores = new_scores
         return sampled_population
+    
+    
+class Sampler(ABC):
+    def __init__(self, name, delay=0, limit=(LASTVISIT, 'raise'), if_reached='raise'):
+        '''
+        name: What method is used for this sampler, can be traditional, smile, or magnitude.
+        delay: can be an int or a callable with input 'shape'.
+        limit: 2-tuple where the first entry determines the limit value 
+                which is an int or tuple of ref to previous sample and function of that value,
+            and the second entry determines what to do when the limit is reached
+                which is to use NaN, to clip to the limit, or to raise an error.
+        if_reached: determines what to do if this sample has already been reached at a previous session.
+            Essentially, what to do if after the previous method's sample you tell the patient
+            to 'call back when _addedmethod_' but they respond with 'oh but I've already _addedsampler_'
+            Can be 'same', 'NaN', 'raise'
+        '''
+        self.name = name
+        
+        #check delay
+        if isinstance(delay, int):
+            pass
+        elif callable(delay):
+            if not delay.__code__.co_varnames == ('shape',): 
+                raise ValueError("The function for delay generation should only have 'shape' as an argument.")
+        else: 
+            raise TypeError(f"delay of {delay} is not an int nor is it callable")
+        self.delay = delay
+        
+        #check and set limit
+        if isinstance(limit, tuple) and len(limit) == 2:
+            limitval, limitbehaviour = limit
+            #limitval
+            if limitval is None:
+                limitval = LASTVISIT
+            if isinstance(limit[0], int):
+                pass 
+            elif isinstance(limitval, tuple) and len(limitval) == 2:
+                if not (isinstance(limitval[0], int) or limitval[0] is None):
+                    raise TypeError(f"index reference has value {limitval[0]} which is not an int nor None")
+                if not callable(limitval[1]):
+                    raise TypeError(f"{limitval[1]} should be callable")
+            else:
+                raise TypeError(f"limit value of {limitval} should be a tuple of (reference_to_prev_sample, lambda)")
+            #limitbehaviour
+            if limitbehaviour not in {'NaN', 'clip', 'raise'}:
+                raise ValueError(f"limitbehaviour of {limitbehaviour} not understood.")
+        else:
+            raise ValueError(f"limit of {limit} should be a tuple of (limitvalue, limitbehaviour)")
+        self.limit = limitval, limitbehaviour
+                            
+        #check and set if_reached
+        if not if_reached in {'same', 'NaN', 'raise'}:
+            raise ValueError(f"if_reached of {if_reached} not known")
+        self.if_reached = if_reached
+        
+    def _init_with_order(self, order):
+        #limit
+        if isinstance(self.limit, tuple) and isinstance(self.limit[0], tuple):
+            if not(-order <= self.limit[0][0] <= order):
+                raise ValueError(f"index reference of {self.limit[0][0]} does not refer to a previous sample.")
+            
+    @abstractmethod
+    def sample(self, population, order, sampling_days):
+        #finish all implementations by calling super().finish_sampling()
+        pass
+    
+    def finish_sampling(self, population, order, sampling_days):
+        
+        #add delay
+        persons_valid = sampling_days[:,order] < NDAYS
+        npersons_valid = persons_valid.sum()
+        if isinstance(self.delay, int):
+            sampling_days[persons_valid,order] += self.delay
+        elif callable(self.delay):
+            sampling_days[persons_valid,order] += self.delay((npersons_valid,))
+
+        #limit #TODO ask if should be done before delay
+        limitval, limitbehaviour = self.limit #unpack
+        if isinstance(limitval, int):
+            limitvals = limitval #numpy will broadcast to the right shape
+        elif isinstance(limitval, tuple):
+            ref_index, limitvalfunc = limitval #unpack
+            prev_sampling_days = sampling_days[:,:order]
+            limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
+        #check where reached or exceeded limit
+        reached_limit = sampling_days[:,order] > limitvals
+        #act on limit
+        if limitbehaviour == 'raise':
+            if np.any(reached_limit):
+                raise IndexError("Reached limit") #TODO better error message
+        if limitbehaviour == 'clip':
+            sampling_days[:,order] = np.where(reached_limit, limitvals, sampling_days[:,order])
+        if limitbehaviour == 'NaN':
+            #will be masked with fill_value = NaN
+            sampling_days[:,order] = np.where(reached_limit, _LIMITREACHED, sampling_days[:,order])
+        #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
+
+        #check if_reached
+        if order > 0:
+            #checks if new sample is technically before previous (prevents backwards time-travel)
+            already_reached = (sampling_days[:,order] <= sampling_days[:,order-1])
+            if self.if_reached == 'same':
+                #fast forwards new sample to previous sample
+                sampling_days[:,order] = np.where(already_reached, sampling_days[:,order-1], sampling_days[:,order])
+            if self.if_reached == 'NaN':
+                #will be masked with fill_value = NaN
+                sampling_days[:,order] = np.where(already_reached, _ALREADYREACHED, sampling_days[:,order]) 
+            if self.if_reached == 'raise':
+                if np.any(already_reached): 
+                    raise ValueError("Patient was already here when he arrived for his prev sample")
+        
+class TraditionalSampler(Sampler):
+    def __init__(self, day, **kwargs):
+        '''
+        day: which day of the simulation to sample
+        kwargs: passed to parent class
+        '''
+        super().__init__(name='traditional', **kwargs)
+        
+        #check parameters
+        
+        if isinstance(day, int):
+            pass
+        elif isinstance(day, tuple): #check if refers to previous sample
+            if len(day) == 2 and day[0] == 'sample':
+                if not isinstance(day[1], int):
+                    raise TypeError(f"index reference has value {day[1]} which is not an int")
+            else: 
+                raise ValueError(f"day tuple of {day} is defined wrong. "
+                                 "It should have length 2 and it's first value should be the string 'sample'")
+        elif callable(day):
+            if day.__code__.co_varnames != ('shape', 'prev_sampling_days'): 
+                raise ValueError("The function for day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
+        else:
+            raise TypeError(f"day of {day} is of type {type(day)}, which is not int, tuple, or a callable")
+        self.day = day
+            
+    def _init_with_order(self, order):
+        super()._init_with_order(order)
+        if isinstance(self.day, tuple):
+            if -order <= self.day[1] <= order:
+                #convert to callable
+                func = lambda shape, prev_sampling_days, prev_ref: prev_sampling_days[:, prev_ref]
+                #need to bind current value to future calls to avoid circular reference
+                partial_func = partial(func, prev_ref=self.day[1])
+                self.day = lambda shape, prev_sampling_days: partial_func(shape, prev_sampling_days)
+            else:
+                raise ValueError(f"day reference of {self.day[1]} does not refer to a previous sample")
+                
+    def sample(self, population, order, sampling_days):
+        if isinstance(self.day, int):
+            sampling_days[:,order] = self.day
+        elif isinstance(self.day, tuple):
+            prev_sampling_days = sampling_days[:,:order]
+            sampling_days[:,order] = prev_sampling_days[:,self.day[1]]
+        elif callable(self.day):
+            prev_sampling_days = sampling_days[:,:order]
+            #TODO check if ints not outside NDAYS, FIRSTVISIT, LASTVISIT
+            sampling_days[:,order] = self.day((population.npersons,), prev_sampling_days)
+            
+        super().finish_sampling(population, order, sampling_days)
+                
+class SmileSampler(Sampler):
+    def __init__(self, index=FIRSTVISIT, ratio=0.5, triggered_by_equal=True, scorename='symptom', **kwargs):
+        '''
+        index: int of the day or 2-tuple where the first entry is the string 'sample'
+            and the second entry determines which previous sample to reference (positive or negative int)
+        ratio: what ratio triggers this smile milestone, should generally be between 0 and 1 for useful results
+        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
+        scorename: which score the ratio refers to
+        kwargs: passed to parent class
+        '''
+        super().__init__(name='smile', **kwargs)
+                            
+        #check parameters
+                            
+        #check index
+        if isinstance(index, int):
+            pass
+        elif isinstance(index, tuple): #check if refers to previous sample
+            if len(index) == 2 and index[0] == 'sample':
+                if not isinstance(index[1], int):
+                    raise TypeError(f"index reference has value {index[1]} which is not an int")
+            else: 
+                raise ValueError(f"index tuple of {index} is defined wrong. "
+                                 "It should have length 2 and it's first value should be the string 'sample'")
+        elif callable(index):
+            if index.__code__.co_varnames != ('shape', 'prev_sampling_days'): 
+                raise ValueError("The function for index day generation should only have 'shape' and 'prev_sampling_days' as an argument.")
+        else:
+            raise TypeError(f"index of {index} is of type {type(index)}, which is not int, tuple, or a callable")
+        self.index = index
+                                             
+        #check and set ratio
+        if not (0 < ratio < 1): 
+            warn(f"ratio of {ratio} may be unobtainable.")
+        self.ratio = ratio
+        
+        #check and set triggered_by_equal
+        if not isinstance(triggered_by_equal, bool):
+            raise TypeError(f"triggred_by_equal of {triggered_by_equal} should be a boolean")
+        self.triggered_by_equal = triggered_by_equal
+
+        #check and set scorename
+        if scorename not in {'symptom', 'visual', 'symptom_noerror'}:
+            raise ValueError(f"scorename of {scorename} not understood")
+        self.scorename = scorename
+        
+    def _init_with_order(self, order):
+        super()._init_with_order(order)
+        if isinstance(self.index, tuple):
+            if (-order <= self.index[1] <= order):
+                #convert to callable
+                func = lambda shape, prev_sampling_days, prev_ref: prev_sampling_days[:, prev_ref]
+                #need to bind current value to future calls to avoid circular reference
+                partial_func = partial(func, prev_ref=self.index[1])
+                self.index = lambda shape, prev_sampling_days: partial_func(shape, prev_sampling_days)
+            else:
+                raise ValueError(f"index reference of {self.index[1]} does not refer to a previous sample")
+                
+    def sample(self, population, order, sampling_days):
+        smilescores = population.scores[self.scorename] #scores which the method ratio refers to
+        smilescore_lowerbound = get_MIN(self.scorename)
+
+        #get and check index days
+        if isinstance(self.index, int):
+            index_days = np.full((population.npersons,), self.index)
+        elif isinstance(self.index, tuple):
+            prev_sampling_days = sampling_days[:,:order]
+            index_days = prev_sampling_days[:,self.day[1]]
+        elif callable(self.index):
+            prev_sampling_days = sampling_days[:,:order]
+            #TODO check if int not outside NDAYS, FIRSTVISIT, LASTVISIT
+            index_days = self.index((population.npersons,), prev_sampling_days)
+
+        # Compute the scores which will trigger milestones
+        smilescores_at_index = np.take_along_axis(smilescores, helper.to_vertical(index_days), axis=1) #column array
+        smile_vals = (smilescores_at_index - smilescore_lowerbound)*self.ratio + smilescore_lowerbound #column array
+
+        # Compute the days where the milestones are triggered
+        comparison_array = (smilescores <= smile_vals) if self.triggered_by_equal else (smilescores < smile_vals)
+        sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
+        sampling_days[:,order] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+        persons_reached_milestone = np.take_along_axis(comparison_array, 
+                                                       helper.to_vertical(sampling_days_temp), 
+                                                       axis=1) #record of which persons reached the milestones
+        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_SMILE
+        if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
+            
+        super().finish_sampling(population, order, sampling_days)
+                
+class MagnitudeSampler(Sampler):
+    def __init__(self, value=None, triggered_by_equal=True, scorename='symptom', **kwargs):
+        '''
+        value: what value triggers this milestone (None means minimum possible given the scorename)
+        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
+        scorename: which score the value refers to
+        delay, limit, if_reached: as in add_method
+        kwargs: passed to parent class
+        '''
+        super().__init__(name='magnitude', **kwargs)
                                          
-class RealisticMethodology(SequentialMethodology):
+        #check and set scorename
+        if scorename not in {'symptom', 'visual', 'symptom_noerror'}:
+            raise ValueError(f"scorename of {scorename} not understood")
+        self.scorename = scorename
+        
+        #check and set triggered_by_equal
+        if not isinstance(triggered_by_equal, bool):
+            raise TypeError(f"triggred_by_equal of {triggered_by_equal} should be a boolean")
+        self.triggered_by_equal = triggered_by_equal
+        
+        #check and set value
+        if value is None:
+            value = get_MIN(self.scorename)
+        if self.triggered_by_equal:
+            if value < get_MIN(self.scorename):
+                warn(f"value of {value} may be unobtainable since it is smaller than "
+                     f"{self.scorename}'s min of MIN of {get_MIN(self.scorename)}")
+        else:
+            if value <= get_MIN(self.scorename):
+                warn(f"value of {value} may be unobtainable since it is smaller or equal to "
+                     f"{self.scorename}'s MIN of {get_MIN(self.scorename)}")
+        self.value = value
+                
+    def sample(self, population, order, sampling_days):
+        smilescores = population.scores[self.scorename] #scores which the method value refers to
+        smilescore_lowerbound = get_MIN(self.scorename)
+
+        # Compute the days where the milestones are triggered
+        comparison_array = (smilescores <= self.value) if self.triggered_by_equal else (smilescores < self.value)
+        sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
+        sampling_days[:,order] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+        persons_reached_milestone = np.take_along_axis(comparison_array, 
+                                                       helper.to_vertical(sampling_days_temp), 
+                                                       axis=1) #record of which persons reached the milestones
+        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_MAGNITUDE
+        if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
+            
+        super().finish_sampling(population, order, sampling_days)
+
+
+class RealisticMethodology(Methodology):
     '''Discussed on a phone call'''
     def __init__(self):
         super().__init__('realistic')
@@ -351,21 +390,21 @@ class RealisticMethodology(SequentialMethodology):
         #limit is irrelevant because max(day+delay) < NDAYS
         #if_reached is irrelevant because first sampling method
         first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
-        self.add_method_traditional(day=0, delay=first_delay_func)
+        self.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
         
         #if_reached is irrelevant because index is previous sample
         other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
-        self.add_method_smile(index=('sample', -1), ratio=0.5, triggered_by_equal=True, scorename='symptom',
-                             delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN')
+        self.add_sampler(SmileSampler(index=('sample', -1), ratio=0.5, triggered_by_equal=True, scorename='symptom',
+                                      delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN'))
         
         #same delay as previous
-        self.add_method_magnitude(value=6, triggered_by_equal=False, scorename='symptom',
-                                 delay=other_delay_func, limit=(LASTVISIT, 'clip'), if_reached='NaN')
+        self.add_sampler(MagnitudeSampler(value=6, triggered_by_equal=False, scorename='symptom',
+                                          delay=other_delay_func, limit=(LASTVISIT, 'clip'), if_reached='NaN'))
         
-class TraditionalMethodology(SequentialMethodology):
+class TraditionalMethodology(Methodology):
     def __init__(self):
         super().__init__('traditional')
         first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
-        self.add_method_traditional(day=0, delay=first_delay_func)
-        self.add_method_traditional(day=('sample', 0), delay=14)
-        self.add_method_traditional(day=('sample', 0), delay=28)
+        self.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
+        self.add_sampler(TraditionalSampler(day=('sample', 0), delay=14))
+        self.add_sampler(TraditionalSampler(day=('sample', 0), delay=28))
