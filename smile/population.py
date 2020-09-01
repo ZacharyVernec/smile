@@ -10,6 +10,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
 from matplotlib.collections import LineCollection
+from matplotlib.ticker import MultipleLocator
 import pandas as pd
 from patsy import dmatrices
 import statsmodels.api as sm
@@ -343,10 +344,12 @@ class Population:
             
         #abscissas
         if x=='day':
-            x = self.days[:npersons, :ndays]
             xlabel='days since concussion'
+            ax.xaxis.set_minor_locator(MultipleLocator(10))
+            x = self.days[:npersons, :ndays]
         elif x in self.scores:
             xlabel = x+' scores'
+            ax.xaxis.set_minor_locator(MultipleLocator(1))
             x = self.scores[x][:npersons, :ndays]
         else:
             raise ValueError()
@@ -366,11 +369,12 @@ class Population:
         ax.set(xlabel=xlabel, ylabel=ylabel)
         
         #plotting
+        #lines
         if viztype=='lines' or viztype=='both':
             points = np.stack([x, y], axis=2)
             colors = mpl.cm.get_cmap(lines_cmap_name).colors # https://matplotlib.org/2.0.1/users/colormaps.html
             ax.add_collection(LineCollection(points, colors=colors))
-            
+        #points
         if viztype=='points' or viztype=='both':
             if vizcolor == 'person':
                 colors = np.array(mpl.cm.get_cmap(lines_cmap_name).colors) # not the right shape
@@ -384,6 +388,7 @@ class Population:
             else:
                 raise ValueError("vizcolor of '{}' unknown".format(vizcolor))
             ax.scatter(x, y, facecolors='none', edgecolors=colors)
+        
         ax.autoscale()
 
 #The following are useful for defining the PopulationList class
