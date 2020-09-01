@@ -50,10 +50,6 @@ class Population:
     def nfiltered(self): return self.initial_npersons - self.npersons
     @property
     def ratio_filtered(self): return self.nfiltered/self.initial_npersons if self.initial_npersons else 0
-    @property
-    def nsampled(self): return self.initial_ndays - self.ndays
-    @property
-    def ratio_sampled(self): return self.nsampled/self.initial_ndays if self.initial_ndays else 0
         
     # Data generation methods
 
@@ -440,17 +436,17 @@ class PopulationList(UserList):
     @property
     def npersons(self): return sum([pop.npersons for pop in self])
     @property
+    def initial_npersons(self): return sum([pop.initial_npersons for pop in self])
+    @property
     def ndays(self): return [pop.ndays for pop in self]
+    @property
+    def initial_ndays(self): return [pop.initial_ndays for pop in self]
     @property
     def data_shapes(self): return [pop.data_shape for pop in self]
     @property
-    def nfiltered(self): return [pop.nfiltered for pop in self]
+    def nfiltered(self): return sum([pop.nfiltered for pop in self])
     @property
-    def ratio_filtered(self): return [pop.ratio_filtered for pop in self]
-    @property
-    def nsampled(self): return [pop.nsampled for pop in self]
-    @property
-    def ratio_sampled(self): return [pop.ratio_sampled for pop in self]
+    def ratio_filtered(self): return self.nfiltered/self.initial_npersons if self.initial_npersons else 0
     @property
     def parameter_generators(self): return [pop.parameter_generators for pop in self]
     @property
