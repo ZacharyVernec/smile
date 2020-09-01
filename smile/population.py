@@ -208,6 +208,8 @@ class Population:
             newpop.title = newtitle
         if addtitle is not None:
             newpop.title += ' '+addtitle
+        newpop.initial_npersons = self.initial_npersons
+        newpop.initial_ndays = self.initial_ndays
         newpop.parameter_generators = copy(self.parameter_generators)
         newpop.function_generators = copy(self.function_generators)
         newpop.parameters = copy(self.parameters)
@@ -436,7 +438,7 @@ class PopulationList(UserList):
     @property
     def titles(self): return [pop.title for pop in self]
     @property
-    def npersons(self): return [pop.npersons for pop in self]
+    def npersons(self): return sum([pop.npersons for pop in self])
     @property
     def ndays(self): return [pop.ndays for pop in self]
     @property
