@@ -9,5 +9,6 @@ dependencies:
   - jupyterlab-git
   - jupyter_conda
   - statsmodels
+  - dill
   - python=3.7.7
 
