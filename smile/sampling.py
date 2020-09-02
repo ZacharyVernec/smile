@@ -36,7 +36,7 @@ class Methodology(ABC):
         self.samplers.append(sampler)
         
     def sample(self, pop_or_poplist):
-        #if population is a PopulationList, apply the single-population version to all
+        #sample differently depending on if arg is a Population or a PopulationList
         if isinstance(pop_or_poplist, PopulationList):
             return self.sample_populationlist(pop_or_poplist)
         elif isinstance(pop_or_poplist, Population):
@@ -45,6 +45,7 @@ class Methodology(ABC):
             raise TypeError(f"{pop_or_poplist} is a {type(pop_or_poplist)} when it should be a {Population} or a {PopulationList}.")
                 
     def sample_populationlist(self, poplist):
+        #sample all individually and collect
         sampled_poplist = PopulationList([self.sample_population(pop) for pop in poplist])
         
         #setting title
@@ -62,6 +63,7 @@ class Methodology(ABC):
         #populate sampling_days according to the methods
         for order, sampler in enumerate(self.samplers):
             sampler.sample(population, order, sampling_days)
+            population.sampling_summary['nsamplers'] = self.nsamplers
         
         #convert to mask with masked values being 0 (to not throw an error when using np.take_along_axis)
         mask = sampling_days >= NDAYS
@@ -147,6 +149,7 @@ class Sampler(ABC):
         pass
     
     def finish_sampling(self, population, order, sampling_days):
+        summary = {} # will be filled how many hit limit or if_reached
         
         #add delay
         persons_valid = sampling_days[:,order] < NDAYS
@@ -176,6 +179,8 @@ class Sampler(ABC):
             #will be masked with fill_value = NaN
             sampling_days[:,order] = np.where(reached_limit, _LIMITREACHED, sampling_days[:,order])
         #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
+        #remember how many triggered limit
+        summary['limit'] = (np.sum(reached_limit), limitbehaviour)
 
         #check if_reached
         if order > 0:
@@ -190,6 +195,13 @@ class Sampler(ABC):
             if self.if_reached == 'raise':
                 if np.any(already_reached): 
                     raise ValueError("Patient was already here when he arrived for his prev sample")
+            #remember how many triggered if_reached
+            summary['if_reached'] = (np.sum(already_reached), self.if_reached)
+        else:
+            #remember how many triggered if_reached
+            summary['if_reached'] = (0, self.if_reached)
+            
+        population.sampling_summary = summary
         
 class TraditionalSampler(Sampler):
     def __init__(self, day, **kwargs):

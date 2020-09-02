@@ -388,6 +388,22 @@ class Population:
             ax.scatter(x, y, facecolors='none', edgecolors=colors)
         
         ax.autoscale()
+        
+    #summarizing
+    def summarize(self):
+        strings = [
+            f"Title: {repr(self.title)}",
+            f"N Persons: {self.npersons} / {self.initial_npersons} = {1-self.nfiltered:.2f}"
+        ]
+        try: #if result of a sample, display a summary of that
+            strings.extend([
+                f"N Days: {self.sampling_summary['nsamplers']} / {self.initial_ndays}",
+                f"Reached limits: {self.sampling_summary['limit']}",
+                f"Already reached: {self.sampling_summary['if_reached']}"
+            ])
+        except AttributeError:
+            strings.append(f"N Days: {self.initial_ndays}")
+        return '\n'.join(strings)
 
 #The following are useful for defining the PopulationList class
 
@@ -534,6 +550,7 @@ class PopulationList(UserList):
         
         return poplist #may be self or a copy
     
+    #plotting
     def plot(self, ax, direction='row', **kwargs):
         '''
         Plots all populations sequentially, using same kwargs as in Population.plot() method
@@ -569,3 +586,34 @@ class PopulationList(UserList):
             
         else:
             raise ValueError(f"{len(axes)} axes are not enough to plot {len(self)} Populations")
+            
+    #summarizing
+    def summarize(self):
+        def summarize_list(li, head=3, tail=3):
+            if len(set(li)) == 1: #all elements are the same
+                return f"[... {li[0]} ...]"
+            else: #there are multiple elements
+                if head + tail >= len(li):
+                    return str(li)
+                else:
+                    li = li[:head] + ['...'] + li[-tail:]
+                    li = [str(el) for el in li]
+                    return f"[{', '.join(li)}]"
+        
+        strings = [
+            f"Title: {repr(self.title)}",
+            f"Titles: {summarize_list([repr(title) for title in self.titles])}",
+            f"N Persons: {self.npersons} / {self.initial_npersons} = {1-self.nfiltered:.2f}"
+        ]
+        try: #if result of a sample, display a summary of that
+            #summarize sampling_summaries:
+            sampling_summaries = {key:[pop.sampling_summary[key] for pop in self] for key in self[0].sampling_summary}
+            sampling_summary = {key:summarize_list(val, head=5, tail=5) for key, val in sampling_summaries.items()}
+            strings.extend([
+                f"N Days: {sampling_summary['nsamplers']} / {summarize_list(self.initial_ndays, head=5, tail=5)}",
+                f"Reached limits: {sampling_summary['limit']}",
+                f"Already reached: {sampling_summary['if_reached']}"
+            ])
+        except AttributeError:
+            strings.append(f"N Days: {summarize_list(self.initial_ndays, head=5, tail=5)}")
+        return '\n'.join(strings)
