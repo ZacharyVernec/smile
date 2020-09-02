@@ -142,14 +142,32 @@ def collocate_text(text_blocks, hseparator="\t", hseparatorlen=2, vseparator='\n
     '''Combine multiline strings into one large string that looks like each strings was placed in a grid'''
     
     #make 2d if not already
-    text_blocks = np.array(text_blocks)
-    if text_blocks.ndim == 1:
-        text_blocks = text_blocks.reshape(1, -1)
+    def make_stringlist_2d(stringlist):
+        lengths = [len(el) if isinstance(el, (list, np.ndarray)) else -1 for el in stringlist]
+        if max(lengths) == -1: #no element is listlike
+            stringlist = [stringlist] #keep as a row
+        else:
+            rowlength = max(lengths)
+            def extend_to_length(arg, length):
+                if isinstance(arg, np.ndarray):
+                    arg = arg.tolist()
+                elif not isinstance(arg, list):
+                    arg = [arg]
+                #arg is list
+                arglength = len(arg)
+                missinglength = length-arglength
+                return arg + ['']*missinglength
+
+            stringlist = [extend_to_length(el, rowlength) for el in stringlist]
+            stringlist = np.array(stringlist)
+            assert(stringlist.ndim == 2)
+        return stringlist
+    text_blocks = make_stringlist_2d(text_blocks)
         
     #collocate each row
     row_strings = []
-    for row in range(text_blocks.shape[0]):
-        text_blocks_lines = [str(text_block).splitlines() for text_block in text_blocks[row]]
+    for row in range(len(text_blocks)):
+        text_blocks_lines = make_stringlist_2d([str(text_block).splitlines() for text_block in text_blocks[row]])
         text_lines_arr = np.array(text_blocks_lines).T
         lines = []
         for line in text_lines_arr:
