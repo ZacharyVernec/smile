@@ -40,6 +40,28 @@ class Population:
                        'symptom_noerror':None, 
                        'symptom':None}
         
+    def __eq__(self, other): #TODO implement checking parameter and function generators
+        """
+        Overrides the default implementation
+        Ignores lambda generators, ignores possible sampling_summary
+        """
+        if isinstance(other, Population):
+            if self.title != other.title: return False
+            if self.initial_data_shape != other.initial_data_shape: return False
+            
+            if self.parameters.keys() != other.parameters.keys(): return False
+            param_vals_tuples = [(self.parameters[key], other.parameters[key]) for key in self.parameters.keys()]
+            if not all(np.array_equal(*param_vals) for param_vals in param_vals_tuples): return False
+            
+            if not np.array_equal(self.days, other.days): return False
+            if self.scores.keys() != other.scores.keys(): return False
+            score_val_tuples = [(self.scores[key], other.scores[key]) for key in self.scores.keys()]
+            if not all(np.array_equal(*score_vals) for score_vals in score_val_tuples): return False
+            
+            return True
+        else: 
+            return NotImplemented #see here: https://stackoverflow.com/a/25176504
+        
     @property
     def npersons(self): return self.days.shape[0]
     @property
@@ -53,6 +75,7 @@ class Population:
         
     # Data generation methods
 
+    #TODO create Generator class to wrap lambda functions
     def set_parameter_generator(self, paramname, func, paramtype):
         '''
         func must be a numpy function with the "shape" argument of the numpy function as the only argument to func
@@ -435,6 +458,15 @@ class PopulationList(UserList):
         super().__init__(listlike)
         self.title = title
     #overriden methods
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, PopulationList):
+            if self.title != other.title: return False
+            for i in range(len(self)):
+                if self[i] != other[i]: return False
+            return True
+        else: 
+            return NotImplemented #see here: https://stackoverflow.com/a/25176504
     def append(self, other):
         assertPopulation(other)
         super().append(other)
