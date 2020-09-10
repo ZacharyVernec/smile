@@ -40,7 +40,7 @@ def dump_to_file(obj, filename, filesuffix='.pik',
     else:
         with open(filename, 'wb') as f:
             dill.dump(obj, f, protocol=4)
-def load_from_file(obj, filename):
+def load_from_file(filename):
     with open(filename, 'rb') as f:
         return dill.load(f)
 
