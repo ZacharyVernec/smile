@@ -9,9 +9,7 @@ import dill
 # Local application imports
 from smile.population import Population, PopulationList
 from smile.sampling import *
-from smile.regression import RegressionResultList
 from smile import helper
-from smile.helper import truncatednormal
 from smile.global_params import *
 
 # Settings
