@@ -16,7 +16,7 @@ from smile.global_params import *
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'saved_populations'
+pickle_dir = 'saved_populations_small'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
