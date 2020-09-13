@@ -1,5 +1,6 @@
 # Standard library imports
 import os
+from datetime import datetime
 
 # Third party imports
 import matplotlib.pyplot as plt
@@ -111,10 +112,14 @@ def get_worddoc_populations(slope_option, error_option, npersons=100, npops=100)
     return pops
 
 #parameters
-npersons=10
-npops=10
+npersons=1000
+npops=1000
 slope_options = (1, 2, 3)
 error_options = (0.3, 0.5)
+
+#timing
+starttime = datetime.now()
+print(f"Started at {starttime.strftime('%H:%M')}.")
 
 #preallocate arrays
 poplists_shape = (len(slope_options), len(error_options))
@@ -123,6 +128,7 @@ worddoc_poplists = np.empty(poplists_shape, dtype=object)
 
 #create and generate
 for i, j in np.ndindex(poplists_shape):
+    print(i, j)
     options = (slope_options[i], error_options[j])
     poster_poplists[i, j] = get_poster_populations(*options, npersons, npops)
     worddoc_poplists[i, j] = get_worddoc_populations(*options, npersons, npops)
@@ -132,6 +138,7 @@ for i, j in np.ndindex(poplists_shape):
 #pickle
 dump_to_file(poster_poplists, 'poster_poplists', dirname=pickle_dir, create_newdir=True)
 dump_to_file(worddoc_poplists, 'worddoc_poplists', dirname=pickle_dir)
+print("Done generation.")
     
     
 # Filtering
@@ -152,6 +159,7 @@ for i, j in np.ndindex(poplists_shape):
 #pickle
 dump_to_file(poster_filtered_poplists, 'poster_filtered_poplists', dirname=pickle_dir)
 dump_to_file(worddoc_filtered_poplists, 'worddoc_filtered_poplists', dirname=pickle_dir)
+print("Done filtering.")
     
     
 # Sampling
@@ -205,3 +213,9 @@ for i, j in np.ndindex(poplists_shape):
 #pickle
 dump_to_file(poster_sampled_poplists, 'poster_sampled_poplists', dirname=pickle_dir)
 dump_to_file(worddoc_sampled_poplists, 'worddoc_sampled_poplists', dirname=pickle_dir)
+print("Done sampling.")
+
+#timing
+endtime = datetime.now()
+deltatime = int((endtime-starttime).total_seconds())
+print(f"Took {deltatime//3600} h {(deltatime%3600)//60} min {deltatime%60} s to run.")
