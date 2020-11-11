@@ -17,7 +17,7 @@ from smile.global_params import *
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'saved_populations_small'
+pickle_dir = 'D:\saved_populations_large'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -44,9 +44,8 @@ def load_from_file(filename):
         return dill.load(f)
 
 
-# Populations
-
-#definitions
+# Definitions
+#populations
 def get_poster_populations(slope_option, error_option, npersons=100, npops=100):
     '''
     returns a PopulationList similar to the one described in the poster
@@ -110,70 +109,16 @@ def get_worddoc_populations(slope_option, error_option, npersons=100, npops=100)
     
     # Return
     return pops
-
-#parameters
-npersons=1000
-npops=1000
-slope_options = (1, 2, 3)
-error_options = (0.3, 0.5)
-
-#timing
-starttime = datetime.now()
-print(f"Started at {starttime.strftime('%H:%M')}.")
-
-#preallocate arrays
-poplists_shape = (len(slope_options), len(error_options))
-poster_poplists = np.empty(poplists_shape, dtype=object)
-worddoc_poplists = np.empty(poplists_shape, dtype=object)
-
-#create and generate
-for i, j in np.ndindex(poplists_shape):
-    print(i, j)
-    options = (slope_options[i], error_options[j])
-    poster_poplists[i, j] = get_poster_populations(*options, npersons, npops)
-    worddoc_poplists[i, j] = get_worddoc_populations(*options, npersons, npops)
-    poster_poplists[i, j].generate()
-    worddoc_poplists[i, j].generate()
-    
-#pickle
-dump_to_file(poster_poplists, 'poster_poplists', dirname=pickle_dir, create_newdir=True)
-dump_to_file(worddoc_poplists, 'worddoc_poplists', dirname=pickle_dir)
-print("Done generation.")
-    
-    
-# Filtering
-
-#define
-filter_kwargs = {'filter_type':'ratio_early', 'copy':True,
-                 'index_day':0, 'recovered_ratio':0.7, 'scorename':'symptom'}
-
-#preallocate arrays
-poster_filtered_poplists = np.empty_like(poster_poplists)
-worddoc_filtered_poplists = np.empty_like(worddoc_poplists)
-
-#filter
-for i, j in np.ndindex(poplists_shape):
-    poster_filtered_poplists[i, j] = poster_poplists[i, j].filter(**filter_kwargs)
-    worddoc_filtered_poplists[i, j] = worddoc_poplists[i, j].filter(**filter_kwargs)
-    
-#pickle
-dump_to_file(poster_filtered_poplists, 'poster_filtered_poplists', dirname=pickle_dir)
-dump_to_file(worddoc_filtered_poplists, 'worddoc_filtered_poplists', dirname=pickle_dir)
-print("Done filtering.")
-    
-    
-# Sampling
-
-#define
+#simulations
 def get_traditional_methodology():
     methodology = Methodology('traditonal')
-    
+
     first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
-    
+
     methodology.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
     methodology.add_sampler(TraditionalSampler(day=('sample', 0), delay=14))
     methodology.add_sampler(TraditionalSampler(day=('sample', 0), delay=28))
-    
+
     return methodology
 def get_realistic_methodology():
     methodology = Methodology('realistic')
@@ -191,31 +136,116 @@ def get_realistic_methodology():
     #same delay as previous
     methodology.add_sampler(MagnitudeSampler(value=6, triggered_by_equal=False, scorename='symptom',
                                              delay=other_delay_func, limit=(LASTVISIT, 'clip'), if_reached='NaN'))
-    
+
     return methodology
 
-#create
-methodologies = [get_traditional_methodology(), get_realistic_methodology()]
+def simulate(npops, index=None):
+    if index is not None: 
+        suffix='_'+str(index)
+        verbose = False
+    else: 
+        suffix=''
+        verbose = True
 
-#preallocate arrays
-sampled_poplists_shape = (*poplists_shape, len(methodologies))
-poster_sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
-worddoc_sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
+    #preallocate arrays
+    poplists_shape = (len(slope_options), len(error_options))
+    poster_poplists = np.empty(poplists_shape, dtype=object)
+    worddoc_poplists = np.empty(poplists_shape, dtype=object)
 
-#sample
-for i, j in np.ndindex(poplists_shape):
-    poster_sampled_poplists[i, j, 0] = methodologies[0].sample(poster_filtered_poplists[i, j])
-    poster_sampled_poplists[i, j, 1] = methodologies[1].sample(poster_filtered_poplists[i, j])
-    worddoc_sampled_poplists[i, j, 0] = methodologies[0].sample(worddoc_filtered_poplists[i, j])
-    worddoc_sampled_poplists[i, j, 1] = methodologies[1].sample(worddoc_filtered_poplists[i, j])
-    
+    #create and generate
+    for i, j in np.ndindex(poplists_shape):
+        if verbose: print(i, j)
+        options = (slope_options[i], error_options[j])
+        poster_poplists[i, j] = get_poster_populations(*options, npersons, npops)
+        worddoc_poplists[i, j] = get_worddoc_populations(*options, npersons, npops)
+        poster_poplists[i, j].generate()
+        worddoc_poplists[i, j].generate()
 
-#pickle
-dump_to_file(poster_sampled_poplists, 'poster_sampled_poplists', dirname=pickle_dir)
-dump_to_file(worddoc_sampled_poplists, 'worddoc_sampled_poplists', dirname=pickle_dir)
-print("Done sampling.")
+    #pickle
+    dump_to_file(poster_poplists, 'poster_poplists'+suffix, dirname=pickle_dir, create_newdir=True)
+    dump_to_file(worddoc_poplists, 'worddoc_poplists'+suffix, dirname=pickle_dir)
+    if verbose: print("Done generation.")
+
+
+    # Filtering
+
+    #define
+    filter_kwargs = {'filter_type':'ratio_early', 'copy':True,
+                     'index_day':0, 'recovered_ratio':0.7, 'scorename':'symptom'}
+
+    #preallocate arrays
+    poster_filtered_poplists = np.empty_like(poster_poplists)
+    worddoc_filtered_poplists = np.empty_like(worddoc_poplists)
+
+    #filter
+    for i, j in np.ndindex(poplists_shape):
+        if verbose: print(i, j)
+        poster_filtered_poplists[i, j] = poster_poplists[i, j].filter(**filter_kwargs)
+        worddoc_filtered_poplists[i, j] = worddoc_poplists[i, j].filter(**filter_kwargs)
+
+    #pickle
+    dump_to_file(poster_filtered_poplists, 'poster_filtered_poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(worddoc_filtered_poplists, 'worddoc_filtered_poplists'+suffix, dirname=pickle_dir)
+    if verbose: print("Done filtering.")
+
+
+    # Sampling
+
+    #create
+    methodologies = [get_traditional_methodology(), get_realistic_methodology()]
+
+    #preallocate arrays
+    sampled_poplists_shape = (*poplists_shape, len(methodologies))
+    poster_sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
+    worddoc_sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
+
+    #sample
+    for i, j in np.ndindex(poplists_shape):
+        if verbose: print(i, j)
+        poster_sampled_poplists[i, j, 0] = methodologies[0].sample(poster_filtered_poplists[i, j])
+        poster_sampled_poplists[i, j, 1] = methodologies[1].sample(poster_filtered_poplists[i, j])
+        worddoc_sampled_poplists[i, j, 0] = methodologies[0].sample(worddoc_filtered_poplists[i, j])
+        worddoc_sampled_poplists[i, j, 1] = methodologies[1].sample(worddoc_filtered_poplists[i, j])
+
+
+    #pickle
+    dump_to_file(poster_sampled_poplists, 'poster_sampled_poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(worddoc_sampled_poplists, 'worddoc_sampled_poplists'+suffix, dirname=pickle_dir)
+    if verbose: print("Done sampling.")
+
+
+#parameters
+npersons=1000
+npops=1000
+slope_options = (1, 2, 3)
+error_options = (0.3, 0.5)
+
+#printing
+print("Test parameters:")
+print(f"npersons={npersons}")
+print(f"npops={npops}")
+print(f"slope_options={slope_options}")
+print(f"error_options={error_options}")
+print(f"Total populations: {npersons*npops*len(slope_options)*len(error_options)}")
+print()
+print("Log: ")
 
 #timing
-endtime = datetime.now()
-deltatime = int((endtime-starttime).total_seconds())
-print(f"Took {deltatime//3600} h {(deltatime%3600)//60} min {deltatime%60} s to run.")
+starttime = datetime.now()
+print(f"Started at {starttime.strftime('%H:%M')}.")
+
+try:
+    npops_per_sim = 10
+    nsims = npops // npops_per_sim
+    npops_remainder = npops % npops_per_sim
+    for i in range(nsims):
+        simulate(npops=npops_per_sim, index=i)
+        print(f"Done {npops_per_sim*(i+1)}/{npops}")
+    if npops_remainder > 0:
+        simulate(npops=npops_remainder, index=nsims)
+        print(f"Done {npops_per_sim*nsims+npops_remainder}/{npops}")
+finally:
+    #timing
+    endtime = datetime.now()
+    deltatime = int((endtime-starttime).total_seconds())
+    print(f"Took {deltatime//3600} h {(deltatime%3600)//60} min {deltatime%60} s to run.")
