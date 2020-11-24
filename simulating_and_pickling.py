@@ -226,7 +226,7 @@ print(f"npersons={npersons}")
 print(f"npops={npops}")
 print(f"slope_options={slope_options}")
 print(f"error_options={error_options}")
-print(f"Total populations: {npersons*npops*len(slope_options)*len(error_options)}")
+print(f"Total persons: {npersons*npops*len(slope_options)*len(error_options)}")
 print()
 print("Log: ")
 
