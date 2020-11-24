@@ -635,7 +635,7 @@ class PopulationList(UserList):
         strings = [
             f"Title: {repr(self.title)}",
             f"Titles: {summarize_list([repr(title) for title in self.titles])}",
-            f"N Persons: {self.npersons} / {self.initial_npersons} = {1-self.nfiltered:.2f}"
+            f"N Persons: {self.npersons} / {self.initial_npersons} = {1-self.ratio_filtered:.2f}"
         ]
         try: #if result of a sample, display a summary of that
             #summarize sampling_summaries:
