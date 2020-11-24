@@ -137,7 +137,7 @@ def normalize(array):
     return (array - np.min(array))/(np.max(array)-np.min(array))
 
 
-#printing and displaying
+#printing and displaying #TODO make length of each line of a text_block be of the same length
 def collocate_text(text_blocks, hseparator="\t", hseparatorlen=2, vseparator='\n', vseparatorlen=2):
     '''Combine multiline strings into one large string that looks like each strings was placed in a grid'''
     
@@ -156,11 +156,19 @@ def collocate_text(text_blocks, hseparator="\t", hseparatorlen=2, vseparator='\n
                 #arg is list
                 arglength = len(arg)
                 missinglength = length-arglength
-                return arg + ['']*missinglength
+                return arg + [' ']*missinglength
+            def pad_by_column(text_blocks):
+                for col in range(text_blocks.shape[1]):
+                    lengths = [max([len(line) for line in el.splitlines()]) for el in text_blocks[:,col]]
+                    maxlength = max(lengths)
+                    for row in range(text_blocks.shape[0]):
+                        text_blocks[row,col] = text_blocks[row,col] + ' '*(maxlength-lengths[row])
+                return text_blocks
 
             stringlist = [extend_to_length(el, rowlength) for el in stringlist]
             stringlist = np.array(stringlist)
             assert(stringlist.ndim == 2)
+            stringlist = pad_by_column(stringlist)
         return stringlist
     text_blocks = make_stringlist_2d(text_blocks)
         
