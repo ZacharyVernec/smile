@@ -137,53 +137,124 @@ def normalize(array):
     return (array - np.min(array))/(np.max(array)-np.min(array))
 
 
-#printing and displaying #TODO make length of each line of a text_block be of the same length
-def collocate_text(text_blocks, hseparator="\t", hseparatorlen=2, vseparator='\n', vseparatorlen=2):
-    '''Combine multiline strings into one large string that looks like each strings was placed in a grid'''
-    
-    #make 2d if not already
-    def make_stringlist_2d(stringlist):
-        lengths = [len(el) if isinstance(el, (list, np.ndarray)) else -1 for el in stringlist]
-        if max(lengths) == -1: #no element is listlike
-            stringlist = [stringlist] #keep as a row
-        else:
-            rowlength = max(lengths)
-            def extend_to_length(arg, length):
-                if isinstance(arg, np.ndarray):
-                    arg = arg.tolist()
-                elif not isinstance(arg, list):
-                    arg = [arg]
-                #arg is list
-                arglength = len(arg)
-                missinglength = length-arglength
-                return arg + [' ']*missinglength
-            def pad_by_column(text_blocks):
-                for col in range(text_blocks.shape[1]):
-                    lengths = [max([len(line) for line in el.splitlines()]) for el in text_blocks[:,col]]
-                    maxlength = max(lengths)
-                    for row in range(text_blocks.shape[0]):
-                        text_blocks[row,col] = text_blocks[row,col] + ' '*(maxlength-lengths[row])
-                return text_blocks
 
-            stringlist = [extend_to_length(el, rowlength) for el in stringlist]
-            stringlist = np.array(stringlist)
-            assert(stringlist.ndim == 2)
-            stringlist = pad_by_column(stringlist)
-        return stringlist
-    text_blocks = make_stringlist_2d(text_blocks)
-        
-    #collocate each row
-    row_strings = []
-    for row in range(len(text_blocks)):
-        text_blocks_lines = make_stringlist_2d([str(text_block).splitlines() for text_block in text_blocks[row]])
-        text_lines_arr = np.array(text_blocks_lines).T
-        lines = []
-        for line in text_lines_arr:
-            lines.append((hseparator*hseparatorlen).join(line))
-        row_strings.append("\n".join(lines))
+#printing and displaying
+
+#subroutines
+def _get_line_lengths(arg):
+    #only works for string or 2darray with same number of lines per string
+    assert(isinstance(arg, (str,np.ndarray)))
     
-    #stack rows
-    return (vseparator*vseparatorlen).join(row_strings) 
+    if isinstance(arg, str):
+        return [len(line) for line in arg.split('\n')]
+    
+    if isinstance(arg, np.ndarray):
+        assert(arg.ndim == 2)
+        lengths_as_lists = np.empty(arg.shape, dtype=object)
+        for i in range(arg.size):
+            lengths_as_lists.flat[i] = _get_line_lengths(arg.flat[i])
+        lines_per_string = len(lengths_as_lists[0,0])
+        lengths_as_dim = np.empty((*lengths_as_lists.shape, lines_per_string), dtype=int)
+        for i,j in np.ndindex(lengths_as_lists.shape):
+            lengths_as_dim[i,j,:] = lengths_as_lists[i,j]
+        return lengths_as_dim
+def _extend_row_to_length(rowlike, length):
+    #makes sure a rowlike (list, flat array, or single item) is of right length and is list
+    if isinstance(rowlike, np.ndarray):
+        row = rowlike.tolist()
+    elif not isinstance(rowlike, list):
+        row = [rowlike]
+    else: #already a list
+        row = rowlike
+    rowlength = len(row)
+    assert(rowlength <= length)
+    missinglength = length-rowlength
+    return np.hstack([row, np.repeat(np.array(['']),missinglength)])
+def _extend_lines_to_length(arg, lengths=None, maxlength=None):
+    #takes string or 1darray of strings and makes each line of all items the same length
+    #lengths may be given as an n+1dim array
+    #maxlength may be given as an int
+    if lengths is None:
+        lengths = _get_line_lengths(arg)
+    if maxlength is None:
+        maxlength = np.amax(lengths)
+        
+    if isinstance(arg, (str, np.str_)):
+        lines = arg.split('\n') #also removes '\n' from end of each line
+        for i in range(len(lines)):
+            lines[i] = lines[i]+' '*(maxlength-lengths[i])
+        lines = [line+'\n' for line in lines] #add back line endings, with extra for last line
+        block = ''.join(lines)
+        return block[:-1] #remove last line ending which wasn't there originally
+    if isinstance(arg, np.ndarray) and arg.ndim == 2:
+        arg_extended = np.empty_like(arg).tolist() #otherwise there is issues with fixed-length strings in ndarray
+        for i,j in np.ndindex(arg.shape):
+            arg_extended[i][j] = _extend_lines_to_length(arg[i,j], lengths[i,j], maxlength=maxlength)
+        return np.array(arg_extended)
+def _to_2darray_of_strings(listarg):
+    lengths = []
+    for el in listarg:
+        if isinstance(el, list):
+            lengths.append(len(el))
+        elif isinstance(el, np.ndarray):
+            assert(el.ndim == 1)
+            lengths.append(el.size)
+        else: #not flat list-like
+            lengths.append(-1)
+            
+    if max(lengths) == -1: #no element is listlike
+        return np.array([list_of_lists]) #keep, as a row ie as array of shape (1,size)
+    else: #consider each element as a row of arbitrary length
+        rowlength = max(lengths)
+        return np.array([_extend_row_to_length(el, rowlength) for el in listarg])
+def _get_number_lines(arg):
+    #line is counted as number of '\n' + 1
+    assert(isinstance(arg, (str,np.ndarray))) #only works for string or 2darray
+    if isinstance(arg, str):
+        return len(arg.split('\n'))
+    elif isinstance(arg, np.ndarray):
+        assert(arg.ndim == 2)
+        numbers = np.empty_like(arg, dtype=int)
+        for i in range(arg.size):
+            numbers.flat[i] = _get_number_lines(arg.flat[i])
+        return numbers
+def _extend_blocks_to_length(arg, numbers=None):
+    #makes all items in each row of 2darray arg with have same number of lines
+    #numbers is the number of lines for each item, 
+    # possibly given so don't have to recalculate
+    assert(isinstance(arg, np.ndarray) and arg.ndim == 2)
+    if numbers is None: 
+        numbers = _get_number_lines(arg)
+    assert(arg.shape == numbers.shape)
+    
+    maxlines = np.amax(numbers, axis=1)
+    arg_extended = np.empty_like(arg).tolist() #otherwise there is issues with fixed-length strings in ndarray
+    for i,j in np.ndindex(arg.shape):
+        arg_extended[i][j] = arg[i,j] + '\n'*(maxlines[j]-numbers[i,j])
+    return np.array(arg_extended)
+def _collocate_equal_blocks(blocks, hseparator="\t", hseparatorlen=2, vseparator='\n', vseparatorlen=2):
+    vseparation = vseparator*vseparatorlen
+    hseparation = hseparator*hseparatorlen
+    
+    collocated_rows = []
+    for row in blocks:
+        collocated_lines = []
+        row_split_lines = [block.split('\n') for block in row]
+        row_joined_lines = [hseparation.join(line) for line in zip(*row_split_lines)]
+        collocated_row = '\n'.join(row_joined_lines)
+        collocated_rows.append(collocated_row)
+    
+    collocated_blocks = vseparation.join(collocated_rows)
+    return collocated_blocks
+
+def collocate_text(strings, hseparator="\t", hseparatorlen=2, vseparator='\n', vseparatorlen=2):
+    '''Combine multiline strings into one large string that looks like each strings was placed in a grid'''
+    blocks = _to_2darray_of_strings(strings)
+    equal_blocks = _extend_lines_to_length(_extend_blocks_to_length(blocks))
+    text = _collocate_equal_blocks(equal_blocks, 
+                                  hseparator=hseparator, hseparatorlen=hseparatorlen, 
+                                  vseparator=vseparator, vseparatorlen=vseparatorlen)
+    return text
 def print_collocated(text_blocks, **kwargs):
     '''Display multiline strings in a grid'''
     print(collocate_text(text_blocks, **kwargs))
