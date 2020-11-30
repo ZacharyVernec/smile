@@ -203,7 +203,7 @@ def _to_2darray_of_strings(listarg):
             lengths.append(-1)
             
     if max(lengths) == -1: #no element is listlike
-        return np.array([list_of_lists]) #keep, as a row ie as array of shape (1,size)
+        return np.array([listarg]) #keep, as a row ie as array of shape (1,size)
     else: #consider each element as a row of arbitrary length
         rowlength = max(lengths)
         return np.array([_extend_row_to_length(el, rowlength) for el in listarg])
@@ -230,7 +230,7 @@ def _extend_blocks_to_length(arg, numbers=None):
     maxlines = np.amax(numbers, axis=1)
     arg_extended = np.empty_like(arg).tolist() #otherwise there is issues with fixed-length strings in ndarray
     for i,j in np.ndindex(arg.shape):
-        arg_extended[i][j] = arg[i,j] + '\n'*(maxlines[j]-numbers[i,j])
+        arg_extended[i][j] = arg[i,j] + '\n'*(maxlines[i]-numbers[i,j])
     return np.array(arg_extended)
 def _collocate_equal_blocks(blocks, hseparator="\t", hseparatorlen=2, vseparator='\n', vseparatorlen=2):
     vseparation = vseparator*vseparatorlen
