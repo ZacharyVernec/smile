@@ -2,8 +2,11 @@
 import numpy as np
 
 
+# Datatype parameters
+scoretype = np.float32
 
-# Study parameters
+
+ # Study parameters
 
 VMIN = 6 #minimum possible visual score
 SMIN = 0 #minimum possible symptom score

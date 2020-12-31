@@ -17,7 +17,7 @@ from smile.global_params import *
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'D:\saved_populations_large'
+pickle_dir = 'D:\tests_for_scoretype\saved_populations_large'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -238,7 +238,8 @@ try:
     npops_per_sim = 10
     nsims = npops // npops_per_sim
     npops_remainder = npops % npops_per_sim
-    for i in range(nsims):
+    #for i in range(nsims):
+    for i in range(1):
         simulate(npops=npops_per_sim, index=i)
         print(f"Done {npops_per_sim*(i+1)}/{npops}")
     if npops_remainder > 0:

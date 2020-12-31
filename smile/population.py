@@ -20,6 +20,7 @@ import statsmodels.formula.api as smf
 from smile.regression import RegressionResult, RegressionResultList
 from smile import helper
 from smile.helper import warn
+from smile.global_params import scoretype
 from smile.global_params import VMIN, SMIN, get_MIN, NDAYS, FIRSTVISIT, LASTVISIT
 from smile.global_params import lines_cmap_name, points_cmap_name
 
@@ -135,7 +136,7 @@ class Population:
         if generate_parameters: self.generate_parameters()
         
         for scorename in self.scores: #cannot be done by dict comprehension since later dict values depend on previous ones
-            self.scores[scorename] = self.generate_from_score_generator(scorename).astype(float)
+            self.scores[scorename] = self.generate_from_score_generator(scorename).astype(scoretype)
         
         minvisualscore = np.min(self.scores['visual'], initial=VMIN) #initial arg to avoid error of min on empty array
         if minvisualscore < VMIN: 
