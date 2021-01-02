@@ -1,14 +1,17 @@
 name: smile
 channels:
+  - conda-forge
   - defaults
 dependencies:
-  - matplotlib
-  - numpy
+  - jupyter_conda
   - scipy
+  - statsmodels
   - jupyterlab
   - jupyterlab-git
-  - jupyter_conda
-  - statsmodels
-  - dill
   - python=3.7.7
-
+  - matplotlib
+  - numpy
+  - dill
+  - jupyter_http_over_ws # need to run "jupyter serverextension enable --py jupyter_http_over_ws"
+  - nb_conda # might need to run "jupyter serverextension enable --py nb_conda"
+prefix: C:\ProgramData\Anaconda3\envs\smile
