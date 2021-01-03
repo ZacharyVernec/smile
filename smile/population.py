@@ -621,9 +621,11 @@ class PopulationList(UserList):
             raise ValueError(f"{len(axes)} axes are not enough to plot {len(self)} Populations")
             
     #summarizing
-    def summarize(self):
+    def summarize(self, head=3, tail=3):
         def summarize_list(li, head=3, tail=3):
-            if len(set(li)) == 1: #all elements are the same
+            try: nunique = len(set(li)) #possible unhashable types
+            except TypeError: nunique = len(set([tuple(el) for el in li])) #convert unhashable lists to hashable tuples
+            if nunique == 1: #all elements are the same
                 return f"[... {li[0]} ...]"
             else: #there are multiple elements
                 if head + tail >= len(li):
@@ -639,13 +641,42 @@ class PopulationList(UserList):
             f"N Persons: {self.npersons} / {self.initial_npersons} = {1-self.ratio_filtered:.2f}"
         ]
         try: #if result of a sample, display a summary of that
-            #summarize sampling_summaries:
-            sampling_summaries = {key:[pop.sampling_summary[key] for pop in self] for key in self[0].sampling_summary}
-            sampling_summary = {key:summarize_list(val, head=5, tail=5) for key, val in sampling_summaries.items()}
+            summary = {}
+            summary['nsamplers'] = summarize_list([pop.sampling_summary['nsamplers'] for pop in self], head=head, tail=tail)
+            summary['ndays'] = summarize_list(self.initial_ndays, head=head, tail=tail)
+            #for summary of 'limit'
+            limitnumbs_poplist = []
+            limittypes_poplist = []
+            for pop in self:
+                limitnumbs_pop = []
+                limittypes_pop = []
+                limitsummarydata = pop.sampling_summary['limit'] #a list of (limitnumb, limittype)
+                for sampler_limitsummary in limitsummarydata:
+                    limitnumbs_pop.append(sampler_limitsummary[0])
+                    limittypes_pop.append(sampler_limitsummary[1])
+                limitnumbs_poplist.append(tuple(limitnumbs_pop))
+                limittypes_poplist.append(tuple(limittypes_pop))
+            summary['limitnumb'] = summarize_list(limitnumbs_poplist, head=head, tail=tail)
+            summary['limittype'] = summarize_list(limittypes_poplist, head=head, tail=tail)
+            #same for 'if_reached'
+            reachednumbs_poplist = []
+            reachedtypes_poplist = []
+            for pop in self:
+                reachednumbs_pop = []
+                reachedtypes_pop = []
+                reachedsummarydata = pop.sampling_summary['if_reached'] #a list of (reachednumb, reachedtype)
+                for sampler_reachedsummary in reachedsummarydata:
+                    reachednumbs_pop.append(sampler_reachedsummary[0])
+                    reachedtypes_pop.append(sampler_reachedsummary[1])
+                reachednumbs_poplist.append(tuple(reachednumbs_pop))
+                reachedtypes_poplist.append(tuple(reachedtypes_pop))
+            summary['reachednumb'] = summarize_list(reachednumbs_poplist, head=head, tail=tail)
+            summary['reachedtype'] = summarize_list(reachedtypes_poplist, head=head, tail=tail)
+            #strings
             strings.extend([
-                f"N Days: {sampling_summary['nsamplers']} / {summarize_list(self.initial_ndays, head=5, tail=5)}",
-                f"Reached limits: {sampling_summary['limit']}",
-                f"Already reached: {sampling_summary['if_reached']}"
+                f"N Samplers: {summary['nsamplers']} / {summary['ndays']}",
+                f"Reached limits: {summary['limitnumb']} -- {summary['limittype']}",
+                f"Already reached: {summary['reachednumb']} -- {summary['reachedtype']}"
             ])
         except AttributeError:
             strings.append(f"N Days: {summarize_list(self.initial_ndays, head=5, tail=5)}")
