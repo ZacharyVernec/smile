@@ -12,15 +12,13 @@ class RegressionResult:
     '''Wrapper for linear RegressionResults class of statsmodels'''
     def __init__(self, statsmodelRegResult, population):
         self.statsmodelRegResult = statsmodelRegResult
-        self.population = population
         
         #slicing to not catch extra params in mixed effects model, e.g. 'Group x visual Cov'
         self.params = statsmodelRegResult.params.iloc[0:2]
         #self.rsquared = statsmodelRegResult.rsquared #Does not exist for linear mixed effects in statsmodels
         
-        @property
-        def title(self):
-            return self.population.title +'\n regression result'
+        self.populationtitle = population.title
+        self.title = self.populationtitle +'\n regression result'
         
     # Statistical methods
     
@@ -43,7 +41,7 @@ class RegressionResult:
         ax.fill_between(x, ylow, yhigh, color='b', alpha=.1)
         
         # Formatting
-        title = "Regression of {} \n with {:2.0f}% confidence intervals".format(self.population.title, (1-alpha)*100)
+        title = "Regression of {} \n with {:2.0f}% confidence intervals".format(self.populationtitle, (1-alpha)*100)
         ax.set_title(title, wrap=True)
         xlabel='visual score'
         ylabel='symptom score'
