@@ -14,8 +14,8 @@ import dill
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'D:\tests_for_scoretype\saved_populations_large'
-pickle_regs_dir = r'D:\tests_for_scoretype\saved_regressions_large'
+pickle_pops_dir = r'D:\saved_populations'
+pickle_regs_dir = r'D:\saved_regressions'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -33,7 +33,7 @@ def dump_to_file(obj, filename, filesuffix='.pik',
         filename = filename+filesuffix
     #check if will overwrite
     if os.path.isfile(filename) and avoid_overwrite:
-        raise OSError(f"File {filename} already exists and would be overriden")
+        raise OSError(f"File {filename} already exists and would be overwritten")
     else:
         with open(filename, 'wb') as f:
             dill.dump(obj, f, protocol=4)
@@ -88,7 +88,7 @@ starttime = datetime.now()
 print(f"Started at {starttime.strftime('%H:%M')}.")
 
 try:
-    nfiles_per_category = 1
+    nfiles_per_category = 100
     ncategories = 2 #poster and worddoc
     for i in range(nfiles_per_category):
         poplists = load_from_file(pickle_pops_dir+"\poster_sampled_poplists_"+str(i)+".pik")
