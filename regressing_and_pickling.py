@@ -57,7 +57,7 @@ def regress(poplists, name_indexless, index=None):
     #preallocate arrays
     regresultslists = np.empty_like(poplists)
 
-    #filter
+    #regress
     for i, j, k in np.ndindex(poplists.shape):
         if verbose: print(i, j)
         regresultslists[i, j, k] = poplists[i, j, k].regress_mixed()
@@ -79,7 +79,7 @@ print(f"npersons={npersons}")
 print(f"npops={npops}")
 print(f"slope_options={slope_options}")
 print(f"error_options={error_options}")
-print(f"Total populations: {npersons*npops*len(slope_options)*len(error_options)}")
+print(f"Total persons: {npersons*npops*len(slope_options)*len(error_options)}")
 print()
 print("Log: ")
 
