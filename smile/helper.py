@@ -323,6 +323,18 @@ class twodarray(np.ndarray):
         
     def __getitem__(self, subscript):
         '''will keep ndim == 2
+        supports:
+            int
+            slice
+            ndarray
+            (int, int)
+            (int, slice)
+            (int, np.ndarray)
+            (slice, int)
+            (slice, slice)
+            (slice, np.ndarray)
+            (np.ndarray, int)
+            (np.ndarray, slice)
         doesn't support boolean fancy indexing
         doesn't support indexing by (rowcoords, colcoords)
         '''
