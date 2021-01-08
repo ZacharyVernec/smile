@@ -157,10 +157,10 @@ class Population:
     
     #TODO more complex cases than linear
     #TODO remove repetition between functions
-    def regress(self, method='population', y='symptom', x='visual'):
+    def regress(self, method, y='symptom', x='visual'):
         #TODO use getattr(self, 'regress_'+method)
         if method == 'persons': return self.regress_persons(x=x, y=y)
-        elif method == 'population': return self.regress_population(x=x, y=y)
+        elif method == 'linear': return self.regress_linear(x=x, y=y)
         elif method =='mixed': return self.regress_mixed(x=x, y=y)
         else: raise ValueError("Unknown regression method: {}".format(method))
     def regress_persons(self, x='visual', y='symptom'):
@@ -168,7 +168,7 @@ class Population:
         warn('Deprecated')
         poplist = self.to_populationlist()
         #regress each person
-        regresults = poplist.regress_populations(y=y, x=x)
+        regresults = poplist.regress_linear(y=y, x=x)
         return regresults #TODO return as Result not Resultslist
     def regress_linear(self, x='visual', y='symptom'):
         '''Simple linear regression on self'''
@@ -522,10 +522,10 @@ class PopulationList(UserList):
             
     # Statistical methods
             
-    def regress(self, method='population', **kwargs):
+    def regress(self, method, **kwargs):
         #TODO use getattr(self, 'regress_'+method)
         if method == 'persons': return self.regress_persons(**kwargs)
-        elif method == 'population': return self.regress_population(**kwargs)
+        elif method == 'linear': return self.regress_linear(**kwargs)
         elif method =='mixed': return self.regress_mixed(**kwargs)
         else: raise ValueError("Unknown regression method: {}".format(method))
     def regress_persons(self, **kwargs):
