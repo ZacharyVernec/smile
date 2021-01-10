@@ -30,12 +30,14 @@ class Population:
     def __init__(self, npersons=10000, title=''):
         
         self.title = title
-        self.initial_data_shape = (self.initial_npersons, self.initial_ndays) = (npersons, NDAYS)
+        self.initial_data_shape = (npersons, NDAYS)
+        (self.initial_npersons, self.initial_ndays) = self.initial_data_shape
         
         self.parameter_generators = {}
-        self.parameters = {}
+        self.parameters = {} #TODO store only rng and seed to save space
         self.function_generators = {}
         
+        self.persons = helper.to_vertical(np.arange(self.initial_npersons))
         self.days = np.tile(np.arange(self.initial_ndays), (self.initial_npersons,1))
         self.scores = {'visual':None, 
                        'symptom_noerror':None, 
@@ -200,7 +202,7 @@ class Population:
             
         df = self.to_dataframe()
         #check for NaN, will decide later if should be dropped when specifying model
-        null_count = df.isnull().sum().sum()
+        null_count = df.isnull().sum().sum() #TODO fix: reports 3 times the NaN since counts for each scoretype
         if null_count > 0: 
             warn('Population {} has {} NaN values'.format(self.title, null_count))
         missing='drop'
@@ -233,6 +235,7 @@ class Population:
         newpop.parameter_generators = copy(self.parameter_generators)
         newpop.function_generators = copy(self.function_generators)
         newpop.parameters = copy(self.parameters)
+        newpop.persons = copy(self.persons)
         newpop.days = copy(self.days)
         newpop.scores = copy(self.scores)
         return newpop
@@ -253,13 +256,18 @@ class Population:
         newpop = self.copy()
         newpop.parameters = {paramname:np.array(helper.twodarray(paramval)[subscript]) if paramval.ndim > 0 else paramval #slice as twodarray but keep as ndarray
                              for paramname, paramval in newpop.parameters.items()}
-        newpop.scores = {scorename:np.array(helper.twodarray(scoreval)[subscript]) #slice as twodarray but keep as ndarray
+        newpop.scores = {scorename:np.array(helper.twodarray(scoreval)[subscript])
                          for scorename, scoreval in newpop.scores.items()}
-        newpop.days = np.array(helper.twodarray(newpop.days)[subscript]) #slice as twodarray but keep as ndarray
+        newpop.days = np.array(helper.twodarray(newpop.days)[subscript])
+        if isinstance(subscript, tuple):
+            subscript = subscript[0] #since self.persons can only have its rows indexed
+        newpop.persons = np.array(helper.twodarray(newpop.persons)[subscript])
+            
         return newpop
     def to_dataframe(self):
         data_dict = {
-            'person': np.broadcast_to(np.arange(self.npersons), (self.ndays, self.npersons)).T, # same shape matrix as days or scores, with values that indicate person index
+            # data_dict['persons'] has same shape matrix as days or scores, with values that indicate person index
+            'person': np.broadcast_to(self.persons, (self.npersons, self.ndays)), 
             'day': ma.filled(self.days),
             **{scorename: ma.filled(scoreval) for scorename, scoreval in self.scores.items()}
         }
@@ -280,6 +288,8 @@ class Population:
         Filters the population in multiple ways at once
         filter_types and filter_kwargs are lists, with each position defining what could be a call to filter()
         '''
+        #TODO filter out sequentially, to reduce amount of computations
+        
         #argument checking
         if len(filter_types) != len(filter_kwargs): 
             raise ValueError(f"filter_types {filter_types} must have same length as filter_kwargs, which has length {len(filter_kwargs)}")
@@ -289,8 +299,8 @@ class Population:
         elif copy==True: pop=self.copy(addtitle='filtered')
         else: raise ValueError()
         
-        #iterate
-        persons_excluded = []
+        #iterate over different types of filtering
+        persons_excluded = [] #list of boolean arrays
         for filter_type, kwargs in zip(filter_types, filter_kwargs):
             #get filter inner function depending on given filter_type
             try:
@@ -301,12 +311,14 @@ class Population:
             persons_excluded.append(pop_filter_func(**kwargs))
             
         #logic
-        persons_excluded = np.logical_or.reduce(persons_excluded) #reduce makes it so persons_exluded can be any length
+        #exclude a person iff they are marked to be excluded by at least one filter
+        persons_excluded = np.logical_or.reduce(persons_excluded)
         persons_included = np.logical_not(persons_excluded)
         
         #take only the included
         pop.scores = {scorename:pop.scores[scorename][persons_included] for scorename in pop.scores}
         pop.days = pop.days[persons_included]
+        pop.persons = pop.persons[persons_included]
         return pop #may be a self or a copy
     def _get_excluded_magnitude_early(self, scorename='symptom', recovered_score=None, firstday=FIRSTVISIT):
         if recovered_score is None:
@@ -417,11 +429,12 @@ class Population:
     def summarize(self):
         strings = [
             f"Title: {repr(self.title)}",
-            f"N Persons: {self.npersons} / {self.initial_npersons} = {1-self.nfiltered:.2f}"
+            f"N Persons: {self.npersons} / {self.initial_npersons} = {1-self.ratio_filtered:.2f}"
         ]
         try: #if result of a sample, display a summary of that
             strings.extend([
-                f"N Days: {self.sampling_summary['nsamplers']} / {self.initial_ndays}",
+                f"N Days: {self.ndays} / {self.initial_ndays}",
+                f"Samplers: {self.sampling_summary['nsamplers']},"
                 f"Reached limits: {self.sampling_summary['limit']}",
                 f"Already reached: {self.sampling_summary['if_reached']}"
             ])
@@ -679,5 +692,5 @@ class PopulationList(UserList):
                 f"Already reached: {summary['reachednumb']} -- {summary['reachedtype']}"
             ])
         except AttributeError:
-            strings.append(f"N Days: {summarize_list(self.initial_ndays, head=5, tail=5)}")
+            strings.append(f"N Days: {summarize_list(self.ndays, head=5, tail=5)}")
         return '\n'.join(strings)
