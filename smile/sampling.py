@@ -256,13 +256,14 @@ class TraditionalSampler(Sampler):
         super().finish_sampling(population, order, sampling_days)
                 
 class SmileSampler(Sampler):
-    def __init__(self, index=FIRSTVISIT, ratio=0.5, triggered_by_equal=True, scorename='symptom', **kwargs):
+    def __init__(self, index=FIRSTVISIT, ratio=0.5, scorename='symptom', 
+                 triggered_by_equal=True, **kwargs):
         '''
         index: int of the day or 2-tuple where the first entry is the string 'sample'
-            and the second entry determines which previous sample to reference (positive or negative int)
-        ratio: what ratio triggers this smile milestone, should generally be between 0 and 1 for useful results
-        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
+            and the second entry determines which previous sample to reference (nonzero int)
+        ratio: what ratio triggers this smile milestone, between 0 and 1 for useful results
         scorename: which score the ratio refers to
+        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
         kwargs: passed to parent class
         '''
         super().__init__(name='smile', **kwargs)
@@ -393,31 +394,3 @@ class MagnitudeSampler(Sampler):
         if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
             
         super().finish_sampling(population, order, sampling_days)
-
-
-class RealisticMethodology(Methodology):
-    '''Discussed on a phone call'''
-    def __init__(self):
-        super().__init__('realistic')
-                                     
-        #limit is irrelevant because max(day+delay) < NDAYS
-        #if_reached is irrelevant because first sampling method
-        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
-        self.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
-        
-        #if_reached is irrelevant because index is previous sample
-        other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
-        self.add_sampler(SmileSampler(index=('sample', -1), ratio=0.5, triggered_by_equal=True, scorename='symptom',
-                                      delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN'))
-        
-        #same delay as previous
-        self.add_sampler(MagnitudeSampler(value=6, triggered_by_equal=False, scorename='symptom',
-                                          delay=other_delay_func, limit=(LASTVISIT, 'clip'), if_reached='NaN'))
-        
-class TraditionalMethodology(Methodology):
-    def __init__(self):
-        super().__init__('traditional')
-        first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
-        self.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
-        self.add_sampler(TraditionalSampler(day=('sample', 0), delay=14))
-        self.add_sampler(TraditionalSampler(day=('sample', 0), delay=28))
