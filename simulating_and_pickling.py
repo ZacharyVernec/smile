@@ -17,7 +17,7 @@ from smile.global_params import *
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'D:\saved_populations_5'
+pickle_dir = 'D:\saved_populations_6'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -126,16 +126,21 @@ def get_realistic_methodology():
     #limit is irrelevant because max(day+delay) < NDAYS
     #if_reached is irrelevant because first sampling method
     first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
-    methodology.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
+    sampler1 = TraditionalSampler(day=0, delay=first_delay_func)
+    methodology.add_sampler(sampler1)
 
     #if_reached is irrelevant because index is previous sample
     other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
-    methodology.add_sampler(SmileSampler(index=('sample', -1), ratio=0.5, triggered_by_equal=False, scorename='symptom',
-                                         delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN'))
+    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='symptom',
+                            delay=other_delay_func, triggered_by_equal=True,
+                            limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler2)
 
     #same delay as previous
-    methodology.add_sampler(MagnitudeSampler(value=6, triggered_by_equal=False, scorename='symptom',
-                                             delay=other_delay_func, limit=(LASTVISIT, 'clip'), if_reached='NaN'))
+    sampler3 = MagnitudeSampler(value=6, scorename='symptom',
+                                delay=other_delay_func, triggered_by_equal=True,
+                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler3)
 
     return methodology
 
