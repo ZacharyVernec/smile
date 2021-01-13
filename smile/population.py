@@ -247,12 +247,13 @@ class Population:
         if addtitle1 is not None:
             newpop1.title += ' '+addtitle1
         return newpop1, newpop2
-    def __getitem__(self, subscript): #for slicing like a numpy 2d array of (persons, days)
+    def __getitem__(self, subscript): #for slicing like a numpy 2d array of (persons, days) 
         '''
         Returns a new population by slicing the days and scores as specified
         (in a numpy-like fashion)
         keeping arrays two-dimensional
         '''
+        if isinstance(self.days, np.ma.masked_array): warn('slicing converts masks to arrays') #TODO
         newpop = self.copy()
         newpop.parameters = {paramname:np.array(helper.twodarray(paramval)[subscript]) if paramval.ndim > 0 else paramval #slice as twodarray but keep as ndarray
                              for paramname, paramval in newpop.parameters.items()}
@@ -340,8 +341,7 @@ class Population:
     def _get_excluded_ratio_early(self, scorename='symptom', index_day=0, recovered_ratio=0.15, firstday=FIRSTVISIT):
         score_lowerbound = get_MIN(scorename)
         recovered_scores = (self.scores[scorename][:,index_day] - score_lowerbound)*recovered_ratio + score_lowerbound
-        recovered_scores = helper.to_vertical(recovered_scores)
-        persons_recovered_early = np.any(self.scores[scorename][:,:firstday] <= recovered_scores, axis=1)
+        persons_recovered_early = self.scores[scorename][:,firstday] <= recovered_scores
         return persons_recovered_early
     def _get_excluded_ratio_late(self, scorename='symptom', index_day=0, recovered_ratio=0.15, lastday=NDAYS):
         score_lowerbound = get_MIN(scorename)
