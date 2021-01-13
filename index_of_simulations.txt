@@ -1,0 +1,9 @@
+_large.rar : original sim, all populations and regressions, regression objects include copy of populations
+tests_for_daytype : to compare with _large.rar to see differences when daytype is changed
+tests_for_scoretype : similar to tests_for_daytype
+saved_populations & saved_regressions : similar to _large.rar but scoretype is float32, regression doesn't include copy of populations
+""_2 : populations now include persons id
+""_3 : sampler2 now has triggered_by_equal=False
+""_4 : filter now has treshold 40% (was 70%)
+""_5 : filter now only checks on day=7 (used to do *any* day before day=7)
+""_6 : samplers 1 and 2 have triggered_by_equal=True, and sampler 3 has threshold 2 (was 6)
