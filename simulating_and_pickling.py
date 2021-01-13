@@ -17,7 +17,7 @@ from smile.global_params import *
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'D:\saved_populations'
+pickle_dir = 'D:\saved_populations_5'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -130,7 +130,7 @@ def get_realistic_methodology():
 
     #if_reached is irrelevant because index is previous sample
     other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
-    methodology.add_sampler(SmileSampler(index=('sample', -1), ratio=0.5, triggered_by_equal=True, scorename='symptom',
+    methodology.add_sampler(SmileSampler(index=('sample', -1), ratio=0.5, triggered_by_equal=False, scorename='symptom',
                                          delay=other_delay_func, limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN'))
 
     #same delay as previous
@@ -171,7 +171,7 @@ def simulate(npops, index=None):
 
     #define
     filter_kwargs = {'filter_type':'ratio_early', 'copy':True,
-                     'index_day':0, 'recovered_ratio':0.7, 'scorename':'symptom'}
+                     'index_day':0, 'recovered_ratio':0.4, 'scorename':'symptom'}
 
     #preallocate arrays
     poster_filtered_poplists = np.empty_like(poster_poplists)
@@ -236,7 +236,8 @@ print(f"Started at {starttime.strftime('%H:%M')}.")
 
 try:
     npops_per_sim = 10
-    nsims = npops // npops_per_sim
+    #nsims = npops // npops_per_sim
+    nsims = 1
     npops_remainder = npops % npops_per_sim
     for i in range(nsims):
         simulate(npops=npops_per_sim, index=i)
