@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[10]:
-
-
 # Standard library imports
 import os
 from datetime import datetime
@@ -23,8 +17,8 @@ import dill
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'D:\saved_populations_5'
-pickle_csv_dir = r'D:\saved_populations_5_csv'
+pickle_pops_dir = r'D:\saved_populations_6_2'
+pickle_csv_dir = r'D:\saved_populations_6_2_csv'
 
 
 
@@ -94,4 +88,3 @@ for i,j, k in np.ndindex(poplists.shape):
         pop = poplist[l]
         dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{l}_sampled_{method_options[k]}", filesuffix='.csv', 
                          dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
-

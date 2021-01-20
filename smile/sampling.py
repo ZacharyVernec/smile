@@ -257,13 +257,14 @@ class TraditionalSampler(Sampler):
                 
 class SmileSampler(Sampler):
     def __init__(self, index=FIRSTVISIT, ratio=0.5, scorename='symptom', 
-                 triggered_by_equal=True, **kwargs):
+                 triggered_by_equal=True, min_triggered=1, **kwargs):
         '''
         index: int of the day or 2-tuple where the first entry is the string 'sample'
             and the second entry determines which previous sample to reference (nonzero int)
         ratio: what ratio triggers this smile milestone, between 0 and 1 for useful results
         scorename: which score the ratio refers to
         triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
+        min_triggered: the number of days in a row to fulfill the condition when sampling
         kwargs: passed to parent class
         '''
         super().__init__(name='smile', **kwargs)
@@ -292,16 +293,21 @@ class SmileSampler(Sampler):
             warn(f"ratio of {ratio} may be unobtainable.")
         self.ratio = ratio
         
-        #check and set triggered_by_equal
-        if not isinstance(triggered_by_equal, bool):
-            raise TypeError(f"triggred_by_equal of {triggered_by_equal} should be a boolean")
-        self.triggered_by_equal = triggered_by_equal
-
         #check and set scorename
         if scorename not in {'symptom', 'visual', 'symptom_noerror'}:
             raise ValueError(f"scorename of {scorename} not understood")
         self.scorename = scorename
         
+        #check and set triggered_by_equal
+        if not isinstance(triggered_by_equal, bool):
+            raise TypeError(f"triggred_by_equal of {triggered_by_equal} should be a boolean")
+        self.triggered_by_equal = triggered_by_equal
+        
+        #check and set min_triggered
+        if not isinstance(min_triggered, int) or min_triggered < 1:
+            raise TypeError(f"min_triggered of {min_triggered} should be an int of at least 1")
+        self.min_triggered  = min_triggered
+      
     def _init_with_order(self, order):
         super()._init_with_order(order)
         if isinstance(self.index, tuple):
@@ -335,23 +341,41 @@ class SmileSampler(Sampler):
 
         # Compute the days where the milestones are triggered
         comparison_array = (smilescores <= smile_vals) if self.triggered_by_equal else (smilescores < smile_vals)
-        sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
-        sampling_days[:,order] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+        # Compute the days where the milestones are triggered consecutively
+        if self.min_triggered == 1:
+            pass #don't change comparison_array
+        elif self.min_triggered > 1:
+            triggered_in_a_row = np.ones_like(comparison_array[:,self.min_triggered-1:]) #initial
+            for start in range(self.min_triggered):
+                end = start + 1-self.min_triggered
+                if end == 0: end = None
+                triggered_in_a_row = triggered_in_a_row * comparison_array[:,start:end] # accumulate
+            comparison_array[:,self.min_triggered-1:] = triggered_in_a_row #we only checked when enough days have passed
+            comparison_array[:,:self.min_triggered-1] = False #the rest can't have had enough days in a row
+            
+        #the day at which the milestone is reached for each person
+        sampling_days_temp = np.argmax(comparison_array, axis=1) 
+        #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+        sampling_days[:,order] = sampling_days_temp 
+        #record of which persons reached the milestones
         persons_reached_milestone = np.take_along_axis(comparison_array, 
                                                        helper.to_vertical(sampling_days_temp), 
-                                                       axis=1) #record of which persons reached the milestones
-        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_SMILE
-        if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
+                                                       axis=1)
+        #give invalid day to those who didn't reach
+        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_SMILE 
+        if not np.all(persons_reached_milestone): 
+            warn(f"There are {(~persons_reached_milestone.flatten()).sum()} who didn't reach their milestone")
             
         super().finish_sampling(population, order, sampling_days)
                 
 class MagnitudeSampler(Sampler):
-    def __init__(self, value=None, triggered_by_equal=True, scorename='symptom', **kwargs):
+    def __init__(self, value=None, scorename='symptom', 
+                 triggered_by_equal=True, min_triggered=1, **kwargs):
         '''
         value: what value triggers this milestone (None means minimum possible given the scorename)
-        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
         scorename: which score the value refers to
-        delay, limit, if_reached: as in add_method
+        triggered_by_equal: if True, use <= for trigger, if False, use < for trigger
+        min_triggered: the number of days in a row to fulfill the condition when sampling
         kwargs: passed to parent class
         '''
         super().__init__(name='magnitude', **kwargs)
@@ -378,6 +402,11 @@ class MagnitudeSampler(Sampler):
                 warn(f"value of {value} may be unobtainable since it is smaller or equal to "
                      f"{self.scorename}'s MIN of {get_MIN(self.scorename)}")
         self.value = value
+        
+        #check and set min_triggered
+        if not isinstance(min_triggered, int) or min_triggered < 1:
+            raise TypeError(f"min_triggered of {min_triggered} should be an int of at least 1")
+        self.min_triggered  = min_triggered
                 
     def sample(self, population, order, sampling_days):
         smilescores = population.scores[self.scorename] #scores which the method value refers to
@@ -385,12 +414,29 @@ class MagnitudeSampler(Sampler):
 
         # Compute the days where the milestones are triggered
         comparison_array = (smilescores <= self.value) if self.triggered_by_equal else (smilescores < self.value)
-        sampling_days_temp = np.argmax(comparison_array, axis=1) #the day at which the milestone is reached for each person
-        sampling_days[:,order] = sampling_days_temp #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+        # Compute the days where the milestones are triggered consecutively
+        if self.min_triggered == 1:
+            pass #don't change comparison_array
+        elif self.min_triggered > 1:
+            triggered_in_a_row = np.ones_like(comparison_array[:,self.min_triggered-1:]) #initial
+            for start in range(self.min_triggered):
+                end = start + 1-self.min_triggered
+                if end == 0: end = None
+                triggered_in_a_row = triggered_in_a_row * comparison_array[:,start:end] # accumulate
+            comparison_array[:,self.min_triggered-1:] = triggered_in_a_row #we only checked when enough days have passed
+            comparison_array[:,:self.min_triggered-1] = False #the rest can't have had enough days in a row
+            
+        #the day at which the milestone is reached for each person
+        sampling_days_temp = np.argmax(comparison_array, axis=1) 
+        #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
+        sampling_days[:,order] = sampling_days_temp 
+        #record of which persons reached the milestones
         persons_reached_milestone = np.take_along_axis(comparison_array, 
                                                        helper.to_vertical(sampling_days_temp), 
-                                                       axis=1) #record of which persons reached the milestones
-        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_MAGNITUDE
-        if not np.all(persons_reached_milestone): warn("There is at least one person who didn't reach his milestone")
+                                                       axis=1)
+        #give invalid day to those who didn't reach
+        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_SMILE 
+        if not np.all(persons_reached_milestone): 
+            warn(f"There are {(~persons_reached_milestone.flatten()).sum()} who didn't reach their milestone")
             
         super().finish_sampling(population, order, sampling_days)
