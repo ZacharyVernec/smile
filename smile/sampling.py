@@ -189,7 +189,7 @@ class Sampler(ABC):
         elif callable(self.delay):
             sampling_days[persons_valid,order] += self.delay((npersons_valid,))
 
-        #limit #TODO ask if should be done before delay
+        #limit
         limitval, limitbehaviour = self.limit #unpack
         if isinstance(limitval, int):
             limitvals = limitval #numpy will broadcast to the right shape
@@ -442,10 +442,16 @@ class MagnitudeSampler(Sampler):
             comparison_array[:,self.min_triggered-1:] = triggered_in_a_row #we only checked when enough days have passed
             comparison_array[:,:self.min_triggered-1] = False #the rest can't have had enough days in a row
             
-            #only check on or after previous sample day by
+        #only check on or after previous (valid) sample day by
         #setting the comparison values from days 0 to prev sample day (excluding end) to False
-        for i in range(population.npersons):
-            comparison_array[i,:sampling_days[i, order-1]] = False
+        if order > 0:
+            for i in range(population.npersons):
+                #for getting valid prev day
+                for prev_order in range(order-1, 0-1, -1):
+                    prev_sample_day = sampling_days[i, prev_order]
+                    if prev_sample_day < NDAYS: break
+                #for setting days until then as don't consider
+                comparison_array[i,:prev_sample_day] = False
         #if it is True on the same day as the previous sample day, the finish_sampling will consider it already_reached
             
         #the day at which the milestone is reached for each person
