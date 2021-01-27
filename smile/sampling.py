@@ -154,6 +154,33 @@ class Sampler(ABC):
     
     def finish_sampling(self, population, order, sampling_days):
         
+        #check if_reached
+        if order > 0:
+            #checks if new calling day is on the same day as the prev sample or before
+            #TraditionalSampler is allowed to have new calling day on the same day as prev (but not before)
+            if not isinstance(self, TraditionalSampler): #TODO make this check a parameter set in class definition
+                already_reached = (sampling_days[:,order] <= sampling_days[:,order-1])
+            else:
+                already_reached = (sampling_days[:,order] < sampling_days[:,order-1])
+            
+            if np.any(already_reached): 
+                warn(f"There are {already_reached.sum()} who had already reached their milestone")
+
+            if self.if_reached == 'same':
+                #fast forwards new sample to previous sample
+                sampling_days[:,order] = np.where(already_reached, sampling_days[:,order-1], sampling_days[:,order])
+            if self.if_reached == 'NaN':
+                #will be masked with fill_value = NaN
+                sampling_days[:,order] = np.where(already_reached, _ALREADYREACHED, sampling_days[:,order]) 
+            if self.if_reached == 'raise':
+                if np.any(already_reached): 
+                    raise ValueError("Patient was already here when he arrived for his prev sample")
+            #remember how many triggered if_reached
+            population.sampling_summary['if_reached'].append((np.sum(already_reached), self.if_reached))
+        else:
+            #remember how many triggered if_reached
+            population.sampling_summary['if_reached'].append((0, self.if_reached))
+        
         #add delay
         persons_valid = sampling_days[:,order] < NDAYS
         npersons_valid = persons_valid.sum()
@@ -172,6 +199,7 @@ class Sampler(ABC):
             limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
         #check where reached or exceeded limit
         reached_limit = sampling_days[:,order] > limitvals
+        reached_limit = np.logical_and(reached_limit, persons_valid) #ignore those already_sampled
         #act on limit
         if limitbehaviour == 'raise':
             if np.any(reached_limit):
@@ -184,25 +212,6 @@ class Sampler(ABC):
         #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
         #remember how many triggered limit
         population.sampling_summary['limit'].append((np.sum(reached_limit), limitbehaviour))
-
-        #check if_reached
-        if order > 0:
-            #checks if new sample is technically before previous (prevents backwards time-travel)
-            already_reached = (sampling_days[:,order] <= sampling_days[:,order-1])
-            if self.if_reached == 'same':
-                #fast forwards new sample to previous sample
-                sampling_days[:,order] = np.where(already_reached, sampling_days[:,order-1], sampling_days[:,order])
-            if self.if_reached == 'NaN':
-                #will be masked with fill_value = NaN
-                sampling_days[:,order] = np.where(already_reached, _ALREADYREACHED, sampling_days[:,order]) 
-            if self.if_reached == 'raise':
-                if np.any(already_reached): 
-                    raise ValueError("Patient was already here when he arrived for his prev sample")
-            #remember how many triggered if_reached
-            population.sampling_summary['if_reached'].append((np.sum(already_reached), self.if_reached))
-        else:
-            #remember how many triggered if_reached
-            population.sampling_summary['if_reached'].append((0, self.if_reached))
         
 class TraditionalSampler(Sampler):
     def __init__(self, day, **kwargs):
@@ -352,12 +361,19 @@ class SmileSampler(Sampler):
                 triggered_in_a_row = triggered_in_a_row * comparison_array[:,start:end] # accumulate
             comparison_array[:,self.min_triggered-1:] = triggered_in_a_row #we only checked when enough days have passed
             comparison_array[:,:self.min_triggered-1] = False #the rest can't have had enough days in a row
+          
+        #only check on or after previous sample day by
+        #setting the comparison values from days 0 to prev sample day (excluding end) to False
+        for i in range(population.npersons):
+            comparison_array[i,:sampling_days[i, order-1]] = False
+        #if it is True on the same day as the previous sample day, the finish_sampling will consider it already_reached
             
         #the day at which the milestone is reached for each person
         sampling_days_temp = np.argmax(comparison_array, axis=1) 
         #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
         sampling_days[:,order] = sampling_days_temp 
-        #record of which persons reached the milestones
+        
+        #record of which persons actually reached the milestones
         persons_reached_milestone = np.take_along_axis(comparison_array, 
                                                        helper.to_vertical(sampling_days_temp), 
                                                        axis=1)
@@ -426,6 +442,12 @@ class MagnitudeSampler(Sampler):
             comparison_array[:,self.min_triggered-1:] = triggered_in_a_row #we only checked when enough days have passed
             comparison_array[:,:self.min_triggered-1] = False #the rest can't have had enough days in a row
             
+            #only check on or after previous sample day by
+        #setting the comparison values from days 0 to prev sample day (excluding end) to False
+        for i in range(population.npersons):
+            comparison_array[i,:sampling_days[i, order-1]] = False
+        #if it is True on the same day as the previous sample day, the finish_sampling will consider it already_reached
+            
         #the day at which the milestone is reached for each person
         sampling_days_temp = np.argmax(comparison_array, axis=1) 
         #the day at which the milestone is reached for each person, inc. 0 for 'never reached'
@@ -435,7 +457,7 @@ class MagnitudeSampler(Sampler):
                                                        helper.to_vertical(sampling_days_temp), 
                                                        axis=1)
         #give invalid day to those who didn't reach
-        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_SMILE 
+        sampling_days[~persons_reached_milestone.flatten(), order] = _UNREACHED_MAGNITUDE
         if not np.all(persons_reached_milestone): 
             warn(f"There are {(~persons_reached_milestone.flatten()).sum()} who didn't reach their milestone")
             

@@ -17,7 +17,7 @@ from smile.global_params import *
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'D:\saved_populations_6_2'
+pickle_dir = 'D:\saved_populations_8'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -116,8 +116,8 @@ def get_traditional_methodology():
     first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
 
     methodology.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
-    methodology.add_sampler(TraditionalSampler(day=('sample', 0), delay=14))
-    methodology.add_sampler(TraditionalSampler(day=('sample', 0), delay=28))
+    methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
+    methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
 
     return methodology
 def get_realistic_methodology():
@@ -206,10 +206,13 @@ def simulate(npops, index=None):
 
     #sample
     for i, j in np.ndindex(poplists_shape):
-        if verbose: print(i, j)
+        if verbose: print(i, j, 'poster', 0)
         poster_sampled_poplists[i, j, 0] = methodologies[0].sample(poster_filtered_poplists[i, j])
+        if verbose: print(i, j, 'poster', 1)
         poster_sampled_poplists[i, j, 1] = methodologies[1].sample(poster_filtered_poplists[i, j])
+        if verbose: print(i, j, 'poster', 0)
         worddoc_sampled_poplists[i, j, 0] = methodologies[0].sample(worddoc_filtered_poplists[i, j])
+        if verbose: print(i, j, 'poster', 1)
         worddoc_sampled_poplists[i, j, 1] = methodologies[1].sample(worddoc_filtered_poplists[i, j])
 
 

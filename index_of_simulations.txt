@@ -9,3 +9,4 @@ saved_populations & saved_regressions : similar to _large.rar but scoretype is f
 ""_6 : samplers 1 and 2 have triggered_by_equal=True, and sampler 3 has threshold 2 (was 6)
 ""_7 : smile sampler now checks for multiple days in a row, here 2 days
 ""_6_2 : _6 is incorrect as the threshold was still left at 6. Here it is set to 2, as it should have been.
+""_8 : sampler only checks current and future days for already_sampled (back to checking for 1 day in a row)
