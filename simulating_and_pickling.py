@@ -133,13 +133,15 @@ def get_realistic_methodology():
     other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
     sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='symptom',
                             delay=other_delay_func, triggered_by_equal=True, min_triggered=1, 
-                            limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN')
+                            #limit=((-1, lambda prev_day: prev_day+28), 'clip'), if_reached='NaN')
+                            limit=(2*_LIMITREACHED, 'NaN'), if_reached='NaN')
     methodology.add_sampler(sampler2)
 
     #same delay as previous
     sampler3 = MagnitudeSampler(value=2, scorename='symptom',
                                 delay=other_delay_func, triggered_by_equal=True,
-                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
+                                #limit=(LASTVISIT, 'clip'), if_reached='NaN')
+                                limit=(2*_LIMITREACHED, 'NaN'), if_reached='NaN')
     methodology.add_sampler(sampler3)
 
     return methodology

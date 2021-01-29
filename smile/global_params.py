@@ -17,7 +17,7 @@ def get_MIN(scorename):
 
 NDAYS = 160 #number of days in the study
 FIRSTVISIT = 7
-LASTVISIT = NDAYS-1
+LASTVISIT = NDAYS-1 #TODO fix in sampling.py (sometimes used NDAYS instead)
 
 assert(0 <= FIRSTVISIT)
 assert(FIRSTVISIT <= LASTVISIT)
@@ -29,6 +29,7 @@ assert(all(isinstance(numb, int) for numb in [FIRSTVISIT, LASTVISIT, NDAYS]))
 # Temp day values for different cases 
 # must be arbitrary distrinct int32s, all larger than NDAYS
 
+_UNREACHED_TRADITIONAL = 2**16
 _UNREACHED_SMILE = 2**16+1
 _UNREACHED_MAGNITUDE = 2**16+2
 _LIMITREACHED = 2**16+3
