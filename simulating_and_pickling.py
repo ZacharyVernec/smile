@@ -12,12 +12,13 @@ from smile.population import Population, PopulationList
 from smile.sampling import *
 from smile import helper
 from smile.global_params import *
+from smile.global_params import _LIMITREACHED
 
 # Settings
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'D:\saved_populations_8'
+pickle_dir = 'D:\saved_populations_9'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 

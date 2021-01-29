@@ -17,8 +17,8 @@ import dill
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'D:\saved_populations_8'
-pickle_csv_dir = r'D:\saved_populations_8_csv'
+pickle_pops_dir = r'D:\saved_populations_9'
+pickle_csv_dir = r'D:\saved_populations_9_csv'
 
 
 
