@@ -11,3 +11,4 @@ saved_populations & saved_regressions : similar to _large.rar but scoretype is f
 ""_6_2 : _6 is incorrect as the threshold was still left at 6. Here it is set to 2, as it should have been.
 ""_8 : sampler only checks current and future days for already_sampled (back to checking for 1 day in a row)
 ""_9 : sampler and methodologies refactored and fixed some logic about cross-sampler interactions, removed limits
+""_10 : added limit->clip at LASTVISIT ie day 159
