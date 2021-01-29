@@ -15,7 +15,8 @@ from smile.population import Population, PopulationList
 from smile import helper
 from smile.helper import warn
 from smile.global_params import get_MIN, NDAYS, FIRSTVISIT, LASTVISIT
-from smile.global_params import _UNREACHED_SMILE, _UNREACHED_MAGNITUDE, _LIMITREACHED, _ALREADYREACHED
+from smile.global_params import _UNREACHED_TRADITIONAL, _UNREACHED_SMILE, _UNREACHED_MAGNITUDE
+from smile.global_params import _LIMITREACHED, _ALREADYREACHED
 
 
 #TODO should warn how many people trigger limit or if_reached
@@ -64,6 +65,17 @@ class Methodology(ABC):
         population.sampling_summary = {'nsamplers':self.nsamplers, 'limit':[], 'if_reached':[]}
         for order, sampler in enumerate(self.samplers):
             sampler.sample(population, order, sampling_days)
+            
+        #checking if_reached
+        #find those that sample on the same day multiple times
+        is_same_day_as_prev = np.zeros_like(sampling_days, dtype=bool)
+        is_same_day_as_prev[:,1:] = np.diff(sampling_days) == 0 #note first column/sample has no prev so 0 ie False
+        #dont' change those who are _ALREADYREACHED, etc.
+        alreadyinvalid = sampling_days > LASTVISIT
+        is_same_day_as_prev = np.logical_and(is_same_day_as_prev, ~alreadyinvalid)
+        #change
+        for order, sampler in enumerate(self.samplers):
+            sampler.set_alreadyreached(population, order, sampling_days, is_same_day_as_prev)
         
         #convert to mask with masked values being 0 (to not throw an error when using np.take_along_axis)
         mask = sampling_days >= NDAYS
@@ -114,7 +126,7 @@ class Sampler(ABC):
             raise TypeError(f"delay of {delay} is not an int nor is it callable")
         self.delay = delay
         
-        #check and set limit
+        #check and set limit #TODO add None option
         if isinstance(limit, tuple) and len(limit) == 2:
             limitval, limitbehaviour = limit
             #limitval
@@ -152,54 +164,53 @@ class Sampler(ABC):
         #finish all implementations by calling super().finish_sampling()
         pass
     
-    def finish_sampling(self, population, order, sampling_days):
+    def _add_delay(self, population, order, sampling_days):
+        '''
+        For those whose current calling day (column 'order' of sampling_days) is after their previous sampling day,
+        add a delay to that calling day to make it a sampling day.
+        The others who are already_reached, are simply left with the same sampling day as before 
+        (although this may change in finish_sampling by behaviour defined in self.if_reached)
+        Those who are unreached are also left with the same invalid day > NDAYS
+        '''
         
-        #check if_reached
-        if order > 0:
-            #checks if new calling day is on the same day as the prev sample or before
-            #TraditionalSampler is allowed to have new calling day on the same day as prev (but not before)
-            if not isinstance(self, TraditionalSampler): #TODO make this check a parameter set in class definition
-                already_reached = (sampling_days[:,order] <= sampling_days[:,order-1])
-            else:
-                already_reached = (sampling_days[:,order] < sampling_days[:,order-1])
-            
-            if np.any(already_reached): 
-                warn(f"There are {already_reached.sum()} who had already reached their milestone")
-
-            if self.if_reached == 'same':
-                #fast forwards new sample to previous sample
-                sampling_days[:,order] = np.where(already_reached, sampling_days[:,order-1], sampling_days[:,order])
-            if self.if_reached == 'NaN':
-                #will be masked with fill_value = NaN
-                sampling_days[:,order] = np.where(already_reached, _ALREADYREACHED, sampling_days[:,order]) 
-            if self.if_reached == 'raise':
-                if np.any(already_reached): 
-                    raise ValueError("Patient was already here when he arrived for his prev sample")
-            #remember how many triggered if_reached
-            population.sampling_summary['if_reached'].append((np.sum(already_reached), self.if_reached))
+        #get persons_valid (those who are calling on a study day after their previous sample day)
+        if order == 0 or isinstance(self, TraditionalSampler):
+            #all are valid
+            persons_valid = np.ones_like(sampling_days[:,order], dtype=bool)
         else:
-            #remember how many triggered if_reached
-            population.sampling_summary['if_reached'].append((0, self.if_reached))
+            persons_not_alreadyreached = sampling_days[:,order] > sampling_days[:,order-1]
+            persons_not_unreached = sampling_days[:,order] < NDAYS #TODO replace by LASTVISIT
+            persons_valid = np.logical_and(persons_not_alreadyreached, persons_not_unreached)
         
-        #add delay
-        persons_valid = sampling_days[:,order] < NDAYS
-        npersons_valid = persons_valid.sum()
+        #adding delay to them
         if isinstance(self.delay, int):
-            sampling_days[persons_valid,order] += self.delay
+            sampling_days[persons_valid, order] += self.delay
         elif callable(self.delay):
-            sampling_days[persons_valid,order] += self.delay((npersons_valid,))
-
-        #limit
-        limitval, limitbehaviour = self.limit #unpack
+            #sample for all persons then slice so there is more consistency in rng
+            sampling_days[persons_valid, order] += self.delay((population.npersons,))[persons_valid]
+            
+        #if call is done on time, there will always be a sample taken
+        too_long = sampling_days[:, order] > LASTVISIT
+        delay_too_long = np.logical_and(too_long, persons_valid)
+        sampling_days[delay_too_long, order] = LASTVISIT
+    
+    def _check_limit(self, population, order, sampling_days):
+        '''
+        For those whose sampling day is too slow to arrive, 
+        have them come in at some day anyway
+        '''
+        #unpack and get limitvals (day per person where the sampling_day should not exceed)
+        limitval, limitbehaviour = self.limit 
         if isinstance(limitval, int):
             limitvals = limitval #numpy will broadcast to the right shape
         elif isinstance(limitval, tuple):
             ref_index, limitvalfunc = limitval #unpack
             prev_sampling_days = sampling_days[:,:order]
             limitvals = limitvalfunc(prev_sampling_days[:,ref_index])
-        #check where reached or exceeded limit
+            
+        #check where exceeded limit
         reached_limit = sampling_days[:,order] > limitvals
-        reached_limit = np.logical_and(reached_limit, persons_valid) #ignore those already_sampled
+        
         #act on limit
         if limitbehaviour == 'raise':
             if np.any(reached_limit):
@@ -210,8 +221,47 @@ class Sampler(ABC):
             #will be masked with fill_value = NaN
             sampling_days[:,order] = np.where(reached_limit, _LIMITREACHED, sampling_days[:,order])
         #TODO add ('replace', replaceval) as a limitbehaviour option (where 'clip would be a special case')
+        
         #remember how many triggered limit
         population.sampling_summary['limit'].append((np.sum(reached_limit), limitbehaviour))
+        
+        return
+    
+    def _set_additional_unreached(self, population, order, sampling_days):
+        '''If a previous sample is unreached, the current must also be unreached'''
+        if order > 0:
+            for unreached_day_value in [_UNREACHED_TRADITIONAL, _UNREACHED_SMILE, _UNREACHED_MAGNITUDE]:
+                prev_unreached = sampling_days[:, order-1] == unreached_day_value
+                sampling_days[prev_unreached, order] = unreached_day_value
+    
+    def finish_sampling(self, population, order, sampling_days):
+        
+        self._add_delay(population, order, sampling_days)
+        
+        self._check_limit(population, order, sampling_days)
+        
+        self._set_additional_unreached(population, order, sampling_days)
+        
+    def set_alreadyreached(self, population, order, sampling_days, is_same_day_as_prev):
+        '''
+        For those who have multiple samplings at the same day
+        '''
+        already_reached = is_same_day_as_prev[:,order]
+        if np.any(already_reached): 
+            warn(f"There are {already_reached.sum()} who had already reached their milestone")
+
+        if self.if_reached == 'same':
+            #fast forwards new sample to previous sample
+            sampling_days[:,order] = np.where(already_reached, sampling_days[:,order-1], sampling_days[:,order])
+        if self.if_reached == 'NaN':
+            #will be masked with fill_value = NaN
+            sampling_days[:,order] = np.where(already_reached, _ALREADYREACHED, sampling_days[:,order]) 
+        if self.if_reached == 'raise':
+            if np.any(already_reached): 
+                raise ValueError("Patient was already here when he arrived for his prev sample")
+        #remember how many triggered if_reached
+        population.sampling_summary['if_reached'].append((np.sum(already_reached), self.if_reached))
+        
         
 class TraditionalSampler(Sampler):
     def __init__(self, day, **kwargs):
@@ -259,8 +309,13 @@ class TraditionalSampler(Sampler):
             sampling_days[:,order] = prev_sampling_days[:,self.day[1]]
         elif callable(self.day):
             prev_sampling_days = sampling_days[:,:order]
-            #TODO check if ints not outside NDAYS, FIRSTVISIT, LASTVISIT
             sampling_days[:,order] = self.day((population.npersons,), prev_sampling_days)
+            
+        #Unreached
+        unreached = sampling_days[:,order] > LASTVISIT
+        sampling_days[unreached, order] = _UNREACHED_TRADITIONAL
+        
+        #TODO check if ints not outside NDAYS, FIRSTVISIT
             
         super().finish_sampling(population, order, sampling_days)
                 
