@@ -12,3 +12,4 @@ saved_populations & saved_regressions : similar to _large.rar but scoretype is f
 ""_8 : sampler only checks current and future days for already_sampled (back to checking for 1 day in a row)
 ""_9 : sampler and methodologies refactored and fixed some logic about cross-sampler interactions, removed limits
 ""_10 : added limit->clip at LASTVISIT ie day 159
+""_11 : smile sampler now checks for 2 days in a row (for both <= 50% and <= 2)
