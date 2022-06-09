@@ -18,7 +18,7 @@ from smile.global_params import _LIMITREACHED
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'D:\saved_populations_11'
+pickle_dir = 'F:\saved_populations_11_large'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -245,8 +245,8 @@ print(f"Started at {starttime.strftime('%H:%M')}.")
 
 try:
     npops_per_sim = 10
-    #nsims = npops // npops_per_sim
-    nsims = 1
+    nsims = npops // npops_per_sim
+    #nsims = 1
     npops_remainder = npops % npops_per_sim
     for i in range(nsims):
         simulate(npops=npops_per_sim, index=i)

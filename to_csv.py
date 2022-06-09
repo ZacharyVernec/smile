@@ -17,8 +17,8 @@ import dill
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'D:\saved_populations_11'
-pickle_csv_dir = r'D:\saved_populations_11_csv'
+pickle_pops_dir = r'F:\saved_populations_11_large'
+pickle_csv_dir = r'F:\saved_populations_11_large_csv'
 
 
 
@@ -58,33 +58,37 @@ method_options = ("traditional", "realistic")
 def options_to_string(slope, error):
     return f"{slope}_{error}".replace(".","")
 
+npops_per_sim = 10
+nsims = npops // npops_per_sim
+
+for n in range(nsims):
+
+    poplists = load_from_file(pickle_pops_dir+"\worddoc_poplists_"+str(n)+".pik")
+    for i,j in np.ndindex(poplists.shape):
+        foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
+        poplist = poplists[i,j]
+        for l in range(len(poplist)):
+            pop = poplist[l]
+            dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{n*npops_per_sim+l}", filesuffix='.csv', 
+                             dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
 
 
-poplists = load_from_file(pickle_pops_dir+"\worddoc_poplists_0"+".pik")
-for i,j in np.ndindex(poplists.shape):
-    foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
-    poplist = poplists[i,j]
-    for l in range(len(poplist)):
-        pop = poplist[l]
-        dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{l}", filesuffix='.csv', 
-                         dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
+    poplists = load_from_file(pickle_pops_dir+"\worddoc_filtered_poplists_"+str(n)+".pik")
+    for i,j in np.ndindex(poplists.shape):
+        foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
+        poplist = poplists[i,j]
+        for l in range(len(poplist)):
+            pop = poplist[l]
+            dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{n*npops_per_sim+l}_filtered", filesuffix='.csv', 
+                             dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
 
 
-poplists = load_from_file(pickle_pops_dir+"\worddoc_filtered_poplists_0"+".pik")
-for i,j in np.ndindex(poplists.shape):
-    foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
-    poplist = poplists[i,j]
-    for l in range(len(poplist)):
-        pop = poplist[l]
-        dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{l}_filtered", filesuffix='.csv', 
-                         dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
-
-
-poplists = load_from_file(pickle_pops_dir+"\worddoc_sampled_poplists_0"+".pik")
-for i,j, k in np.ndindex(poplists.shape):
-    foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
-    poplist = poplists[i,j,k]
-    for l in range(len(poplist)):
-        pop = poplist[l]
-        dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{l}_sampled_{method_options[k]}", filesuffix='.csv', 
-                         dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
+    poplists = load_from_file(pickle_pops_dir+"\worddoc_sampled_poplists_"+str(n)+".pik")
+    for i,j, k in np.ndindex(poplists.shape):
+        foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
+        poplist = poplists[i,j,k]
+        for l in range(len(poplist)):
+            pop = poplist[l]
+            dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{n*npops_per_sim+l}_sampled_{method_options[k]}", filesuffix='.csv', 
+                             dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
+# use python -u to_csv.py 2>&1 | tee to_csv_out.txt
