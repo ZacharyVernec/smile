@@ -102,7 +102,7 @@ def truncatednormal_general(xmin, mode, xmax, untruncated_std, shape=None):
 def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         '''
         Beta distribution parametrized by location 'left_bound', scale 'interval_length', 'mode', and 'a'
-        graphed here: https://www.desmos.com/calculator/h8pf93nmoh
+        graphed here: https://www.desmos.com/calculator/qnydwobgwp
         '''
         #TODO warn if mode not in [left_bound, left_bound+interval_length]
         #TODO allow parametrization with max rather than length
