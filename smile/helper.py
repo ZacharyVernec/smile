@@ -119,6 +119,32 @@ def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         
         return untransform_xprime(values_unitinterval)
 
+# class to make variates stream able to be restarted
+class Beta_rng:
+    def __init__(self, seed, left_bound=0, interval_length=1, mode=0.5, a=1):
+        self.left_bound=left_bound
+        self.interval_length=interval_length
+        self.mode = mode
+        self.a = a
+        self.seed = seed
+        self.reset()
+
+    def reset(self):
+        self.rng = np.random.default_rng(self.seed)
+    def reseed(self, seed):
+        self.seed = seed
+        self.reset()
+
+    def __transform_x__(self, x):
+        return (x-self.left_bound)/self.interval_length
+    def __untransform_xprime__(self, xprime):
+        return xprime*self.interval_length+self.left_bound
+    def gen(self, shape=1):
+        scaled_mode = self.__transform_x__(self.mode)
+        b = (1/scaled_mode-1)*self.a + 2 - 1/scaled_mode
+        values_unitinterval = stats.beta.rvs(self.a, b, size=shape, random_state=self.rng)
+        return self.__untransform_xprime__(values_unitinterval)
+
     
 #matplotlib colors
 def rgblist_to_rgbapop(rgblist, npersons, ndays, opacity=1.0):
