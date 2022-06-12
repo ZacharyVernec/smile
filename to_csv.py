@@ -17,8 +17,8 @@ import dill
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'F:\saved_populations_11_large'
-pickle_csv_dir = r'F:\saved_populations_11_large_csv'
+pickle_pops_dir = r'C:\Users\zachv\Desktop\simulating_randomness_test_11'
+pickle_csv_dir = r'C:\Users\zachv\Desktop\simulating_randomness_test_11'
 
 
 
@@ -49,20 +49,21 @@ def dump_to_csv_file(df, filename, filesuffix='.csv',
 
 
 #parameters
-npersons=1000 #per population
-npops=1000 #across all files
-slope_options = (1, 2, 3)
+npersons=10 #per population
+npops=5 #across all files
+slope_options = (1, 2)
 error_options = (0.3, 0.5)
 method_options = ("traditional", "realistic")
 
 def options_to_string(slope, error):
     return f"{slope}_{error}".replace(".","")
 
-npops_per_sim = 10
-nsims = npops // npops_per_sim
+npops_per_sim = 2
+nsims = npops // npops_per_sim #TODO error if less pops than pops per sim
+npops_remainder = npops % npops_per_sim
+if npops_remainder > 0: nsims += 1
 
 for n in range(nsims):
-
     poplists = load_from_file(pickle_pops_dir+"\worddoc_poplists_"+str(n)+".pik")
     for i,j in np.ndindex(poplists.shape):
         foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])

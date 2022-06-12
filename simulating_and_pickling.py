@@ -18,7 +18,7 @@ from smile.global_params import _LIMITREACHED
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = 'F:\saved_populations_11_large'
+pickle_dir = r'C:\Users\zachv\Desktop\simulating_randomness_test_11'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -111,11 +111,15 @@ def get_worddoc_populations(slope_option, error_option, npersons=100, npops=100)
     # Return
     return pops
 #simulations
+
+# To reset between methodologies so all methodologies have same variates
+#  while populations still have different variates
+beta_rng = helper.Beta_rng(1234, 7, 28, 14, 2.9)
+def first_delay_func(shape):
+    return beta_rng.gen(shape).astype('int')
+
 def get_traditional_methodology():
     methodology = Methodology('traditonal')
-
-    first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
-
     methodology.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
     methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
     methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
@@ -126,7 +130,6 @@ def get_realistic_methodology():
 
     #limit is irrelevant because max(day+delay) < NDAYS
     #if_reached is irrelevant because first sampling method
-    first_delay_func = lambda shape: helper.beta(shape, 7, 28, 14, 2.9).astype('int') #90% at 21
     sampler1 = TraditionalSampler(day=0, delay=first_delay_func)
     methodology.add_sampler(sampler1)
 
@@ -145,7 +148,7 @@ def get_realistic_methodology():
 
     return methodology
 
-def simulate(npops, index=None):
+def simulate(npops, index=None, seed=1234):
     if index is not None: 
         suffix='_'+str(index)
         verbose = False
@@ -206,16 +209,14 @@ def simulate(npops, index=None):
     worddoc_sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
 
     #sample
-    for i, j in np.ndindex(poplists_shape):
-        if verbose: print(i, j, 'poster', 0)
-        poster_sampled_poplists[i, j, 0] = methodologies[0].sample(poster_filtered_poplists[i, j])
-        if verbose: print(i, j, 'poster', 1)
-        poster_sampled_poplists[i, j, 1] = methodologies[1].sample(poster_filtered_poplists[i, j])
-        if verbose: print(i, j, 'poster', 0)
-        worddoc_sampled_poplists[i, j, 0] = methodologies[0].sample(worddoc_filtered_poplists[i, j])
-        if verbose: print(i, j, 'poster', 1)
-        worddoc_sampled_poplists[i, j, 1] = methodologies[1].sample(worddoc_filtered_poplists[i, j])
-
+    beta_rng.reseed(seed)
+    for k in range(len(methodologies)):
+        beta_rng.reset()
+        for i, j in np.ndindex(poplists_shape):
+            if verbose: print(i, j, 'poster', k)
+            poster_sampled_poplists[i, j, k] = methodologies[k].sample(poster_poplists[i, j])
+            if verbose: print(i, j, 'worddoc', k)
+            worddoc_sampled_poplists[i, j, k] = methodologies[k].sample(worddoc_poplists[i, j])
 
     #pickle
     dump_to_file(poster_sampled_poplists, 'poster_sampled_poplists'+suffix, dirname=pickle_dir)
@@ -224,9 +225,9 @@ def simulate(npops, index=None):
 
 
 #parameters
-npersons=1000
-npops=1000
-slope_options = (1, 2, 3)
+npersons=10
+npops=5
+slope_options = (1, 2)
 error_options = (0.3, 0.5)
 
 #printing
@@ -244,15 +245,20 @@ starttime = datetime.now()
 print(f"Started at {starttime.strftime('%H:%M')}.")
 
 try:
-    npops_per_sim = 10
+    npops_per_sim = 2
     nsims = npops // npops_per_sim
     #nsims = 1
     npops_remainder = npops % npops_per_sim
+
+    #produce independent seeds for each call to simulate()
+    ss = np.random.SeedSequence(1234) 
+    seeds = ss.spawn(nsims+1) #at least as many as calls to simulate()
+
     for i in range(nsims):
-        simulate(npops=npops_per_sim, index=i)
+        simulate(npops=npops_per_sim, index=i, seed=seeds[i])
         print(f"Done {npops_per_sim*(i+1)}/{npops}")
     if npops_remainder > 0:
-        simulate(npops=npops_remainder, index=nsims)
+        simulate(npops=npops_remainder, index=nsims, seed=seeds[-1])
         print(f"Done {npops_per_sim*nsims+npops_remainder}/{npops}")
 finally:
     #timing
