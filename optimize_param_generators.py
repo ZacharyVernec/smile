@@ -18,7 +18,7 @@ class Counter:
 # New distribution
 class BoundedNormal:
     '''Creates frozen instance of truncnorm but with bounds independent of loc and scale'''
-    def __new__(cls,lower, upper, loc=0, scale=1):
+    def __new__(cls, lower, upper, loc=0, scale=1):
       if np.any(np.atleast_1d(lower) > np.atleast_1d(upper)):
         raise ValueError()
       a = (lower - loc) / scale
@@ -28,12 +28,11 @@ class BoundedNormal:
 # New distribution
 class Mixture:
     """Mixture of Gaussians, partially imitates stats.rv_continuous"""
-    def __init__(self, mix, locs, scales):
+    def __init__(self, lower, upper, mix, locs, scales):
         if not self._argcheck(mix, locs, scales):
             raise ValueError("bad parameters")
         self.mix = np.array([*np.atleast_1d(mix), 1-np.sum(mix)])
-        self.locs = locs
-        self.scales = scales
+        self.distribs = [BoundedNormal(lower, upper, loc=loc, scale=scale) for loc, scale in zip(locs, scales)]
         
     def _argcheck(self, mix, locs, scales):
         mix = np.atleast_1d(mix)
@@ -49,15 +48,15 @@ class Mixture:
         size = np.prod(shape)
         
         indices = stats.rv_discrete(values=(range(len(self.mix)), self.mix)).rvs(size=size, random_state=random_state)
-        norm_variates = [stats.norm.rvs(loc=loc, scale=scale, size=size, random_state=random_state) for loc, scale in zip(self.locs, self.scales)]
+        norm_variates = [distrib.rvs(size=size, random_state=random_state) for distrib in self.distribs]
         return np.choose(indices, norm_variates).reshape(shape)
         
     def pdf(self, x):
-        return np.average([stats.norm.pdf(x, loc, scale) for loc, scale in zip(self.locs, self.scales)], axis=0, weights=self.mix)
+        return np.average([distrib.pdf(x) for distrib in self.distribs], axis=0, weights=self.mix)
     def cdf(self, x):
-        return np.average([stats.norm.cdf(x, loc, scale) for loc, scale in zip(self.locs, self.scales)], axis=0, weights=self.mix)
+        return np.average([distrib.cdf(x) for distrib in self.distribs], axis=0, weights=self.mix)
     def sf(self, x):
-        return np.average([stats.norm.sf(x, loc, scale) for loc, scale in zip(self.locs, self.scales)], axis=0, weights=self.mix)
+        return np.average([distrib.sf(x) for distrib in self.distribs], axis=0, weights=self.mix)
 
 
 
@@ -165,7 +164,7 @@ if __name__ == '__main__':
     # Function to optimize 
     def optim_fun(params, counter):
         # Random variables for visual score defined in simulating_and_pickling as -R*t+V_0
-        R = Mixture(params[0], params[1:3], params[3:5])
+        R = Mixture(*args.supportR, params[0], params[1:3], params[3:5])
         V_0 = BoundedNormal(*args.supportV0, *params[-2:])
 
         tails = get_tails(R, V_0)
@@ -186,7 +185,7 @@ if __name__ == '__main__':
 
     #Result
     print(res)
-    R = Mixture(res.x[0], res.x[1:3], res.x[3:5])
+    R = Mixture(*args.supportR, res.x[0], res.x[1:3], res.x[3:5])
     V_0 = BoundedNormal(*args.supportV0, *res.x[-2:])
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
