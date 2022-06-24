@@ -21,13 +21,14 @@ class Mixture:
     def __init__(self, mix, locs, scales):
         if not self._argcheck(mix, locs, scales):
             raise ValueError("bad parameters")
-        self.mix = mix
+        self.mix = np.array([*np.atleast_1d(mix), 1-np.sum(mix)])
         self.locs = locs
         self.scales = scales
         
     def _argcheck(self, mix, locs, scales):
-        dims_ok = mix.shape == locs.shape == scales.shape and mix.ndim == 1
-        mix_ok = np.all(mix >= 0) and np.sum(mix) == 1
+        mix = np.atleast_1d(mix)
+        dims_ok = (mix.ndim == 1) and (len(mix)+1 == len(locs) == len(scales))
+        mix_ok = np.all(mix >= 0) and np.sum(mix) <= 1
         locs_ok = np.all(np.isfinite(locs))
         scales_ok = np.all(scales > 0) and np.all(np.isfinite(scales))
         return dims_ok and mix_ok and locs_ok and scales_ok
@@ -112,19 +113,27 @@ if __name__ == '__main__':
                             '0 means never print')
     parser.add_argument('--targets', type=float, nargs=2, default=(0.3, 0.1),
                         help='Tail probabilities to target. (default: 0.3 0.1)')
-    parser.add_argument('--locscaleR', type=float, nargs=2, default=(0, 2),
-                        help='location-scale pair for the rate random var R (default 0.0 2.0)')
-    parser.add_argument('--locscaleV0', type=float, nargs=2, default=(14, 11),
-                        help='location-scale pair for the init value random var V_0 (default 14.0 11.0)')
-    parser.add_argument('--initparams', type=float, nargs=4, default=(1.3, 1.05, 2, 6),
-                        help='Initial beta distribution parameters (default: 1.3 1.05 2.0 6.0')
-    parser.add_argument('--lowerbounds', type=float, nargs=4, default=(1e-8, 1e-8, 1e-8, 1e-8),
-                        help='Lower bounds for beta parameters during optimization (default: 1e-8 1e-8 1e-8 1e-8)')
-    parser.add_argument('--upperbounds', type=lambda s: None if s is None else float(s), 
-                        nargs=4, default=(None, None, None, None),
-                        help='Lower bounds for beta parameters during optimization (default: None None None None)')
-    parser.add_argument('--maxiter', type=int, default=4*200, #Numb_of_params * 200
-                        help='Max number of solver iterations (default: 800)')
+    parser.add_argument('--supportR', type=float, nargs=2, default=(0, 2),
+                        help='Support interval for the rate random var R (default 0.0 2.0)')
+    parser.add_argument('--supportV0', type=float, nargs=2, default=(14, 25),
+                        help='Support interval for the init value random var V_0 (default 14.0 25.0)')
+    parser.add_argument('--initparamsR', type=float, nargs=5, default=(0.5, 0.3, 1.7, 0.6, 0.6),
+                        help='Initial mixture distribution parameters (default: 0.5 0.3 1.7 0.6 0.6)')
+    parser.add_argument('--initparamsV0', type=float, nargs=2, default=(2, 6),
+                        help='Initial beta distribution parameters (default: 2.0 6.0)')
+    parser.add_argument('--lowerboundsR', type=float, nargs=5, default=(1e-8, 1e-8, 1e-8, 1e-8, 1e-8),
+                        help='Lower bounds for mixture parameters during optimization '
+                             '(default: 1e-8 1e-8 1e-8 1e-8 1e-8)')
+    parser.add_argument('--lowerboundsV0', type=float, nargs=2, default=(1e-8, 1e-8),
+                        help='Lower bounds for beta parameters during optimization (default: 1e-8 1e-8)')
+    parser.add_argument('--upperboundsR', type=float, nargs=5, default=(1, np.inf, np.inf, np.inf, np.inf),
+                        help='Lower bounds for mixture parameters during optimization '
+                             '(default: 1.0, np.inf np.inf np.inf np.inf)')
+    parser.add_argument('--upperboundsV0', type=float, 
+                        nargs=2, default=(np.inf, np.inf),
+                        help='Lower bounds for beta parameters during optimization (default: np.inf np.inf)')
+    parser.add_argument('--maxiter', type=int, default=7*200, #Numb_of_params * 200
+                        help='Max number of solver iterations (default: 1400)')
     parser.add_argument('--tol', type=float, default=1e-8,
                         help='Solver tolerance for convergence (default: 1e-8)')
     parser.add_argument('--solver', choices=['Nelder-Mead'], default='Nelder-Mead')
@@ -136,21 +145,19 @@ if __name__ == '__main__':
         get_tails = get_tails_integ
     elif args.method == 'simulation':
         get_tails = lambda R, V_0: get_tails_empir(R, V_0, size=args.n)
-    # Location and scales
-    args.locR, args.scaleR = args.locscaleR
-    args.locV0, args.scaleV0 = args.locscaleV0
     # Bounds
-    args.bounds = zip(args.lowerbounds, args.upperbounds)
+    args.bounds = optimize.Bounds(np.array([*args.lowerboundsR, *args.lowerboundsV0]), 
+                                  np.array([*args.upperboundsR, *args.upperboundsV0]))
     # Initparams to array
-    args.initparams = np.array(args.initparams)
+    args.initparams = np.array([*args.initparamsR, *args.initparamsV0])
 
 
     # Function to optimize 
     def optim_fun(params, counter):
         # Random variables for visual score defined in simulating_and_pickling as -R*t+V_0
         # Have support [loc, loc+scale]
-        R = stats.beta(*params[:2], loc=args.locR, scale=args.scaleR)
-        V_0 = stats.beta(*params[2:], loc=args.locV0, scale=args.scaleV0)
+        R = Mixture(params[0], params[1:3], params[3:5])
+        V_0 = stats.beta(*params[-2:], loc=args.supportV0[0], scale=args.supportV0[1]-args.supportV0[0])
 
         tails = get_tails(R, V_0)
 
@@ -170,8 +177,8 @@ if __name__ == '__main__':
 
     #Result
     print(res)
-    R = stats.beta(*res.x[:2], loc=args.locR, scale=args.scaleR)
-    V_0 = stats.beta(*res.x[2:], loc=args.locV0, scale=args.scaleV0)
+    R = Mixture(res.x[0], res.x[1:3], res.x[3:5])
+    V_0 = stats.beta(*res.x[-2:], loc=args.supportV0[0], scale=args.supportV0[1]-args.supportV0[0])
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
 
@@ -182,15 +189,15 @@ if __name__ == '__main__':
     fig.suptitle('Found distribution for visual score recovery, which is used like -R*t + V_0\n' +
                 f'obtaining recovery time tails of {tails[0]:g}, {tails[1]:g}')
     #R
-    x = np.linspace(args.locR, args.locR+args.scaleR, 5000)
+    x = np.linspace(*args.supportR, 5000)
     y = R.pdf(x)
     axes[0].plot(x, y)
-    axes[0].set_title(f"PDF of R \nParams: {res.x[0]:g}, {res.x[1]:g}")
+    axes[0].set_title("PDF of R \nParams: " + ", ".join(f"{param:g}" for param in res.x[:-2]))
     #V_0
-    x = np.linspace(args.locV0, args.locV0+args.scaleV0, 5000)
+    x = np.linspace(*args.supportV0, 5000)
     y = V_0.pdf(x)
     axes[1].plot(x, y)
-    axes[1].set_title(f"PDF of V_0 \nParams: {res.x[2]:g}, {res.x[3]:g}")
+    axes[1].set_title("PDF of V_0 \nParams: " + ", ".join(f"{param:g}" for param in res.x[-2:]))
 
     plt.tight_layout()
     plt.show()
