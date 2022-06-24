@@ -16,6 +16,16 @@ class Counter:
 
 
 # New distribution
+class BoundedNormal:
+    '''Creates frozen instance of truncnorm but with bounds independent of loc and scale'''
+    def __new__(cls,lower, upper, loc=0, scale=1):
+      if np.any(np.atleast_1d(lower) > np.atleast_1d(upper)):
+        raise ValueError()
+      a = (lower - loc) / scale
+      b = (upper - loc) / scale
+      return stats.truncnorm(a, b, loc=loc, scale=scale)
+
+# New distribution
 class Mixture:
     """Mixture of Gaussians, partially imitates stats.rv_continuous"""
     def __init__(self, mix, locs, scales):
