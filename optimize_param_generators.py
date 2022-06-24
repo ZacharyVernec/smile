@@ -129,8 +129,8 @@ if __name__ == '__main__':
                         help='Support interval for the init value random var V_0 (default 14.0 25.0)')
     parser.add_argument('--initparamsR', type=float, nargs=5, default=(0.5, 0.3, 1.7, 0.6, 0.6),
                         help='Initial mixture distribution parameters (default: 0.5 0.3 1.7 0.6 0.6)')
-    parser.add_argument('--initparamsV0', type=float, nargs=2, default=(2, 6),
-                        help='Initial beta distribution parameters (default: 2.0 6.0)')
+    parser.add_argument('--initparamsV0', type=float, nargs=2, default=(18, 6),
+                        help='Initial beta distribution parameters (default: 18.0 6.0)')
     parser.add_argument('--lowerboundsR', type=float, nargs=5, default=(1e-8, 1e-8, 1e-8, 1e-8, 1e-8),
                         help='Lower bounds for mixture parameters during optimization '
                              '(default: 1e-8 1e-8 1e-8 1e-8 1e-8)')
@@ -165,9 +165,8 @@ if __name__ == '__main__':
     # Function to optimize 
     def optim_fun(params, counter):
         # Random variables for visual score defined in simulating_and_pickling as -R*t+V_0
-        # Have support [loc, loc+scale]
         R = Mixture(params[0], params[1:3], params[3:5])
-        V_0 = stats.beta(*params[-2:], loc=args.supportV0[0], scale=args.supportV0[1]-args.supportV0[0])
+        V_0 = BoundedNormal(*args.supportV0, *params[-2:])
 
         tails = get_tails(R, V_0)
 
@@ -188,7 +187,7 @@ if __name__ == '__main__':
     #Result
     print(res)
     R = Mixture(res.x[0], res.x[1:3], res.x[3:5])
-    V_0 = stats.beta(*res.x[-2:], loc=args.supportV0[0], scale=args.supportV0[1]-args.supportV0[0])
+    V_0 = BoundedNormal(*args.supportV0, *res.x[-2:])
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
 
