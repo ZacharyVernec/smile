@@ -137,10 +137,10 @@ if __name__ == '__main__':
                         help='Lower bounds for beta parameters during optimization (default: 1e-8 1e-8)')
     parser.add_argument('--upperboundsR', type=float, nargs=5, default=(1, np.inf, np.inf, np.inf, np.inf),
                         help='Lower bounds for mixture parameters during optimization '
-                             '(default: 1.0, np.inf np.inf np.inf np.inf)')
+                             '(default: 1.0, inf inf inf inf)')
     parser.add_argument('--upperboundsV0', type=float, 
                         nargs=2, default=(np.inf, np.inf),
-                        help='Lower bounds for beta parameters during optimization (default: np.inf np.inf)')
+                        help='Lower bounds for beta parameters during optimization (default: inf inf)')
     parser.add_argument('--maxiter', type=int, default=7*200, #Numb_of_params * 200
                         help='Max number of solver iterations (default: 1400)')
     parser.add_argument('--tol', type=float, default=1e-8,
