@@ -17,6 +17,7 @@ from smile.global_params import _LIMITREACHED
 # Settings
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
+rng = np.random.default_rng(5472635865468)
 np.set_printoptions(edgeitems=30, linewidth=100000)
 pickle_dir = r'C:\Users\zachv\Desktop\simulating_randomness_test_11'
 
@@ -53,8 +54,14 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     pop = Population(npersons, title=f'realistic with {slope_option} and {error_option}')
     gen_visualscores = lambda t,r,v0: np.maximum(-r*t+v0, VMIN)
     pop.set_score_generator('visual', gen_visualscores)
-    gen_r = lambda shape: helper.beta(shape, 0, 2, 0.2, 1.4) #median at 0.4
-    gen_v0 = lambda shape: helper.truncatednormal_general(14, 16, 18, 1, shape)
+    #parameter generators
+    R = helper.Mixture(lower=0, upper=2, 
+        mix=0.676866, 
+        locs=np.array([0.151503, 6.31151]), 
+        scales=np.array([0.211144, 0.548655]))
+    V_0 = helper.BoundedNormal(lower=14, upper=25, loc=16.6942, scale=2.04876)
+    gen_r = lambda shape: R.rvs(size=shape, random_state=rng)
+    gen_v0 = lambda shape: V_0.rvs(size=shape, random_state=rng)
     pop.set_parameter_generator('r', gen_r, 'person')
     pop.set_parameter_generator('v0', gen_v0, 'person')
     
