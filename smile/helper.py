@@ -97,7 +97,48 @@ def truncatednormal_general(xmin, mode, xmax, untruncated_std, shape=None):
         
     if shape is None: return vals[0] #convert back from array
     else: return vals
+
+class BoundedNormal:
+    '''Creates frozen instance of truncnorm but with bounds independent of loc and scale'''
+    def __new__(cls, lower, upper, loc=0, scale=1):
+      if np.any(np.atleast_1d(lower) > np.atleast_1d(upper)):
+        raise ValueError()
+      a = (lower - loc) / scale
+      b = (upper - loc) / scale
+      return stats.truncnorm(a, b, loc=loc, scale=scale)
+
+class Mixture:
+    """Mixture of BoundedNormal, partially imitates stats.rv_continuous"""
+    def __init__(self, lower, upper, mix, locs, scales):
+        if not self._argcheck(mix, locs, scales):
+            raise ValueError("bad parameters")
+        self.mix = np.array([*np.atleast_1d(mix), 1-np.sum(mix)])
+        self.distribs = [BoundedNormal(lower, upper, loc=loc, scale=scale) for loc, scale in zip(locs, scales)]
+        
+    def _argcheck(self, mix, locs, scales):
+        mix = np.atleast_1d(mix)
+        dims_ok = (mix.ndim == 1) and (len(mix)+1 == len(locs) == len(scales))
+        mix_ok = np.all(mix >= 0) and np.sum(mix) <= 1
+        locs_ok = np.all(np.isfinite(locs))
+        scales_ok = np.all(scales > 0) and np.all(np.isfinite(scales))
+        return dims_ok and mix_ok and locs_ok and scales_ok
     
+    def rvs(self, size=1, random_state=None):
+        #flatten size but store as 'shape' for returning reshaped
+        shape = size
+        size = np.prod(shape)
+        
+        indices = stats.rv_discrete(values=(range(len(self.mix)), self.mix)).rvs(size=size, random_state=random_state)
+        norm_variates = [distrib.rvs(size=size, random_state=random_state) for distrib in self.distribs]
+        return np.choose(indices, norm_variates).reshape(shape)
+        
+    def pdf(self, x):
+        return np.average([distrib.pdf(x) for distrib in self.distribs], axis=0, weights=self.mix)
+    def cdf(self, x):
+        return np.average([distrib.cdf(x) for distrib in self.distribs], axis=0, weights=self.mix)
+    def sf(self, x):
+        return np.average([distrib.sf(x) for distrib in self.distribs], axis=0, weights=self.mix)
+
     
 def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         '''
