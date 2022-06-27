@@ -47,42 +47,7 @@ def load_from_file(filename):
 
 # Definitions
 #populations
-def get_poster_populations(slope_option, error_option, npersons=100, npops=100):
-    '''
-    returns a PopulationList similar to the one described in the poster
-    slope_option is 1, 2, or 3
-    error_option is 30/100 or 50/100
-    '''
-    
-    # Define and set visual score function
-    pop = Population(npersons, f'poster with {slope_option} and {error_option}')
-    gen_visualscores = lambda t,r,v0: np.maximum(-r*t+v0, VMIN)
-    pop.set_score_generator('visual', gen_visualscores)
-    gen_r = lambda shape: 0.2
-    gen_v0 = lambda shape: np.random.randint(14, 18+1, shape)
-    pop.set_parameter_generator('r', gen_r, 'population')
-    pop.set_parameter_generator('v0', gen_v0, 'person')
-
-    # Define and set symptom score function
-    gen_symptomscores = lambda v,a,s0: np.maximum(a*v+s0, SMIN)
-    pop.set_score_generator('symptom_noerror', gen_symptomscores)
-    gen_a = lambda shape: slope_option
-    gen_s0 = lambda shape: np.random.normal(6, 2, shape)
-    pop.set_parameter_generator('a', gen_a, 'population')
-    pop.set_parameter_generator('s0', gen_s0, 'person')
-
-    # Define and set error functions
-    #Multiplicative
-    pop.set_score_generator('symptom', lambda s,C: s*C)
-    gen_C_mul = lambda shape: np.random.uniform(1-error_option, 1+error_option, shape)
-    pop.set_parameter_generator('C', gen_C_mul, 'day')
-
-    # Repeat
-    pops = PopulationList.full(npops, pop)
-    
-    # Return
-    return pops
-def get_worddoc_populations(slope_option, error_option, npersons=100, npops=100):
+def get_populations(slope_option, error_option, npersons=100, npops=100):
     
     # Define and set visual score function
     pop = Population(npersons, title=f'realistic with {slope_option} and {error_option}')
@@ -158,21 +123,17 @@ def simulate(npops, index=None, seed=1234):
 
     #preallocate arrays
     poplists_shape = (len(slope_options), len(error_options))
-    poster_poplists = np.empty(poplists_shape, dtype=object)
-    worddoc_poplists = np.empty(poplists_shape, dtype=object)
+    poplists = np.empty(poplists_shape, dtype=object)
 
     #create and generate
     for i, j in np.ndindex(poplists_shape):
         if verbose: print(i, j)
         options = (slope_options[i], error_options[j])
-        poster_poplists[i, j] = get_poster_populations(*options, npersons, npops)
-        worddoc_poplists[i, j] = get_worddoc_populations(*options, npersons, npops)
-        poster_poplists[i, j].generate()
-        worddoc_poplists[i, j].generate()
+        poplists[i, j] = get_populations(*options, npersons, npops)
+        poplists[i, j].generate()
 
     #pickle
-    dump_to_file(poster_poplists, 'poster_poplists'+suffix, dirname=pickle_dir, create_newdir=True)
-    dump_to_file(worddoc_poplists, 'worddoc_poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(poplists, 'poplists'+suffix, dirname=pickle_dir)
     if verbose: print("Done generation.")
 
 
@@ -183,18 +144,15 @@ def simulate(npops, index=None, seed=1234):
                      'index_day':0, 'recovered_ratio':0.4, 'scorename':'symptom'}
 
     #preallocate arrays
-    poster_filtered_poplists = np.empty_like(poster_poplists)
-    worddoc_filtered_poplists = np.empty_like(worddoc_poplists)
+    filtered_poplists = np.empty_like(poplists)
 
     #filter
     for i, j in np.ndindex(poplists_shape):
         if verbose: print(i, j)
-        poster_filtered_poplists[i, j] = poster_poplists[i, j].filter(**filter_kwargs)
-        worddoc_filtered_poplists[i, j] = worddoc_poplists[i, j].filter(**filter_kwargs)
+        filtered_poplists[i, j] = poplists[i, j].filter(**filter_kwargs)
 
     #pickle
-    dump_to_file(poster_filtered_poplists, 'poster_filtered_poplists'+suffix, dirname=pickle_dir)
-    dump_to_file(worddoc_filtered_poplists, 'worddoc_filtered_poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(filtered_poplists, 'filtered_poplists'+suffix, dirname=pickle_dir)
     if verbose: print("Done filtering.")
 
 
@@ -205,22 +163,18 @@ def simulate(npops, index=None, seed=1234):
 
     #preallocate arrays
     sampled_poplists_shape = (*poplists_shape, len(methodologies))
-    poster_sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
-    worddoc_sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
+    sampled_poplists = np.empty(sampled_poplists_shape, dtype=object)
 
     #sample
     beta_rng.reseed(seed)
     for k in range(len(methodologies)):
         beta_rng.reset()
         for i, j in np.ndindex(poplists_shape):
-            if verbose: print(i, j, 'poster', k)
-            poster_sampled_poplists[i, j, k] = methodologies[k].sample(poster_poplists[i, j])
-            if verbose: print(i, j, 'worddoc', k)
-            worddoc_sampled_poplists[i, j, k] = methodologies[k].sample(worddoc_poplists[i, j])
+            if verbose: print(i, j, k)
+            sampled_poplists[i, j, k] = methodologies[k].sample(poplists[i, j])
 
     #pickle
-    dump_to_file(poster_sampled_poplists, 'poster_sampled_poplists'+suffix, dirname=pickle_dir)
-    dump_to_file(worddoc_sampled_poplists, 'worddoc_sampled_poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(sampled_poplists, 'sampled_poplists'+suffix, dirname=pickle_dir)
     if verbose: print("Done sampling.")
 
 

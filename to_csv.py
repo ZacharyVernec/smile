@@ -64,7 +64,7 @@ if npops_remainder > 0: nsims += 1
 
 for n in range(nsims):
     #Full
-    poplists = load_from_file(pickle_pops_dir+"\worddoc_poplists_"+str(n)+".pik")
+    poplists = load_from_file(pickle_pops_dir+"\poplists_"+str(n)+".pik")
     for i,j in np.ndindex(poplists.shape):
         foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
         poplist = poplists[i,j]
@@ -74,7 +74,7 @@ for n in range(nsims):
                              dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
 
     #Filtered
-    poplists = load_from_file(pickle_pops_dir+"\worddoc_filtered_poplists_"+str(n)+".pik")
+    poplists = load_from_file(pickle_pops_dir+"\filtered_poplists_"+str(n)+".pik")
     for i,j in np.ndindex(poplists.shape):
         foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
         poplist = poplists[i,j]
@@ -84,7 +84,7 @@ for n in range(nsims):
                              dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
 
     #Sampled
-    poplists = load_from_file(pickle_pops_dir+"\worddoc_sampled_poplists_"+str(n)+".pik")
+    poplists = load_from_file(pickle_pops_dir+"\sampled_poplists_"+str(n)+".pik")
     for i,j, k in np.ndindex(poplists.shape):
         foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
         poplist = poplists[i,j,k]
