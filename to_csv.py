@@ -16,8 +16,8 @@ import pandas as pd
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_randomness_test_11'
-pickle_csv_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_randomness_test_11_csv'
+pickle_pops_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_test_12'
+pickle_csv_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_test_12_csv'
 
 
 
@@ -50,9 +50,15 @@ def dump_to_csv_file(df, filename, filesuffix='.csv',
 #parameters
 npersons=10 #per population
 npops=5 #across all files
-slope_options = (1, 2)
+slope_options = (1, 2, 3)
 error_options = (0.3, 0.5)
-method_options = ("traditional", "realistic")
+method_options = (
+    "traditional", 
+    "realistic", 
+    "visual_realistic",
+    "realistic_delayless",
+    "visual_delayless_realistic"
+    )
 
 def options_to_string(slope, error):
     return f"{slope}_{error}".replace(".","")
@@ -74,7 +80,7 @@ for n in range(nsims):
                              dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
 
     #Filtered
-    poplists = load_from_file(pickle_pops_dir+"\filtered_poplists_"+str(n)+".pik")
+    poplists = load_from_file(pickle_pops_dir+r"\filtered_poplists_"+str(n)+".pik")
     for i,j in np.ndindex(poplists.shape):
         foldername = f"realistic_"+options_to_string(slope_options[i], error_options[j])
         poplist = poplists[i,j]

@@ -15,11 +15,11 @@ from smile.global_params import *
 from smile.global_params import _LIMITREACHED
 
 # Settings
-seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
+seed = 542705034
 np.random.seed(seed)
-rng = np.random.default_rng(5472635865468)
+rng = np.random.default_rng(547263468)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = r'C:\Users\zachv\Desktop\simulating_randomness_test_11'
+pickle_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_test_12'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -51,7 +51,7 @@ def load_from_file(filename):
 def get_populations(slope_option, error_option, npersons=100, npops=100):
     
     # Define and set visual score function
-    pop = Population(npersons, title=f'realistic with {slope_option} and {error_option}')
+    pop = Population(npersons, title=f'slope {slope_option} and error {error_option}')
     gen_visualscores = lambda t,r,v0: np.maximum(-r*t+v0, VMIN)
     pop.set_score_generator('visual', gen_visualscores)
     #parameter generators
@@ -73,7 +73,7 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     
     # Define and set error functions
     #Multiplicative
-    pop.set_score_generator('symptom', lambda s,C: s*C)
+    pop.set_score_generator('symptom', lambda s,C: np.minimum(s*C, 30))
     gen_C_mul = lambda shape: np.random.uniform(1-error_option, 1+error_option, shape)
     pop.set_parameter_generator('C', gen_C_mul, 'day')
 
@@ -119,6 +119,71 @@ def get_realistic_methodology():
     methodology.add_sampler(sampler3)
 
     return methodology
+def get_visual_realistic_methodology():
+    methodology = Methodology('visual_realistic')
+
+    #limit is irrelevant because max(day+delay) < NDAYS
+    #if_reached is irrelevant because first sampling method
+    sampler1 = TraditionalSampler(day=0, delay=first_delay_func)
+    methodology.add_sampler(sampler1)
+
+    #if_reached is irrelevant because index is previous sample
+    other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
+    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='visual',
+                            delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
+                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler2)
+
+    #same delay as previous
+    sampler3 = MagnitudeSampler(value=2, scorename='visual',
+                                delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
+                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler3)
+
+    return methodology
+def get_realistic_delayless_methodology():
+    methodology = Methodology('realistic_delayless')
+
+    #limit is irrelevant because max(day+delay) < NDAYS
+    #if_reached is irrelevant because first sampling method
+    sampler1 = TraditionalSampler(day=0, delay=0)
+    methodology.add_sampler(sampler1)
+
+    #if_reached is irrelevant because index is previous sample
+    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='symptom',
+                            delay=0, triggered_by_equal=True, min_triggered=2,
+                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler2)
+
+    #same delay as previous
+    sampler3 = MagnitudeSampler(value=2, scorename='symptom',
+                                delay=0, triggered_by_equal=True, min_triggered=2,
+                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler3)
+
+    return methodology
+def get_visual_delayless_realistic():
+    methodology = Methodology('visual_delayless_realistic')
+
+    #limit is irrelevant because max(day+delay) < NDAYS
+    #if_reached is irrelevant because first sampling method
+    sampler1 = TraditionalSampler(day=0, delay=0)
+    methodology.add_sampler(sampler1)
+
+    #if_reached is irrelevant because index is previous sample
+    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='visual',
+                            delay=0, triggered_by_equal=True, min_triggered=2,
+                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler2)
+
+    #same delay as previous
+    sampler3 = MagnitudeSampler(value=2, scorename='visual',
+                                delay=0, triggered_by_equal=True, min_triggered=2,
+                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
+    methodology.add_sampler(sampler3)
+
+    return methodology
+
 
 def simulate(npops, index=None, seed=1234):
     if index is not None: 
@@ -166,7 +231,13 @@ def simulate(npops, index=None, seed=1234):
     # Sampling
 
     #create
-    methodologies = [get_traditional_methodology(), get_realistic_methodology()]
+    methodologies = [
+        get_traditional_methodology(),
+        get_realistic_methodology(),
+        get_visual_realistic_methodology(),
+        get_realistic_delayless_methodology(),
+        get_visual_delayless_realistic()
+    ]
 
     #preallocate arrays
     sampled_poplists_shape = (*poplists_shape, len(methodologies))
@@ -188,7 +259,7 @@ def simulate(npops, index=None, seed=1234):
 #parameters
 npersons=10
 npops=5
-slope_options = (1, 2)
+slope_options = (1, 2, 3)
 error_options = (0.3, 0.5)
 
 #printing
@@ -212,7 +283,7 @@ try:
     npops_remainder = npops % npops_per_sim
 
     #produce independent seeds for each call to simulate()
-    ss = np.random.SeedSequence(1234) 
+    ss = np.random.SeedSequence(874586374) 
     seeds = ss.spawn(nsims+1) #at least as many as calls to simulate()
 
     for i in range(nsims):
