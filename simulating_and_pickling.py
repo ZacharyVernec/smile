@@ -19,7 +19,7 @@ seed = 542705034
 np.random.seed(seed)
 rng = np.random.default_rng(547263468)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_test_12'
+pickle_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_12'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -135,7 +135,7 @@ def get_visual_realistic_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=2, scorename='visual',
+    sampler3 = MagnitudeSampler(value=8, scorename='visual',
                                 delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -177,7 +177,7 @@ def get_visual_delayless_realistic():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=2, scorename='visual',
+    sampler3 = MagnitudeSampler(value=8, scorename='visual',
                                 delay=0, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -257,8 +257,8 @@ def simulate(npops, index=None, seed=1234):
 
 
 #parameters
-npersons=10
-npops=5
+npersons=1000
+npops=100
 slope_options = (1, 2, 3)
 error_options = (0.3, 0.5)
 
@@ -277,7 +277,7 @@ starttime = datetime.now()
 print(f"Started at {starttime.strftime('%H:%M')}.")
 
 try:
-    npops_per_sim = 2
+    npops_per_sim = 10
     nsims = npops // npops_per_sim
     #nsims = 1
     npops_remainder = npops % npops_per_sim
