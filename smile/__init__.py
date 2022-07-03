@@ -1,6 +1,6 @@
 # Mostly empty file, required for python to treat this folder as a package
 
-__all__ = ["global_params", "population", "sampling", "regression"]
+__all__ = ["global_params", "population", "sampling"]
 #don't include example_populations.py nor helper.py
 
 # TODOs (file-nonspecific):
@@ -19,7 +19,6 @@ __all__ = ["global_params", "population", "sampling", "regression"]
 #TODO create fig and axes by default if no axes given for plotting methods
 #TODO documentation: https://realpython.com/documenting-python-code/
 #TODO possibility of slicing Population with scorename as first element in subscript tuple
-#TODO keep track of expected value of parameters for use when plotting regression results
 #TODO shape doesn't *need* to be the variable name for random, as long as there is 1
 #TODO change calls to ndarray.flatten() into calls to either ndarray.ravel() which returns a view, or ndarray.flat which is an iterator
 #TODO replace tile(arr, (npersons, 1)) with broadcast_to(arr, (npersons, len(arr)))

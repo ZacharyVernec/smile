@@ -12,12 +12,8 @@ from matplotlib import colors as mcolors
 from matplotlib.collections import LineCollection
 from matplotlib.ticker import MultipleLocator
 import pandas as pd
-from patsy import dmatrices
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
 
 # Local application imports
-from smile.regression import RegressionResult, RegressionResultList
 from smile import helper
 from smile.helper import warn
 from smile.global_params import scoretype
@@ -154,72 +150,6 @@ class Population:
                 self.scores[scorename] = np.broadcast_to(self.scores[scorename], self.data_shape) #change shape by broadcasting
             elif self.scores[scorename].size == 0: #if score array is empty
                 self.scores[scorename] = self.scores[scorename].reshape(self.data_shape) #change shape by adding empty axes
-                
-    # Statistical methods
-    
-    #TODO more complex cases than linear
-    #TODO remove repetition between functions
-    def regress(self, method, y='symptom', x='visual'):
-        #TODO use getattr(self, 'regress_'+method)
-        if method == 'persons': return self.regress_persons(x=x, y=y)
-        elif method == 'linear': return self.regress_linear(x=x, y=y)
-        elif method =='mixed': return self.regress_mixed(x=x, y=y)
-        else: raise ValueError("Unknown regression method: {}".format(method))
-    def regress_persons(self, x='visual', y='symptom'):
-        '''Simple linear regression on each person in self, independently'''
-        warn('Deprecated')
-        poplist = self.to_populationlist()
-        #regress each person
-        regresults = poplist.regress_linear(y=y, x=x)
-        return regresults #TODO return as Result not Resultslist
-    def regress_linear(self, x='visual', y='symptom'):
-        '''Simple linear regression on self'''
-        # Argument parsing # TODO make into helper function for clutter reduction
-        y_possibilities = {'symptom'} #TODO add more possibilities
-        x_possibilities = {'visual'} #TODO add more possibilities
-        if y not in y_possibilities:
-            raise ValueError('Dependent variable {} not recognized. Use one of {} instead.'.format(y, y_possibilities))
-        if x not in x_possibilities:
-            raise ValueError('Independent variable {} not recognized. Use one of {} instead.'.format(x, yx_possibilities))
-            
-        y, X = dmatrices(y+' ~ '+x, data=self.to_dataframe(), return_type='dataframe') #split into endogenous and exogenous
-        model = sm.OLS(y, X) #define model
-        result = model.fit() #fit model
-        
-        return RegressionResult(result, self)
-    def regress_mixed(self, x='visual', y='symptom', random_effect='both'):
-        '''Mixed effects linear regression on self, with random intercept and slope
-        random_effect can be 'intercept', 'slope', or 'both'
-        '''
-        
-        # Argument parsing # TODO make into helper function for clutter reduction
-        y_possibilities = {'symptom'} #TODO add more possibilities
-        x_possibilities = {'visual'} #TODO add more possibilities
-        if y not in y_possibilities:
-            raise ValueError('Dependent variable {} not recognized. Use one of {} instead.'.format(y, y_possibilities))
-        if x not in x_possibilities:
-            raise ValueError('Independent variable {} not recognized. Use one of {} instead.'.format(x, x_possibilities))
-            
-        df = self.to_dataframe()
-        #check for NaN, will decide later if should be dropped when specifying model
-        null_count = df.isnull().sum().sum() #TODO fix: reports 3 times the NaN since counts for each scoretype
-        if null_count > 0: 
-            warn('Population {} has {} NaN values'.format(self.title, null_count))
-        missing='drop'
-            
-        #regress
-        if random_effect == 'intercept':
-            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], missing=missing) 
-        elif random_effect == 'slope':
-            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}+0', missing=missing) 
-        elif random_effect == 'both':
-            model = smf.mixedlm(f' {y}~{x} ', df, groups=df['person'], re_formula=f' ~{x}', missing=missing) 
-        else:
-            raise ValueError(f"random_effect of {random_effect} not understood")
-        #TODO check notes of https://www.statsmodels.org/stable/generated/statsmodels.formula.api.mixedlm
-        result = model.fit() #fit model
-        
-        return RegressionResult(result, self)
     
     # Other methods
         
@@ -533,22 +463,7 @@ class PopulationList(UserList):
     def generate(self, generate_parameters=True):
         for pop in self: pop.generate(generate_parameters=generate_parameters)
             
-    # Statistical methods
-            
-    def regress(self, method, **kwargs):
-        #TODO use getattr(self, 'regress_'+method)
-        if method == 'persons': return self.regress_persons(**kwargs)
-        elif method == 'linear': return self.regress_linear(**kwargs)
-        elif method =='mixed': return self.regress_mixed(**kwargs)
-        else: raise ValueError("Unknown regression method: {}".format(method))
-    def regress_persons(self, **kwargs):
-        #deprecated
-        return [pop.regress_persons(**kwargs) for pop in self]
-    def regress_linear(self, **kwargs):
-        return RegressionResultList([pop.regress_linear(**kwargs) for pop in self], title=self.title+'\nregressed with linear')
-    def regress_mixed(self, **kwargs):
-        return RegressionResultList([pop.regress_mixed(**kwargs) for pop in self], title=self.title+'\nregressed with mixed effects')
-            
+
     # Other methods
     
     def copy(self, newtitle=None, addtitle=None):
