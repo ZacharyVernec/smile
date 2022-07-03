@@ -275,7 +275,7 @@ class Population:
         return persons_recovered_early
     def _get_excluded_ratio_late(self, scorename='symptom', index_day=0, recovered_ratio=0.15, lastday=NDAYS):
         score_lowerbound = get_MIN(scorename)
-        recovered_scores = (self.scores[scorename][:,index_day] - score_lowerbound)*ratio + score_lowerbound
+        recovered_scores = (self.scores[scorename][:,index_day] - score_lowerbound)*recovered_ratio + score_lowerbound
         persons_recovered_late = np.min(self.scores[scorename][:,:lastday], axis=1) > recovered_scores
         return persons_recovered_late
     def _get_excluded_ratio(self, **kwargs):
@@ -285,7 +285,7 @@ class Population:
         recovered_early = self._get_excluded_ratio_early(**kwargs_early)
         recovered_late = self._get_excluded_ratio_late(**kwargs_late)
         return np.logical_or(recovered_early, recovered_late)
-    def _get_excluded_na(self):
+    def _get_excluded_na(self, scorename):
         persons_with_na = np.any(np.isnan(self.scores[scorename]), axis=1)
         return persons_with_na
     
@@ -546,7 +546,7 @@ class PopulationList(UserList):
                 raise ValueError("Unknown direction {}".format(direction))
             
         else:
-            raise ValueError(f"{len(axes)} axes are not enough to plot {len(self)} Populations")
+            raise ValueError(f"{len(axarr)} axes are not enough to plot {len(self)} Populations")
             
     #summarizing
     def summarize(self, head=3, tail=3):

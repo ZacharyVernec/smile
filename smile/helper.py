@@ -157,7 +157,7 @@ class twodarray(np.ndarray):
         
         inputs = tuple(_replace_self(inputarr) for inputarr in inputs)
         if 'out' in kwargs:
-            kwargs['out'] = tuple(_replace_self(outputarr) for outputarr in outputarrs)
+            return NotImplemented
         res = getattr(ufunc, method)(*inputs, **kwargs)
         if isinstance(res, np.ndarray) and res.ndim == 2:
             return twodarray(res)
