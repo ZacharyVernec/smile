@@ -1,6 +1,0 @@
-Directory F:\saved_populations_11_large_csv\realistic_1_03 was created
-Directory F:\saved_populations_11_large_csv\realistic_1_05 was created
-Directory F:\saved_populations_11_large_csv\realistic_2_03 was created
-Directory F:\saved_populations_11_large_csv\realistic_2_05 was created
-Directory F:\saved_populations_11_large_csv\realistic_3_03 was created
-Directory F:\saved_populations_11_large_csv\realistic_3_05 was created
