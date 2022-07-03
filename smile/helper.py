@@ -21,83 +21,6 @@ def warn(message):
 
     
 #distributions
-#TODO have non-general call the general
-def truncatednormal(xmin, xmax, pmsigma=3, shape=None):
-    '''
-    the smaller the pmsigma, the closer the distribution is to uniform
-    pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
-    shape of None returns a simple float
-    '''
-    mode = (xmax+xmin)/2
-    untruncated_std = (xmax-xmin)/(2*pmsigma)
-    arr_shape = shape if shape is not None else 1 #convert to array if needed
-    
-    vals = np.random.normal(mode, untruncated_std, arr_shape)
-    invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
-    
-    while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(mode, untruncated_std, len(invalid))
-        invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
-        
-    if shape is None: return vals[0] #convert back from array
-    else: return vals
-def truncatednormal_left(xmin, mode, pmsigma=3, shape=None):
-    '''
-    careful, the given mode will not be the mean of the truncated distribution sampled from
-    the smaller the pmsigma, the closer the distribution is to uniform
-    pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
-    shape of None returns a simple float
-    '''
-    mode = mode
-    untruncated_std = (mean-xmin)/pmsigma
-    arr_shape = shape if shape is not None else 1 #convert to array if needed
-    
-    vals = np.random.normal(mode, untruncated_std, arr_shape)
-    invalid = np.flatnonzero(vals < xmin)
-    
-    while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(mode, untruncated_std, len(invalid))
-        invalid = np.flatnonzero(vals < xmin)
-        
-    if shape is None: return vals[0] #convert back from array
-    else: return vals
-def truncatednormal_right(mode, xmax, pmsigma=3, shape=None):
-    '''
-    careful, the given mode will not be the mean of the truncated distribution sampled from
-    the smaller the pmsigma, the closer the distribution is to uniform
-    pmsigma corresponds to what would be the z-score of the |xmax| and |xmin| if the distribution was not truncated
-    shape of None returns a simple float
-    '''
-    mode = mode
-    untruncated_std = (mean-xmin)/pmsigma
-    arr_shape = shape if shape is not None else 1 #convert to array if needed
-    
-    vals = np.random.normal(mode, untruncated_std, arr_shape)
-    invalid = np.flatnonzero(vals > xmax)
-    
-    while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(mode, untruncated_std, arr_shape)
-        invalid = np.flatnonzero(vals > xmax)
-           
-    if shape is None: return vals[0] #convert back from array
-    else: return vals
-def truncatednormal_general(xmin, mode, xmax, untruncated_std, shape=None):
-    '''
-    mode and untruncated_std are the mean and stdev parameters of the pre-truncated distribution
-    shape of None returns a simple float
-    '''
-    arr_shape = shape if shape is not None else 1 #convert to array if needed
-    
-    vals = np.random.normal(mode, untruncated_std, arr_shape)
-    invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
-    
-    while(len(invalid) > 0):
-        vals.flat[invalid] = np.random.normal(mode, untruncated_std, len(invalid))
-        invalid = np.flatnonzero((vals < xmin) | (vals >= xmax))
-        
-    if shape is None: return vals[0] #convert back from array
-    else: return vals
-
 class BoundedNormal:
     '''Creates frozen instance of truncnorm but with bounds independent of loc and scale'''
     def __new__(cls, lower, upper, loc=0, scale=1):
@@ -139,7 +62,6 @@ class Mixture:
     def sf(self, x):
         return np.average([distrib.sf(x) for distrib in self.distribs], axis=0, weights=self.mix)
 
-    
 def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         '''
         Beta distribution parametrized by location 'left_bound', scale 'interval_length', 'mode', and 'a'
@@ -160,7 +82,7 @@ def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         
         return untransform_xprime(values_unitinterval)
 
-# class to make variates stream able to be restarted
+# class to make variates streamable to be restarted
 class Beta_rng:
     def __init__(self, seed, left_bound=0, interval_length=1, mode=0.5, a=1):
         self.left_bound=left_bound
