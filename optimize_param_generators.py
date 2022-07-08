@@ -1,3 +1,4 @@
+from git import Reference
 from scipy import stats
 from scipy import optimize
 from scipy import integrate
@@ -19,11 +20,11 @@ class Counter:
 class BoundedNormal:
     '''Creates frozen instance of truncnorm but with bounds independent of loc and scale'''
     def __new__(cls, lower, upper, loc=0, scale=1):
-      if np.any(np.atleast_1d(lower) > np.atleast_1d(upper)):
-        raise ValueError()
-      a = (lower - loc) / scale
-      b = (upper - loc) / scale
-      return stats.truncnorm(a, b, loc=loc, scale=scale)
+        if np.any(np.atleast_1d(lower) > np.atleast_1d(upper)):
+            raise ValueError()
+        a = (lower - loc) / scale
+        b = (upper - loc) / scale
+        return stats.truncnorm(a, b, loc=loc, scale=scale)
 
 # New distribution
 class Mixture:
@@ -58,8 +59,18 @@ class Mixture:
     def sf(self, x):
         return np.average([distrib.sf(x) for distrib in self.distribs], axis=0, weights=self.mix)
 
+class ReferenceDistrib:
+    '''Create frozen instance of discrete distribution based on real-world data'''
+    def __new__(cls):
+        unique = np.arange(20+1)
+        counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
 
+        unique = unique[2:] #exclude 0 and 1 values as already healthy
+        counts = counts[2:] #correspond
+        probs = counts / np.sum(counts)
 
+        return stats.rv_discrete(values=(unique, probs))
+    
 # Methods to get probabilities of early & late recovery
 def get_tails_empir(R, V_0, size=10000):
     '''
@@ -100,7 +111,7 @@ def get_tails_integ(R, V_0):
     # Integrate to get probabilities based on distributions
     # The true formula is a double integral, but the first integral simply calculates a cdf or sf=1-cdf
     early_prob, _ = integrate.quad(lambda x: R.sf((x-6)/7) * V_0.pdf(x), 14, 25)
-    late_prob, _ = integrate.quad(lambda x: R.cdf((x-6)/159) * V_0.pdf(x), 14, 25)
+    late_prob, _ = integrate.quad(lambda x: R.cdf((x-6)/159) * V_0.pdf(x), 14, 25) #FIXME bounds may be different!!!
 
     return early_prob, late_prob
 
@@ -124,25 +135,16 @@ if __name__ == '__main__':
                         help='Tail probabilities to target. (default: 0.3 0.1)')
     parser.add_argument('--supportR', type=float, nargs=2, default=(0, 2),
                         help='Support interval for the rate random var R (default 0.0 2.0)')
-    parser.add_argument('--supportV0', type=float, nargs=2, default=(14, 25),
-                        help='Support interval for the init value random var V_0 (default 14.0 25.0)')
     parser.add_argument('--initparamsR', type=float, nargs=5, default=(0.5, 0.3, 1.7, 0.6, 0.6),
                         help='Initial mixture distribution parameters (default: 0.5 0.3 1.7 0.6 0.6)')
-    parser.add_argument('--initparamsV0', type=float, nargs=2, default=(18, 6),
-                        help='Initial beta distribution parameters (default: 18.0 6.0)')
     parser.add_argument('--lowerboundsR', type=float, nargs=5, default=(1e-8, 1e-8, 1e-8, 1e-8, 1e-8),
                         help='Lower bounds for mixture parameters during optimization '
                              '(default: 1e-8 1e-8 1e-8 1e-8 1e-8)')
-    parser.add_argument('--lowerboundsV0', type=float, nargs=2, default=(1e-8, 1e-8),
-                        help='Lower bounds for beta parameters during optimization (default: 1e-8 1e-8)')
     parser.add_argument('--upperboundsR', type=float, nargs=5, default=(1, np.inf, np.inf, np.inf, np.inf),
                         help='Lower bounds for mixture parameters during optimization '
                              '(default: 1.0, inf inf inf inf)')
-    parser.add_argument('--upperboundsV0', type=float, 
-                        nargs=2, default=(np.inf, np.inf),
-                        help='Lower bounds for beta parameters during optimization (default: inf inf)')
-    parser.add_argument('--maxiter', type=int, default=7*200, #Numb_of_params * 200
-                        help='Max number of solver iterations (default: 1400)')
+    parser.add_argument('--maxiter', type=int, default=5*200, #Numb_of_params * 200
+                        help='Max number of solver iterations (default: 1000)')
     parser.add_argument('--tol', type=float, default=1e-8,
                         help='Solver tolerance for convergence (default: 1e-8)')
     parser.add_argument('--solver', choices=['Nelder-Mead'], default='Nelder-Mead')
@@ -151,27 +153,29 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # Method
     if args.method == 'integration':
+        raise ValueError("Unsupported for discrete V_0")
         get_tails = get_tails_integ
     elif args.method == 'simulation':
         get_tails = lambda R, V_0: get_tails_empir(R, V_0, size=args.n)
     # Bounds
-    args.bounds = optimize.Bounds(np.array([*args.lowerboundsR, *args.lowerboundsV0]), 
-                                  np.array([*args.upperboundsR, *args.upperboundsV0]))
+    args.bounds = optimize.Bounds(np.array(args.lowerboundsR), 
+                                  np.array(args.upperboundsR))
     # Initparams to array
-    args.initparams = np.array([*args.initparamsR, *args.initparamsV0])
+    args.initparams = np.array(args.initparamsR)
 
 
     # Function to optimize 
     def optim_fun(params, counter):
         # Random variables for visual score defined in simulating_and_pickling as -R*t+V_0
         R = Mixture(*args.supportR, params[0], params[1:3], params[3:5])
-        V_0 = BoundedNormal(*args.supportV0, *params[-2:])
+        V_0 = ReferenceDistrib()
 
         tails = get_tails(R, V_0)
 
         # Print
         if args.printfreq > 0 and counter.val % args.printfreq == 0: 
             print(f"Recovery tails: {tails}")
+            print(params)
         counter.inc()
 
         return error_fun(tails, args.targets)
@@ -186,7 +190,7 @@ if __name__ == '__main__':
     #Result
     print(res)
     R = Mixture(*args.supportR, res.x[0], res.x[1:3], res.x[3:5])
-    V_0 = BoundedNormal(*args.supportV0, *res.x[-2:])
+    V_0 = ReferenceDistrib()
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
 
@@ -200,12 +204,12 @@ if __name__ == '__main__':
     x = np.linspace(*args.supportR, 5000)
     y = R.pdf(x)
     axes[0].plot(x, y)
-    axes[0].set_title("PDF of R \nParams: " + ", ".join(f"{param:g}" for param in res.x[:-2]))
+    axes[0].set_title("PDF of R \nParams: " + ", ".join(f"{param:g}" for param in res.x))
     #V_0
-    x = np.linspace(*args.supportV0, 5000)
-    y = V_0.pdf(x)
-    axes[1].plot(x, y)
-    axes[1].set_title("PDF of V_0 \nParams: " + ", ".join(f"{param:g}" for param in res.x[-2:]))
+    x = np.arange(21)
+    y = V_0.pmf(x)
+    axes[1].bar(x, y, width=1)
+    axes[1].set_title("PMF of V_0")
 
     plt.tight_layout()
     plt.show()
