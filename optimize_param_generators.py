@@ -90,8 +90,8 @@ def get_tails_empir(R, V_0, size=10000):
     v_0 = V_0.rvs(size=size)
 
     # Simulate to get probabilities
-    early_prob = np.mean(-r*7 + v_0 <= 6) #TODO use smile.global_params
-    late_prob = np.mean(-r*159 + v_0 > 6) #TODO use smile.global_params
+    early_prob = np.mean(-r*7 + v_0 <= 1) #TODO use smile.global_params
+    late_prob = np.mean(-r*159 + v_0 > 1) #TODO use smile.global_params
 
     return early_prob, late_prob
 def get_tails_integ(R, V_0):
