@@ -137,16 +137,16 @@ if __name__ == '__main__':
                         help='Tail probabilities to target. (default: 0.3 0.1)')
     parser.add_argument('--supportR', type=float, nargs=2, default=(0, 2),
                         help='Support interval for the rate random var R (default 0.0 2.0)')
-    parser.add_argument('--initparamsR', type=float, nargs=5, default=(0.5, 0.3, 1.7, 0.6, 0.6),
-                        help='Initial mixture distribution parameters (default: 0.5 0.3 1.7 0.6 0.6)')
-    parser.add_argument('--lowerboundsR', type=float, nargs=5, default=(1e-8, 1e-8, 1e-8, 1e-8, 1e-8),
+    parser.add_argument('--initparamsR', type=float, nargs=2, default=(0.9, 1.1),
+                        help='Initial mixture distribution parameters (default: 0.9 1.1)')
+    parser.add_argument('--lowerboundsR', type=float, nargs=2, default=(-np.inf, 1e-8),
                         help='Lower bounds for mixture parameters during optimization '
-                             '(default: 1e-8 1e-8 1e-8 1e-8 1e-8)')
-    parser.add_argument('--upperboundsR', type=float, nargs=5, default=(1, np.inf, np.inf, np.inf, np.inf),
+                             '(default: -inf 1e-8)')
+    parser.add_argument('--upperboundsR', type=float, nargs=2, default=(np.inf, np.inf),
                         help='Lower bounds for mixture parameters during optimization '
-                             '(default: 1.0, inf inf inf inf)')
-    parser.add_argument('--maxiter', type=int, default=5*200, #Numb_of_params * 200
-                        help='Max number of solver iterations (default: 1000)')
+                             '(default: inf inf)')
+    parser.add_argument('--maxiter', type=int, default=2*200, #Numb_of_params * 200
+                        help='Max number of solver iterations (default: 400)')
     parser.add_argument('--tol', type=float, default=1e-8,
                         help='Solver tolerance for convergence (default: 1e-8)')
     parser.add_argument('--solver', choices=['Nelder-Mead'], default='Nelder-Mead')
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     # Function to optimize 
     def optim_fun(params, counter):
         # Random variables for visual score defined in simulating_and_pickling as -R*t+V_0
-        R = Mixture(*args.supportR, params[0], params[1:3], params[3:5])
+        R = BoundedNormal(*args.supportR, params[0], params[1])
         V_0 = ReferenceDistrib()
 
         tails = get_tails(R, V_0)
@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
     #Result
     print(res)
-    R = Mixture(*args.supportR, res.x[0], res.x[1:3], res.x[3:5])
+    R = BoundedNormal(*args.supportR, res.x[0], res.x[1])
     V_0 = ReferenceDistrib()
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
