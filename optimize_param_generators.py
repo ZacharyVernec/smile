@@ -82,8 +82,8 @@ def get_tails_empir(R, V_0, size=10000):
             size: amount of points in simulation
 
         Returns:
-            early_prob: probability of -R*t+V_0 hitting 6 before day 7
-            late_prob: probability of -R*t+V_0 hitting 6 after day 159
+            early_prob: probability of -R*t+V_0 hitting 1 before day 7
+            late_prob: probability of -R*t+V_0 hitting 1 after day 159
     '''
     #Random variates
     r = R.rvs(size=size)
@@ -104,14 +104,16 @@ def get_tails_integ(R, V_0):
             size: amount of points in simulation
 
         Returns:
-            early_prob: probability of -R*t+V_0 hitting 6 before day 7
-            late_prob: probability of -R*t+V_0 hitting 6 after day 159
+            early_prob: probability of -R*t+V_0 hitting 1 before day 7
+            late_prob: probability of -R*t+V_0 hitting 1 after day 159
     '''
 
     # Integrate to get probabilities based on distributions
-    # The true formula is a double integral, but the first integral simply calculates a cdf or sf=1-cdf
-    early_prob, _ = integrate.quad(lambda x: R.sf((x-6)/7) * V_0.pdf(x), 14, 25)
-    late_prob, _ = integrate.quad(lambda x: R.cdf((x-6)/159) * V_0.pdf(x), 14, 25) #FIXME bounds may be different!!!
+    # The true formula is a weighted sum of integrals, but the integrals simply calculates a cdf or sf=1-cdf
+    V0_supported_vals = np.arange(V_0.a, V_0.b+1)
+    V0_probs = V_0.pmf(V0_supported_vals)
+    early_prob = np.sum(R.sf((V0_supported_vals - 1)/7) * V0_probs)
+    late_prob = np.sum(R.sf((V0_supported_vals - 1)/159) * V0_probs)
 
     return early_prob, late_prob
 
@@ -153,7 +155,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # Method
     if args.method == 'integration':
-        raise ValueError("Unsupported for discrete V_0")
         get_tails = get_tails_integ
     elif args.method == 'simulation':
         get_tails = lambda R, V_0: get_tails_empir(R, V_0, size=args.n)
