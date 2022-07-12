@@ -176,7 +176,6 @@ if __name__ == '__main__':
         # Print
         if args.printfreq > 0 and counter.val % args.printfreq == 0: 
             print(f"Recovery tails: {tails}")
-            print(params)
         counter.inc()
 
         return error_fun(tails, args.targets)
@@ -189,6 +188,7 @@ if __name__ == '__main__':
             method=args.solver, options={'maxiter':args.maxiter},
             tol=args.tol)
         resultparams = res.x
+        print(res)
     else:
         resultparams = args.initparams
         
