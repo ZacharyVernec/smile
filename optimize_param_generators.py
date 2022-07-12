@@ -182,15 +182,21 @@ if __name__ == '__main__':
         return error_fun(tails, args.targets)
 
     #Minimize
-    counter = Counter()
-    res = optimize.minimize(optim_fun, args.initparams, bounds=args.bounds,
+    if args.maxiter > 0:
+        counter = Counter()
+        res = optimize.minimize(optim_fun, args.initparams, bounds=args.bounds,
+            args=(counter,), 
         args=(counter,), 
-        method=args.solver, options={'maxiter':args.maxiter},
-        tol=args.tol)
+            args=(counter,), 
+            method=args.solver, options={'maxiter':args.maxiter},
+            tol=args.tol)
+        resultparams = res.x
+    else:
+        resultparams = args.initparams
+        
 
     #Result
-    print(res)
-    R = BoundedNormal(*args.supportR, res.x[0], res.x[1])
+    R = BoundedNormal(*args.supportR, resultparams[0], resultparams[1])
     V_0 = ReferenceDistrib()
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
@@ -205,7 +211,7 @@ if __name__ == '__main__':
     x = np.linspace(*args.supportR, 5000)
     y = R.pdf(x)
     axes[0].plot(x, y)
-    axes[0].set_title("PDF of R \nParams: " + ", ".join(f"{param:g}" for param in res.x))
+    axes[0].set_title("PDF of R \nParams: " + ", ".join(f"{param:g}" for param in resultparams))
     #V_0
     x = np.arange(21)
     y = V_0.pmf(x)
