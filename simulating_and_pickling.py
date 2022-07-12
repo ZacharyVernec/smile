@@ -97,8 +97,8 @@ def get_traditional_methodology():
     methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
 
     return methodology
-def get_realistic_methodology():
-    methodology = Methodology('realistic')
+def get_realistic_symptom_methodology():
+    methodology = Methodology('realistic_symptom')
 
     #limit is irrelevant because max(day+delay) < NDAYS
     #if_reached is irrelevant because first sampling method
@@ -119,8 +119,8 @@ def get_realistic_methodology():
     methodology.add_sampler(sampler3)
 
     return methodology
-def get_visual_realistic_methodology():
-    methodology = Methodology('visual_realistic')
+def get_realistic_visual_methodology():
+    methodology = Methodology('realistic_visual')
 
     #limit is irrelevant because max(day+delay) < NDAYS
     #if_reached is irrelevant because first sampling method
@@ -141,8 +141,8 @@ def get_visual_realistic_methodology():
     methodology.add_sampler(sampler3)
 
     return methodology
-def get_realistic_delayless_methodology():
-    methodology = Methodology('realistic_delayless')
+def get_delayless_realistic_symptom_methodology():
+    methodology = Methodology('delayless_realistic_symptom')
 
     #limit is irrelevant because max(day+delay) < NDAYS
     #if_reached is irrelevant because first sampling method
@@ -162,8 +162,8 @@ def get_realistic_delayless_methodology():
     methodology.add_sampler(sampler3)
 
     return methodology
-def get_visual_delayless_realistic():
-    methodology = Methodology('visual_delayless_realistic')
+def get_delayless_realistic_visual_methodology():
+    methodology = Methodology('delayless_realistic_visual')
 
     #limit is irrelevant because max(day+delay) < NDAYS
     #if_reached is irrelevant because first sampling method
@@ -233,10 +233,10 @@ def simulate(npops, index=None, seed=1234):
     #create
     methodologies = [
         get_traditional_methodology(),
-        get_realistic_methodology(),
-        get_visual_realistic_methodology(),
-        get_realistic_delayless_methodology(),
-        get_visual_delayless_realistic()
+        get_realistic_symptom_methodology(),
+        get_realistic_visual_methodology(),
+        get_delayless_realistic_symptom_methodology(),
+        get_delayless_realistic_visual_methodology()
     ]
 
     #preallocate arrays

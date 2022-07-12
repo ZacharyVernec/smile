@@ -53,11 +53,11 @@ npops=100 #across all files
 slope_options = (1, 2, 3)
 error_options = (0.3, 0.5)
 method_options = (
-    "traditional", 
-    "realistic", 
-    "visual_realistic",
-    "realistic_delayless",
-    "visual_delayless_realistic"
+    "traditional",
+    "realistic_symptom",
+    "realistic_visual",
+    "delayless_realistic_symptom",
+    "delayless_realistic_visual"
     )
 
 def options_to_string(slope, error):
