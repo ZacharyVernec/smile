@@ -213,7 +213,7 @@ def simulate(npops, index=None, seed=1234):
 
     #define
     filter_kwargs = {'filter_type':'ratio_early', 'copy':True,
-                     'index_day':0, 'recovered_ratio':0.4, 'scorename':'symptom'}
+                     'index_day':0, 'recovered_ratio':0.3, 'scorename':'symptom'}
 
     #preallocate arrays
     filtered_poplists = np.empty_like(poplists)
