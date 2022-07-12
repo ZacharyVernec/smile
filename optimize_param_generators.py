@@ -113,7 +113,7 @@ def get_tails_integ(R, V_0):
     V0_supported_vals = np.arange(V_0.a, V_0.b+1)
     V0_probs = V_0.pmf(V0_supported_vals)
     early_prob = np.sum(R.sf((V0_supported_vals - 1)/7) * V0_probs)
-    late_prob = np.sum(R.sf((V0_supported_vals - 1)/159) * V0_probs)
+    late_prob = np.sum(R.cdf((V0_supported_vals - 1)/159) * V0_probs)
 
     return early_prob, late_prob
 
