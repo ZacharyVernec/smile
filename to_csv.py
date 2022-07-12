@@ -55,8 +55,10 @@ error_options = (0.3, 0.5)
 method_options = (
     "traditional",
     "realistic_symptom",
+    "realistic_symptom_noerror",
     "realistic_visual",
     "delayless_realistic_symptom",
+    "delayless_realistic_symptom_noerror",
     "delayless_realistic_visual"
     )
 
