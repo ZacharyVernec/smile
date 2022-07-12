@@ -113,7 +113,7 @@ def get_realistic_symptom_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=2, scorename='symptom',
+    sampler3 = MagnitudeSampler(value=1, scorename='symptom',
                                 delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -135,7 +135,7 @@ def get_realistic_visual_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=8, scorename='visual',
+    sampler3 = MagnitudeSampler(value=7, scorename='visual',
                                 delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -156,7 +156,7 @@ def get_delayless_realistic_symptom_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=2, scorename='symptom',
+    sampler3 = MagnitudeSampler(value=1, scorename='symptom',
                                 delay=0, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -177,7 +177,7 @@ def get_delayless_realistic_visual_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=8, scorename='visual',
+    sampler3 = MagnitudeSampler(value=7, scorename='visual',
                                 delay=0, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
