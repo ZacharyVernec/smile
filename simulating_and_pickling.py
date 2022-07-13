@@ -56,10 +56,12 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     pop.set_score_generator('visual', gen_visualscores)
     #parameter generators
     R = helper.Mixture(lower=0, upper=2, 
-        mix=0.676866, 
-        locs=np.array([0.151503, 6.31151]), 
-        scales=np.array([0.211144, 0.548655]))
-    V_0 = helper.BoundedNormal(lower=14, upper=25, loc=16.6942, scale=2.04876)
+        mix=0.545868, 
+        locs=np.array([0.0773412, 1.0]), 
+        scales=np.array([0.056342, 0.743547])) 
+    V_0 = helper.ReferenceDistrib()
+    #Give recovery tails of (0.29999967680454737, 0.09999995806927865)
+
     gen_r = lambda shape: R.rvs(size=shape, random_state=rng)
     gen_v0 = lambda shape: V_0.rvs(size=shape, random_state=rng)
     pop.set_parameter_generator('r', gen_r, 'person')
