@@ -5,6 +5,7 @@ from scipy import integrate
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from smile import helper
 
 np.random.seed(20220609)
 
@@ -14,62 +15,6 @@ class Counter:
         self.val = 0
     def inc(self):
         self.val += 1
-
-
-# New distribution
-class BoundedNormal:
-    '''Creates frozen instance of truncnorm but with bounds independent of loc and scale'''
-    def __new__(cls, lower, upper, loc=0, scale=1):
-        if np.any(np.atleast_1d(lower) > np.atleast_1d(upper)):
-            raise ValueError()
-        a = (lower - loc) / scale
-        b = (upper - loc) / scale
-        return stats.truncnorm(a, b, loc=loc, scale=scale)
-
-# New distribution
-class Mixture:
-    """Mixture of Gaussians, partially imitates stats.rv_continuous"""
-    def __init__(self, lower, upper, mix, locs, scales):
-        if not self._argcheck(mix, locs, scales):
-            raise ValueError("bad parameters")
-        self.mix = np.array([*np.atleast_1d(mix), 1-np.sum(mix)])
-        self.distribs = [BoundedNormal(lower, upper, loc=loc, scale=scale) for loc, scale in zip(locs, scales)]
-        
-    def _argcheck(self, mix, locs, scales):
-        mix = np.atleast_1d(mix)
-        dims_ok = (mix.ndim == 1) and (len(mix)+1 == len(locs) == len(scales))
-        mix_ok = np.all(mix >= 0) and np.sum(mix) <= 1
-        locs_ok = np.all(np.isfinite(locs))
-        scales_ok = np.all(scales > 0) and np.all(np.isfinite(scales))
-        return dims_ok and mix_ok and locs_ok and scales_ok
-    
-    def rvs(self, size=1, random_state=None):
-        #flatten size but store as 'shape' for returning reshaped
-        shape = size
-        size = np.prod(shape)
-        
-        indices = stats.rv_discrete(values=(range(len(self.mix)), self.mix)).rvs(size=size, random_state=random_state)
-        norm_variates = [distrib.rvs(size=size, random_state=random_state) for distrib in self.distribs]
-        return np.choose(indices, norm_variates).reshape(shape)
-        
-    def pdf(self, x):
-        return np.average([distrib.pdf(x) for distrib in self.distribs], axis=0, weights=self.mix)
-    def cdf(self, x):
-        return np.average([distrib.cdf(x) for distrib in self.distribs], axis=0, weights=self.mix)
-    def sf(self, x):
-        return np.average([distrib.sf(x) for distrib in self.distribs], axis=0, weights=self.mix)
-
-class ReferenceDistrib:
-    '''Create frozen instance of discrete distribution based on real-world data'''
-    def __new__(cls):
-        unique = np.arange(20+1)
-        counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
-
-        unique = unique[2:] #exclude 0 and 1 values as already healthy
-        counts = counts[2:] #correspond
-        probs = counts / np.sum(counts)
-
-        return stats.rv_discrete(values=(unique, probs))
     
 # Methods to get probabilities of early & late recovery
 def get_tails_empir(R, V_0, size=10000):
@@ -168,8 +113,8 @@ if __name__ == '__main__':
     # Function to optimize 
     def optim_fun(params, counter):
         # Random variables for visual score defined in simulating_and_pickling as -R*t+V_0
-        R = Mixture(*args.supportR, params[0], params[1:3], params[3:5])
-        V_0 = ReferenceDistrib()
+        R = helper.Mixture(*args.supportR, params[0], params[1:3], params[3:5])
+        V_0 = helper.ReferenceDistrib()
 
         tails = get_tails(R, V_0)
 
@@ -194,8 +139,8 @@ if __name__ == '__main__':
         
 
     #Result
-    R = Mixture(*args.supportR, resultparams[0], resultparams[1:3], resultparams[3:5])
-    V_0 = ReferenceDistrib()
+    R = helper.Mixture(*args.supportR, resultparams[0], resultparams[1:3], resultparams[3:5])
+    V_0 = helper.ReferenceDistrib()
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
 
