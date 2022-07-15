@@ -19,7 +19,7 @@ seed = 542705034
 np.random.seed(seed)
 rng = np.random.default_rng(547263468)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_13'
+pickle_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_14'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 
@@ -250,7 +250,7 @@ def simulate(npops, index=None, seed=1234):
         poplists[i, j].generate()
 
     #pickle
-    dump_to_file(poplists, 'poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(poplists, 'poplists'+suffix, dirname=pickle_dir, create_newdir=True)
     if verbose: print("Done generation.")
 
 
@@ -269,7 +269,7 @@ def simulate(npops, index=None, seed=1234):
         filtered_poplists[i, j] = poplists[i, j].filter(**filter_kwargs)
 
     #pickle
-    dump_to_file(filtered_poplists, 'filtered_poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(filtered_poplists, 'filtered_poplists'+suffix, dirname=pickle_dir, create_newdir=True)
     if verbose: print("Done filtering.")
 
 
@@ -299,7 +299,7 @@ def simulate(npops, index=None, seed=1234):
             sampled_poplists[i, j, k] = methodologies[k].sample(filtered_poplists[i, j])
 
     #pickle
-    dump_to_file(sampled_poplists, 'sampled_poplists'+suffix, dirname=pickle_dir)
+    dump_to_file(sampled_poplists, 'sampled_poplists'+suffix, dirname=pickle_dir, create_newdir=True)
     if verbose: print("Done sampling.")
 
 
