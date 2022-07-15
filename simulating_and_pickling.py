@@ -296,7 +296,7 @@ def simulate(npops, index=None, seed=1234):
         beta_rng.reset()
         for i, j in np.ndindex(poplists_shape):
             if verbose: print(i, j, k)
-            sampled_poplists[i, j, k] = methodologies[k].sample(poplists[i, j])
+            sampled_poplists[i, j, k] = methodologies[k].sample(filtered_poplists[i, j])
 
     #pickle
     dump_to_file(sampled_poplists, 'sampled_poplists'+suffix, dirname=pickle_dir)
