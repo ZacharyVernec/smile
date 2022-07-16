@@ -62,17 +62,6 @@ class Mixture:
     def sf(self, x):
         return np.average([distrib.sf(x) for distrib in self.distribs], axis=0, weights=self.mix)
 
-class ReferenceDistrib:
-    '''Create frozen instance of discrete distribution based on real-world data'''
-    def __new__(cls):
-        unique = np.arange(20+1)
-        counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
-
-        unique = unique[2:] #exclude 0 and 1 values as already healthy
-        counts = counts[2:] #correspond
-        probs = counts / np.sum(counts)
-
-        return stats.rv_discrete(values=(unique, probs))
 
 def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         '''
