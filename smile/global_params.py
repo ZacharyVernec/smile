@@ -8,7 +8,7 @@ scoretype = np.float32
 
  # Study parameters
 
-VMIN = 0 #minimum possible visual score
+VMIN = 6 #minimum possible visual score
 SMIN = 0 #minimum possible symptom score
 def get_MIN(scorename):
     if scorename == 'visual': return VMIN

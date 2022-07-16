@@ -62,7 +62,7 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
         locs=np.array([0.0773412, 1.0]), 
         scales=np.array([0.056342, 0.743547])) 
     #Initial
-    unique = np.arange(20+1)
+    unique = np.arange(20+1) + VMIN
     counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
     unique, counts = unique[2:], counts[2:] #exclude 0 and 1 values as already healthy
     probs = counts / np.sum(counts)
@@ -122,7 +122,7 @@ def get_realistic_symptom_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=1, scorename='symptom',
+    sampler3 = MagnitudeSampler(value=SMIN+1, scorename='symptom',
                                 delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -166,7 +166,7 @@ def get_realistic_visual_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=1, scorename='visual',
+    sampler3 = MagnitudeSampler(value=VMIN+1, scorename='visual',
                                 delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -187,7 +187,7 @@ def get_delayless_realistic_symptom_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=1, scorename='symptom',
+    sampler3 = MagnitudeSampler(value=SMIN+1, scorename='symptom',
                                 delay=0, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -229,7 +229,7 @@ def get_delayless_realistic_visual_methodology():
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=1, scorename='visual',
+    sampler3 = MagnitudeSampler(value=VMIN+1, scorename='visual',
                                 delay=0, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
