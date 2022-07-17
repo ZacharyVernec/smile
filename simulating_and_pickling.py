@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import dill
 from scipy import stats
+import pandas as pd
 
 # Local application imports
 from smile.population import Population, PopulationList
@@ -246,14 +247,14 @@ def simulate(npops, index=None, seed=1234):
         verbose = True
 
     #preallocate arrays
-    poplists_shape = (len(slope_options), len(error_options))
+    poplists_shape = (len(slope_options), len(error_options)) #TODO pass as param
     poplists = np.empty(poplists_shape, dtype=object)
 
     #create and generate
     for i, j in np.ndindex(poplists_shape):
         if verbose: print(i, j)
         options = (slope_options[i], error_options[j])
-        poplists[i, j] = get_populations(*options, npersons, npops)
+        poplists[i, j] = get_populations(*options, npersons, npops) #TODO pass npersons as param
         poplists[i, j].generate()
 
     #pickle
@@ -264,19 +265,34 @@ def simulate(npops, index=None, seed=1234):
     # Filtering
 
     #define
-    filter_kwargs = {'filter_type':'ratio_early', 'copy':True,
-                     'index_day':0, 'recovered_ratio':0.3, 'scorename':'symptom'}
+    def get_filter(scorename):
+        return {'filter_type':'ratio_early', 'copy':True,
+                'index_day':0, 'recovered_ratio':0.3, 'scorename':scorename}
+    filters = {'symptom': get_filter('symptom'),
+               'symptom_noerror': get_filter('symptom_noerror'),
+               'visual': get_filter('visual')}
 
-    #preallocate arrays
-    filtered_poplists = np.empty_like(poplists)
+    #preallocate
+    filteredout = np.ones(npersons*npops, dtype=bool)
+    df_index = pd.MultiIndex.from_product([range(npops), range(npersons)], names=['pop', 'person'])
+    df = pd.DataFrame({'symptom':filteredout, 
+                       'symptom_noerror':filteredout.copy(), 
+                       'visual':filteredout.copy()},
+                       index=df_index)
+    dfs = np.empty(poplists_shape, dtype=object)
 
     #filter
     for i, j in np.ndindex(poplists_shape):
         if verbose: print(i, j)
-        filtered_poplists[i, j] = poplists[i, j].filter(**filter_kwargs)
+        dfs[i,j] = df.copy()
+        for scorename, filter_kwargs in filters.items():
+            filtered_poplist = poplists[i, j].filter(**filter_kwargs)
+            for k in range(npops):
+                persons_valid = filtered_poplist[k].persons.flatten()
+                dfs[i,j][scorename].loc[k,persons_valid] = False #set filteredout to false
 
     #pickle
-    dump_to_file(filtered_poplists, 'filtered_poplists'+suffix, dirname=pickle_dir, create_newdir=True)
+    dump_to_file(dfs, 'filteredout_persons'+suffix, dirname=pickle_dir, create_newdir=True)
     if verbose: print("Done filtering.")
 
 
@@ -303,7 +319,7 @@ def simulate(npops, index=None, seed=1234):
         beta_rng.reset()
         for i, j in np.ndindex(poplists_shape):
             if verbose: print(i, j, k)
-            sampled_poplists[i, j, k] = methodologies[k].sample(filtered_poplists[i, j])
+            sampled_poplists[i, j, k] = methodologies[k].sample(poplists[i, j])
 
     #pickle
     dump_to_file(sampled_poplists, 'sampled_poplists'+suffix, dirname=pickle_dir, create_newdir=True)

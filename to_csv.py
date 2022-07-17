@@ -82,13 +82,12 @@ for n in range(nsims):
                              dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
 
     #Filtered
-    poplists = load_from_file(pickle_pops_dir+r"\filtered_poplists_"+str(n)+".pik")
+    dfs = load_from_file(pickle_pops_dir+r"\filteredout_persons_"+str(n)+".pik")
     for i,j in np.ndindex(poplists.shape):
         foldername = f"populations_"+options_to_string(slope_options[i], error_options[j])
-        poplist = poplists[i,j]
-        for l in range(len(poplist)):
-            pop = poplist[l]
-            dump_to_csv_file(pop.to_dataframe(), foldername+f"_population_{n*npops_per_sim+l}_filtered", filesuffix='.csv', 
+        df = dfs[i,j]
+        for l in df.index.levels[0]: #pop indices
+            dump_to_csv_file(df.xs(l), foldername+f"_population_{n*npops_per_sim+l}_filteredout_persons", filesuffix='.csv', 
                              dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
 
     #Sampled
