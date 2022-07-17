@@ -92,146 +92,43 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     
     # Return
     return pops
+
+    
 #simulations
 
 # To reset between methodologies so all methodologies have same variates
 #  while populations still have different variates
 beta_rng = helper.Beta_rng(1234, 7, 28, 14, 2.9)
-def first_delay_func(shape):
+def synced_delay_func(shape):
     return beta_rng.gen(shape).astype('int')
 
 def get_traditional_methodology():
     methodology = Methodology('traditonal')
-    methodology.add_sampler(TraditionalSampler(day=0, delay=first_delay_func))
+    methodology.add_sampler(TraditionalSampler(day=0, delay=synced_delay_func))
     methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
     methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
 
     return methodology
-def get_realistic_symptom_methodology():
-    methodology = Methodology('realistic_symptom')
+def get_realistic_methodology(scorename, scoreMIN, delayless=False):
+    title_prefix = 'delayless_' if delayless else ''
+    methodology = Methodology(f'{title_prefix}realistic_{scorename}')
 
+    first_delay = 0 if delayless else synced_delay_func
     #limit is irrelevant because max(day+delay) < NDAYS
     #if_reached is irrelevant because first sampling method
-    sampler1 = TraditionalSampler(day=0, delay=first_delay_func)
+    sampler1 = TraditionalSampler(day=0, delay=first_delay)
     methodology.add_sampler(sampler1)
 
+    other_delay = 0 if delayless else lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
     #if_reached is irrelevant because index is previous sample
-    other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
-    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='symptom',
-                            delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
+    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename=scorename,
+                            delay=other_delay, triggered_by_equal=True, min_triggered=2,
                             limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=SMIN+1, scorename='symptom',
-                                delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
-                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler3)
-
-    return methodology
-def get_realistic_symptom_noerror_methodology():
-    methodology = Methodology('realistic_symptom_noerror')
-
-    #limit is irrelevant because max(day+delay) < NDAYS
-    #if_reached is irrelevant because first sampling method
-    sampler1 = TraditionalSampler(day=0, delay=first_delay_func)
-    methodology.add_sampler(sampler1)
-
-    #if_reached is irrelevant because index is previous sample
-    other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
-    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='symptom_noerror',
-                            delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
-                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler2)
-
-    #same delay as previous
-    sampler3 = MagnitudeSampler(value=1, scorename='symptom_noerror',
-                                delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
-                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler3)
-
-    return methodology
-def get_realistic_visual_methodology():
-    methodology = Methodology('realistic_visual')
-
-    #limit is irrelevant because max(day+delay) < NDAYS
-    #if_reached is irrelevant because first sampling method
-    sampler1 = TraditionalSampler(day=0, delay=first_delay_func)
-    methodology.add_sampler(sampler1)
-
-    #if_reached is irrelevant because index is previous sample
-    other_delay_func = lambda shape: helper.beta(shape, 0, 14, 4, 3.8).astype('int') #90% at 7
-    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='visual',
-                            delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
-                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler2)
-
-    #same delay as previous
-    sampler3 = MagnitudeSampler(value=VMIN+1, scorename='visual',
-                                delay=other_delay_func, triggered_by_equal=True, min_triggered=2,
-                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler3)
-
-    return methodology
-def get_delayless_realistic_symptom_methodology():
-    methodology = Methodology('delayless_realistic_symptom')
-
-    #limit is irrelevant because max(day+delay) < NDAYS
-    #if_reached is irrelevant because first sampling method
-    sampler1 = TraditionalSampler(day=0, delay=0)
-    methodology.add_sampler(sampler1)
-
-    #if_reached is irrelevant because index is previous sample
-    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='symptom',
-                            delay=0, triggered_by_equal=True, min_triggered=2,
-                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler2)
-
-    #same delay as previous
-    sampler3 = MagnitudeSampler(value=SMIN+1, scorename='symptom',
-                                delay=0, triggered_by_equal=True, min_triggered=2,
-                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler3)
-
-    return methodology
-def get_delayless_realistic_symptom_noerror_methodology():
-    methodology = Methodology('delayless_realistic_symptom_noerror')
-
-    #limit is irrelevant because max(day+delay) < NDAYS
-    #if_reached is irrelevant because first sampling method
-    sampler1 = TraditionalSampler(day=0, delay=0)
-    methodology.add_sampler(sampler1)
-
-    #if_reached is irrelevant because index is previous sample
-    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='symptom_noerror',
-                            delay=0, triggered_by_equal=True, min_triggered=2,
-                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler2)
-
-    #same delay as previous
-    sampler3 = MagnitudeSampler(value=1, scorename='symptom_noerror',
-                                delay=0, triggered_by_equal=True, min_triggered=2,
-                                limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler3)
-
-    return methodology
-def get_delayless_realistic_visual_methodology():
-    methodology = Methodology('delayless_realistic_visual')
-
-    #limit is irrelevant because max(day+delay) < NDAYS
-    #if_reached is irrelevant because first sampling method
-    sampler1 = TraditionalSampler(day=0, delay=0)
-    methodology.add_sampler(sampler1)
-
-    #if_reached is irrelevant because index is previous sample
-    sampler2 = SmileSampler(index=('sample', -1), ratio=0.5, scorename='visual',
-                            delay=0, triggered_by_equal=True, min_triggered=2,
-                            limit=(LASTVISIT, 'clip'), if_reached='NaN')
-    methodology.add_sampler(sampler2)
-
-    #same delay as previous
-    sampler3 = MagnitudeSampler(value=VMIN+1, scorename='visual',
-                                delay=0, triggered_by_equal=True, min_triggered=2,
+    sampler3 = MagnitudeSampler(value=scoreMIN+1, scorename=scoreMIN,
+                                delay=other_delay, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
 
@@ -301,12 +198,12 @@ def simulate(npops, npersons, slope_options, error_options, index=None, seed=123
     #create
     methodologies = [
         get_traditional_methodology(),
-        get_realistic_symptom_methodology(),
-        get_realistic_symptom_noerror_methodology(),
-        get_realistic_visual_methodology(),
-        get_delayless_realistic_symptom_methodology(),
-        get_delayless_realistic_symptom_noerror_methodology(),
-        get_delayless_realistic_visual_methodology()
+        get_realistic_methodology('symptom', SMIN),
+        get_realistic_methodology('symptom_noerror', SMIN),
+        get_realistic_methodology('visual', VMIN),
+        get_realistic_methodology('symptom', SMIN, delayless=True),
+        get_realistic_methodology('symptom_noerror', SMIN, delayless=True),
+        get_realistic_methodology('visual', VMIN, delayless=True)
     ]
 
     #preallocate arrays
