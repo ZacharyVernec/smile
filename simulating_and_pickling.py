@@ -238,7 +238,7 @@ def get_delayless_realistic_visual_methodology():
     return methodology
 
 
-def simulate(npops, index=None, seed=1234):
+def simulate(npops, npersons, slope_options, error_options, index=None, seed=1234):
     if index is not None: 
         suffix='_'+str(index)
         verbose = False
@@ -247,14 +247,14 @@ def simulate(npops, index=None, seed=1234):
         verbose = True
 
     #preallocate arrays
-    poplists_shape = (len(slope_options), len(error_options)) #TODO pass as param
+    poplists_shape = (len(slope_options), len(error_options))
     poplists = np.empty(poplists_shape, dtype=object)
 
     #create and generate
     for i, j in np.ndindex(poplists_shape):
         if verbose: print(i, j)
         options = (slope_options[i], error_options[j])
-        poplists[i, j] = get_populations(*options, npersons, npops) #TODO pass npersons as param
+        poplists[i, j] = get_populations(*options, npersons, npops)
         poplists[i, j].generate()
 
     #pickle
@@ -357,7 +357,7 @@ try:
     seeds = ss.spawn(nsims+1) #at least as many as calls to simulate()
 
     for i in range(nsims):
-        simulate(npops=npops_per_sim, index=i, seed=seeds[i])
+        simulate(npops_per_sim, npersons, slope_options, error_options, index=i, seed=seeds[i])
         print(f"Done {npops_per_sim*(i+1)}/{npops}")
     if npops_remainder > 0:
         simulate(npops=npops_remainder, index=nsims, seed=seeds[-1])
