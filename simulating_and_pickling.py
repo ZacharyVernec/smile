@@ -111,7 +111,7 @@ def get_traditional_methodology():
     methodology.add_sampler(TraditionalSampler(day=('sample', -1), delay=14))
 
     return methodology
-def get_realistic_methodology(scorename, scoreMIN, delayless=False):
+def get_realistic_methodology(scorename, delayless=False):
     title_prefix = 'delayless_' if delayless else ''
     methodology = Methodology(f'{title_prefix}realistic_{scorename}')
 
@@ -129,7 +129,7 @@ def get_realistic_methodology(scorename, scoreMIN, delayless=False):
     methodology.add_sampler(sampler2)
 
     #same delay as previous
-    sampler3 = MagnitudeSampler(value=scoreMIN+1, scorename=scoreMIN,
+    sampler3 = MagnitudeSampler(value=1+get_MIN(scorename), scorename=scorename,
                                 delay=other_delay, triggered_by_equal=True, min_triggered=2,
                                 limit=(LASTVISIT, 'clip'), if_reached='NaN')
     methodology.add_sampler(sampler3)
@@ -196,12 +196,12 @@ def simulate(npops, npersons, slope_options, error_options, index=None, seed=123
     #create
     methodologies = [
         get_traditional_methodology(),
-        get_realistic_methodology('symptom', SMIN),
-        get_realistic_methodology('symptom_noerror', SMIN),
-        get_realistic_methodology('visual', VMIN),
-        get_realistic_methodology('symptom', SMIN, delayless=True),
-        get_realistic_methodology('symptom_noerror', SMIN, delayless=True),
-        get_realistic_methodology('visual', VMIN, delayless=True)
+        get_realistic_methodology('symptom'),
+        get_realistic_methodology('symptom_noerror'),
+        get_realistic_methodology('visual'),
+        get_realistic_methodology('symptom', delayless=True),
+        get_realistic_methodology('symptom_noerror', delayless=True),
+        get_realistic_methodology('visual', delayless=True)
     ]
 
     #preallocate arrays
