@@ -358,7 +358,7 @@ class SmileSampler(Sampler):
         self.ratio = ratio
         
         #check and set scorename
-        if scorename not in {'symptom', 'visual', 'symptom_noerror'}:
+        if scorename not in {'symptom', 'visual', 'symptom_noerror', 'visual_yeserror'}:
             raise ValueError(f"scorename of {scorename} not understood")
         self.scorename = scorename
         
@@ -452,7 +452,7 @@ class MagnitudeSampler(Sampler):
         super().__init__(name='magnitude', **kwargs)
                                          
         #check and set scorename
-        if scorename not in {'symptom', 'visual', 'symptom_noerror'}:
+        if scorename not in {'symptom', 'visual', 'symptom_noerror', 'visual_yeserror'}:
             raise ValueError(f"scorename of {scorename} not understood")
         self.scorename = scorename
         

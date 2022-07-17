@@ -11,7 +11,7 @@ scoretype = np.float32
 VMIN = 6 #minimum possible visual score
 SMIN = 0 #minimum possible symptom score
 def get_MIN(scorename):
-    if scorename == 'visual': return VMIN
+    if scorename in {'visual', 'visual_yeserror'}: return VMIN
     elif scorename in {'symptom', 'symptom_noerror'}: return SMIN
     else: raise ValueError(f"Scorename of {scorename} not known")
 

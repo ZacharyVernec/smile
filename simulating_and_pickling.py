@@ -82,10 +82,12 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     pop.set_parameter_generator('a', gen_a, 'population')
     
     # Define and set error functions
-    #Multiplicative
+    #Symptom
     pop.set_score_generator('symptom', lambda s,C: np.minimum(s*C, 30))
     gen_C_mul = lambda shape: np.random.uniform(1-error_option, 1+error_option, shape)
     pop.set_parameter_generator('C', gen_C_mul, 'day')
+    #Visual (same error parameter)
+    pop.set_score_generator('visual_yeserror', lambda v,C: np.maximum(v*C, VMIN))
 
     # Repeat
     pops = PopulationList.full(npops, pop)
@@ -93,7 +95,7 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     # Return
     return pops
 
-    
+
 #simulations
 
 # To reset between methodologies so all methodologies have same variates
@@ -165,17 +167,13 @@ def simulate(npops, npersons, slope_options, error_options, index=None, seed=123
     def get_filter(scorename):
         return {'filter_type':'ratio_early', 'copy':True,
                 'index_day':0, 'recovered_ratio':0.3, 'scorename':scorename}
-    filters = {'symptom': get_filter('symptom'),
-               'symptom_noerror': get_filter('symptom_noerror'),
-               'visual': get_filter('visual')}
+    scorenames = ['symptom', 'symptom_noerror', 'visual', 'visual_yeserror']
+    filters = {scorename: get_filter(scorename) for scorename in scorenames}
 
     #preallocate
     filteredout = np.ones(npersons*npops, dtype=bool)
     df_index = pd.MultiIndex.from_product([range(npops), range(npersons)], names=['pop', 'person'])
-    df = pd.DataFrame({'symptom':filteredout, 
-                       'symptom_noerror':filteredout.copy(), 
-                       'visual':filteredout.copy()},
-                       index=df_index)
+    df = pd.DataFrame({scorename: filteredout.copy() for scorename in scorenames}, index=df_index)
     dfs = np.empty(poplists_shape, dtype=object)
 
     #filter

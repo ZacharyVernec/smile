@@ -37,7 +37,8 @@ class Population:
         self.days = np.tile(np.arange(self.initial_ndays), (self.initial_npersons,1))
         self.scores = {'visual':None, 
                        'symptom_noerror':None, 
-                       'symptom':None}
+                       'symptom':None,
+                       'visual_yeserror':None}
         
     def __eq__(self, other): #TODO implement checking parameter and function generators
         """
