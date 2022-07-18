@@ -77,14 +77,14 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     pop.set_parameter_generator('v0', gen_v0, 'person')
     
     #Define and set symptom score functions
-    gen_symptomscores = lambda v,a: a*(v-VMIN)
+    gen_symptomscores = lambda v,a: np.minimum(a*(v-VMIN), 20)
     pop.set_score_generator('symptom_noerror', gen_symptomscores)
     gen_a = lambda shape: slope_option
     pop.set_parameter_generator('a', gen_a, 'population')
     
     # Define and set error functions
     #Symptom
-    pop.set_score_generator('symptom', lambda s,C: np.minimum(s*C, 30))
+    pop.set_score_generator('symptom', lambda s,C: np.minimum(s*C, 20))
     gen_C_mul = lambda shape: np.random.uniform(1-error_option, 1+error_option, shape)
     pop.set_parameter_generator('C', gen_C_mul, 'day')
     #Visual (same error parameter)
