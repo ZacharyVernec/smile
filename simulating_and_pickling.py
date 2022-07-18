@@ -57,17 +57,18 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     gen_visualscores = lambda t,r,v0: np.maximum(-r*t+v0, VMIN)
     pop.set_score_generator('visual', gen_visualscores)
     #parameter generators
-    #Rate
-    R = helper.Mixture(lower=0, upper=2, 
+    #Rate R (scaled to give proper recovery tails when combined with V_0)
+    R = helper.Mixture(lower=0/slope_option, upper=2/slope_option, 
         mix=0.545868, 
-        locs=np.array([0.0773412, 1.0]), 
-        scales=np.array([0.056342, 0.743547])) 
-    #Initial
-    unique = np.arange(20+1) + VMIN
+        locs=np.array([0.0773412, 1.0])/slope_option, 
+        scales=np.array([0.056342, 0.743547])/slope_option) 
+    #Initial V_0 scaled to visualscore
+    symptom_values = np.arange(20+1) #from symptom reference data
     counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
-    unique, counts = unique[2:], counts[2:] #exclude 0 and 1 values as already healthy
+    symptom_values, counts = symptom_values[2:], counts[2:] #exclude 0 and 1 values as already healthy
+    visual_values = symptom_values / slope_option + VMIN #Since reference data is a measure of symptoms, apply inverse gen_symptomscores
     probs = counts / np.sum(counts)
-    V_0 = stats.rv_discrete(values=(unique, probs))
+    V_0 = helper.Discrete(values=(visual_values, probs))
     #Together give recovery tails of (0.29999967680454737, 0.09999995806927865)
 
     gen_r = lambda shape: R.rvs(size=shape, random_state=rng)

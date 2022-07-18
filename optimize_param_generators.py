@@ -1,4 +1,3 @@
-from git import Reference
 from scipy import stats
 from scipy import optimize
 from scipy import integrate
@@ -6,8 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 from smile import helper
+from smile.global_params import VMIN
 
 np.random.seed(20220609)
+
+VMIN = 6
+slope_option = 3
 
 # To access number of function evals in optim_fun
 class Counter:
@@ -27,16 +30,16 @@ def get_tails_empir(R, V_0, size=10000):
             size: amount of points in simulation
 
         Returns:
-            early_prob: probability of -R*t+V_0 hitting 1 before day 7
-            late_prob: probability of -R*t+V_0 hitting 1 after day 159
+            early_prob: probability of symptom_noerror hitting 1 before day 7
+            late_prob: probability of symptom_noerror hitting 1 after day 159
     '''
     #Random variates
     r = R.rvs(size=size)
     v_0 = V_0.rvs(size=size)
 
     # Simulate to get probabilities
-    early_prob = np.mean(-r*7 + v_0 <= 1) #TODO use smile.global_params
-    late_prob = np.mean(-r*159 + v_0 > 1) #TODO use smile.global_params
+    early_prob = np.mean(-r*7 + v_0 <= 1/slope_option + VMIN)
+    late_prob = np.mean(-r*159 + v_0 > 1/slope_option + VMIN) 
 
     return early_prob, late_prob
 def get_tails_integ(R, V_0):
@@ -49,16 +52,16 @@ def get_tails_integ(R, V_0):
             size: amount of points in simulation
 
         Returns:
-            early_prob: probability of -R*t+V_0 hitting 1 before day 7
-            late_prob: probability of -R*t+V_0 hitting 1 after day 159
+            early_prob: probability of symptom_noerror hitting 1 before day 7
+            late_prob: probability of symptom_noerror hitting 1 after day 159
     '''
 
     # Integrate to get probabilities based on distributions
     # The true formula is a weighted sum of integrals, but the integrals simply calculates a cdf or sf=1-cdf
-    V0_supported_vals = np.arange(V_0.a, V_0.b+1)
+    V0_supported_vals = V_0.xk
     V0_probs = V_0.pmf(V0_supported_vals)
-    early_prob = np.sum(R.sf((V0_supported_vals - 1)/7) * V0_probs)
-    late_prob = np.sum(R.cdf((V0_supported_vals - 1)/159) * V0_probs)
+    early_prob = np.sum(R.sf((V0_supported_vals - 1/slope_option-VMIN)/7) * V0_probs)
+    late_prob = np.sum(R.cdf((V0_supported_vals - 1/slope_option-VMIN)/159) * V0_probs)
 
     return early_prob, late_prob
 
@@ -103,6 +106,8 @@ if __name__ == '__main__':
         get_tails = get_tails_integ
     elif args.method == 'simulation':
         get_tails = lambda R, V_0: get_tails_empir(R, V_0, size=args.n)
+    # Support
+    args.supportR = np.array(args.supportR)
     # Bounds
     args.bounds = optimize.Bounds(np.array(args.lowerboundsR), 
                                   np.array(args.upperboundsR))
@@ -112,9 +117,15 @@ if __name__ == '__main__':
 
     # Function to optimize 
     def optim_fun(params, counter):
+        params = np.array(params)
         # Random variables for visual score defined in simulating_and_pickling as -R*t+V_0
-        R = helper.Mixture(*args.supportR, params[0], params[1:3], params[3:5])
-        V_0 = helper.ReferenceDistrib()
+        R = helper.Mixture(*(args.supportR/slope_option), params[0], params[1:3]/slope_option, params[3:5]/slope_option)
+        symptom_values = np.arange(20+1) #from reference data
+        counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
+        symptom_values, counts = symptom_values[2:], counts[2:] #exclude 0 and 1 values as already healthy
+        visual_values = symptom_values / slope_option + VMIN #Since reference data is a measure of symptoms, apply inverse gen_symptomscores
+        probs = counts / np.sum(counts)
+        V_0 = helper.Discrete(values=(visual_values, probs))
 
         tails = get_tails(R, V_0)
 
@@ -132,15 +143,22 @@ if __name__ == '__main__':
             args=(counter,), 
             method=args.solver, options={'maxiter':args.maxiter},
             tol=args.tol)
-        resultparams = res.x
+        resultparams = np.array(res.x)
         print(res)
     else:
-        resultparams = args.initparams
+        resultparams = np.array(args.initparams)
         
 
     #Result
-    R = helper.Mixture(*args.supportR, resultparams[0], resultparams[1:3], resultparams[3:5])
-    V_0 = helper.ReferenceDistrib()
+    R = helper.Mixture(*(args.supportR/slope_option), resultparams[0], resultparams[1:3]/slope_option, resultparams[3:5]/slope_option)
+    
+    symptom_values = np.arange(20+1) #from reference data
+    counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
+    symptom_values, counts = symptom_values[2:], counts[2:] #exclude 0 and 1 values as already healthy
+    visual_values = symptom_values / slope_option + VMIN #Since reference data is a measure of symptoms, apply inverse gen_symptomscores
+    probs = counts / np.sum(counts)
+    V_0 = helper.Discrete(values=(visual_values, probs))
+
     tails = get_tails(R, V_0)
     print(f"Recovery tails: {tails}")
 
@@ -151,14 +169,14 @@ if __name__ == '__main__':
     fig.suptitle('Found distribution for visual score recovery, which is used like -R*t + V_0\n' +
                 f'obtaining recovery time tails of {tails[0]:g}, {tails[1]:g}')
     #R
-    x = np.linspace(*args.supportR, 5000)
+    x = np.linspace(*(args.supportR/slope_option), 5000)
     y = R.pdf(x)
     axes[0].plot(x, y)
     axes[0].set_title("PDF of R \nParams: " + ", ".join(f"{param:g}" for param in resultparams))
     #V_0
-    x = np.arange(21)
+    x = np.arange(21) / slope_option + VMIN
     y = V_0.pmf(x)
-    axes[1].bar(x, y, width=1)
+    axes[1].bar(x, y, width=1/slope_option)
     axes[1].set_title("PMF of V_0")
 
     plt.tight_layout()
