@@ -24,5 +24,6 @@ __all__ = ["global_params", "population", "sampling"]
 #TODO replace tile(arr, (npersons, 1)) with broadcast_to(arr, (npersons, len(arr)))
 #TODO have population keep track of personnumbers
 #TODO replace callable parameter checking with sets rather than tuples
+#TODO remove meaningless kwarg defaults to avoid user mistakes
 
 #TODO classify todolist into multiple categories

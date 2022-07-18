@@ -9,11 +9,12 @@ scoretype = np.float32
  # Study parameters
 
 VMIN = 6 #minimum possible visual score
-SMIN = 0 #minimum possible symptom score
+SMIN = 0 #minimum possible symptom score #FIXME formula for symptoms needs initial val of SMIN
 def get_MIN(scorename):
     if scorename in {'visual', 'visual_yeserror'}: return VMIN
     elif scorename in {'symptom', 'symptom_noerror'}: return SMIN
     else: raise ValueError(f"Scorename of {scorename} not known")
+#Note: These don't actually clamp values, just provide a reference "zero" for the data to linearly translate to.
 
 NDAYS = 160 #number of days in the study
 FIRSTVISIT = 7
