@@ -62,6 +62,28 @@ class Mixture:
     def sf(self, x):
         return np.average([distrib.sf(x) for distrib in self.distribs], axis=0, weights=self.mix)
 
+class Discrete:
+    """Similar to scipy.stats.rv_discrete but non-integer"""
+    def __init__(self, values):
+        self.xk, self.pk = values
+        if len(self.xk) != len(np.unique(self.xk)): raise ValueError()
+        if len(self.xk) != len(self.pk): raise ValueError()
+        if np.sum(self.pk) != 1: raise ValueError()
+        self.lookup = dict(zip(self.xk, self.pk))
+
+        self.a, self.b = np.min(self.xk), np.max(self.xk)
+
+        self.index_gen = stats.rv_discrete(values=(np.arange(len(self.xk)), self.pk))
+
+    def pmf(self, xs):
+        try: #iterable
+            return np.array([self.lookup.get(x, 0.0) for x in xs])
+        except TypeError:
+            return self.lookup.get(xs, 0.0)
+
+    def rvs(self, size=None, random_state=None):
+        indices = self.index_gen.rvs(size=size, random_state=random_state)
+        return self.xk[indices]
 
 def beta(shape=1, left_bound=0, interval_length=1, mode=0.5, a=1):
         '''
