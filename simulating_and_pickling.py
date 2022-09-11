@@ -21,7 +21,7 @@ seed = 542705034
 np.random.seed(seed)
 rng = np.random.default_rng(547263468)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_14'
+pickle_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_15'
 
 # Pickling functions
 def dump_to_file(obj, filename, filesuffix='.pik', 

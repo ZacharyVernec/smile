@@ -16,8 +16,8 @@ import pandas as pd
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_14'
-pickle_csv_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_14_csv'
+pickle_pops_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_15'
+pickle_csv_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_15_csv'
 
 
 
@@ -99,14 +99,14 @@ for n in range(nsims):
             pop = poplist[l]
             df = pop.to_dataframe()
             #Basic
-            dump_to_csv_file(df, foldername+f"_population_{n*npops_per_sim+l}_sampled_{method_options[k]}", filesuffix='.csv', 
-                             dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
+            # dump_to_csv_file(df, foldername+f"_population_{n*npops_per_sim+l}_sampled_{method_options[k]}", filesuffix='.csv', 
+            #                  dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
             #Days only
             dfscoreless = df[['person', 'day']] #remove scores
             dflists = dfscoreless.groupby('person').agg(list) #aggregate each person's days into lists
             dfdays = pd.DataFrame(dflists['day'].to_list()).set_index(dflists.index) #split lists back into columns
             dump_to_csv_file(dfdays, foldername+f"_population_{n*npops_per_sim+l}_sampled_{method_options[k]}_daysonly", filesuffix='.csv',
                              dirname=os.path.join(pickle_csv_dir, foldername), create_newdir=True, avoid_overwrite=True)
-
+    print(n)
             
 # use python -u to_csv.py 2>&1 | tee to_csv_out.txt
