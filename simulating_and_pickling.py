@@ -57,11 +57,6 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     gen_visualscores = lambda t,r,v0: np.maximum(-r*t+v0, VMIN)
     pop.set_score_generator('visual', gen_visualscores)
     #parameter generators
-    #Rate R (scaled to give proper recovery tails when combined with V_0)
-    R = helper.Mixture(lower=0/slope_option, upper=2/slope_option, 
-        mix=0.545868, 
-        locs=np.array([0.0773412, 1.0])/slope_option, 
-        scales=np.array([0.056342, 0.743547])/slope_option) 
     #Initial V_0 scaled to visualscore
     symptom_values = np.arange(20+1) #from symptom reference data
     counts = np.array([0, 34, 38, 26, 32, 30, 12, 14, 12, 12, 12, 7, 8, 5, 5, 5, 3, 1, 0, 3, 3], dtype=int)
@@ -71,9 +66,9 @@ def get_populations(slope_option, error_option, npersons=100, npops=100):
     V_0 = helper.Discrete(values=(visual_values, probs))
     #Together give recovery tails of (0.29999967680454737, 0.09999995806927865)
 
-    gen_r = lambda shape: R.rvs(size=shape, random_state=rng)
+    gen_r = lambda shape: 0.5014 / slope_option #Based on empirical mean of Mixture in previous version
     gen_v0 = lambda shape: V_0.rvs(size=shape, random_state=rng)
-    pop.set_parameter_generator('r', gen_r, 'person')
+    pop.set_parameter_generator('r', gen_r, 'population')
     pop.set_parameter_generator('v0', gen_v0, 'person')
     
     #Define and set symptom score functions
