@@ -50,8 +50,8 @@ def dump_to_csv_file(df, filename, filesuffix='.csv',
 #parameters
 npersons=1000 #per population
 npops=100 #across all files
-slope_options = (1, 2, 3)
-error_options = (0.3, 0.5)
+slope_options = (1,)
+error_options = (0.5,)
 method_options = (
     "traditional",
     "realistic_symptom",

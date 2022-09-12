@@ -220,8 +220,8 @@ def simulate(npops, npersons, slope_options, error_options, index=None, seed=123
 #parameters
 npersons=1000
 npops=100
-slope_options = (1, 2, 3)
-error_options = (0.3, 0.5)
+slope_options = (1,)
+error_options = (0.5,)
 
 #printing
 print("Test parameters:")
