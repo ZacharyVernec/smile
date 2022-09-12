@@ -16,8 +16,8 @@ import pandas as pd
 seed = 3 # chosen by fair dice roll. guaranteed to be random. https://xkcd.com/221/
 np.random.seed(seed)
 np.set_printoptions(edgeitems=30, linewidth=100000)
-pickle_pops_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_15'
-pickle_csv_dir = r'C:\Users\zachv\Desktop\smile_desk\simulating_15_csv'
+pickle_pops_dir = r'D:\Work\smile_desk\simulating_16'
+pickle_csv_dir = r'D:\Work\smile_desk\simulating_16_csv'
 
 
 
